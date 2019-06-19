@@ -1,0 +1,4 @@
+{
+    "editor.formatOnSave": true,
+    "python.pythonPath": "venv/bin/python"
+}

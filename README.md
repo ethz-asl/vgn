@@ -1,2 +1,1 @@
-# michel_awesome_repository
-blabal
+# Volumetric Grasping Network
