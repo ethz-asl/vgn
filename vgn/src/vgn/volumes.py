@@ -2,8 +2,6 @@ from mayavi import mlab
 import numpy as np
 import open3d
 
-from vgn.utils import ros_conversions, rviz_tools
-
 
 class TSDFVolume(object):
     """Integration of multiple depth images using a TSDF.
