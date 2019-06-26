@@ -15,7 +15,8 @@ class Simulation(object):
         sim_time: The current virtual time.
     """
 
-    def __init__(self, visualize):
+    def __init__(self, length, visualize):
+        self.length = length
         connection_mode = pybullet.GUI if visualize else pybullet.DIRECT
         self._p = bullet_client.BulletClient(connection_mode=connection_mode)
 
@@ -45,7 +46,7 @@ class Simulation(object):
         # Load a scene
         self._p.loadURDF('data/urdfs/plane/plane.urdf', [0., 0., 0.1])
         self._p.loadURDF('data/urdfs/wooden_blocks/cuboid0.urdf',
-                         [0., 0., 0.2], globalScaling=1.)
+                         [0.5*self.length, 0.5*self.length, 0.2], globalScaling=1.)
 
         # Start the simulation
         self.sim_time = 0.
