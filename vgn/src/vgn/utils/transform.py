@@ -28,7 +28,7 @@ class Transform(object):
         return self.__class__(rotation, translation)
 
     def transform_point(self, point):
-        raise NotImplementedError
+        return self.rotation.apply(point) + self.translation
 
     def transform_vector(self, vector):
         raise NotImplementedError
