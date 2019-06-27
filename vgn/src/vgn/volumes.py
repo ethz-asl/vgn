@@ -15,16 +15,19 @@ class TSDFVolume(object):
     def __init__(self, length, resolution):
         self._resolution = resolution
         self._voxel_length = length / self._resolution
+        self._sdf_trunc = 4 * self._voxel_length
 
         self._volume = open3d.integration.UniformTSDFVolume(
             length=length,
             resolution=self._resolution,
-            sdf_trunc=4*self._voxel_length,
-            color_type=open3d.integration.TSDFVolumeColorType.RGB8)
+            sdf_trunc=self._sdf_trunc,
+            color_type=open3d.integration.TSDFVolumeColorType.None)
 
     def integrate(self, rgb, depth, intrinsic, extrinsic):
         """
         Args:
+            rgb
+            depth
             intrinsic: The intrinsic parameters of a pinhole camera model.
             extrinsics: The transform from world to camera coordinages, T_eye_world.
         """
@@ -46,6 +49,13 @@ class TSDFVolume(object):
         extrinsic = extrinsic.as_matrix()
 
         self._volume.integrate(rgbd, intrinsic, extrinsic)
+
+    def get_point_cloud(self):
+        point_cloud = self._volume.extract_point_cloud()
+        points = np.asarray(point_cloud.points)
+        colors = np.asarray(point_cloud.colors)
+        normals = np.asarray(point_cloud.normals)
+        return points, colors, normals
 
     def draw_point_cloud(self):
         point_cloud = self._volume.extract_point_cloud()

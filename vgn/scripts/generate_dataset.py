@@ -19,6 +19,10 @@ def main():
                         help='Disable visualizations')
     args = parser.parse_args()
 
+    if not args.no_visualize:
+        import rospy
+        rospy.init_node('generate_dataset')
+
     generate_dataset(dataset_path=args.dataset_path,
                      n_scenes=args.n_scenes,
                      n_grasps_per_scene=args.n_grasps_per_scene,
