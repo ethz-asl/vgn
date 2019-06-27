@@ -45,8 +45,11 @@ class Simulation(object):
 
         # Load a scene
         self._p.loadURDF('data/urdfs/plane/plane.urdf', [0., 0., 0.1])
+        position = np.r_[np.random.uniform(0.2*self.length,
+                                           0.8*self.length,
+                                           size=(2,)), 0.2]
         self._p.loadURDF('data/urdfs/wooden_blocks/cuboid0.urdf',
-                         [0.5*self.length, 0.5*self.length, 0.2], globalScaling=1.)
+                         position, globalScaling=1.)
 
         # Start the simulation
         self.sim_time = 0.
