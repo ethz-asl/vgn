@@ -1,10 +1,21 @@
-"""Common conversions between python objects and ROS messages."""
-
-import geometry_msgs.msg
-import numpy as np
-import rospy
-from sensor_msgs.msg import PointCloud2, PointField
 import std_msgs.msg
+from sensor_msgs.msg import PointCloud2, PointField
+import numpy as np
+import geometry_msgs.msg
+import rospy
+
+cached_publishers = {}
+
+
+def publish(msg, topic):
+    """Publish message on the given topic."""
+    global cached_publishers
+    if topic in cached_publishers:
+        publisher = cached_publishers[topic]
+    else:
+        publisher = rospy.Publisher(topic, type(msg), queue_size=10)
+        cached_publishers[topic] = publisher
+    publisher.publish(msg)
 
 
 def as_point_msg(position):
@@ -41,6 +52,14 @@ def as_pose_msg(transform):
     msg = geometry_msgs.msg.Pose()
     msg.position = as_point_msg(transform.translation)
     msg.orientation = as_quat_msg(transform.rotation)
+    return msg
+
+
+def as_tf_msg(transform):
+    """Represent a `Transform` object as a Transform message."""
+    msg = geometry_msgs.msg.Transform()
+    msg.translation = as_vector3_msg(transform.translation)
+    msg.rotation = as_quat_msg(transform.rotation)
     return msg
 
 
