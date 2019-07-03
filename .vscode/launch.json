@@ -18,6 +18,9 @@
             "program": "${workspaceFolder}/vgn/scripts/generate_dataset.py",
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
+            "args": [
+                "--no-rviz"
+            ]
         }
     ]
 }

@@ -15,11 +15,14 @@ def main():
                         help='Number of grasps sampled per scene')
     parser.add_argument('--n-workers', type=int, default=1,
                         help='Number of processes used for the data generation')
-    parser.add_argument('--no-visualize', action='store_true',
-                        help='Disable visualizations')
+    parser.add_argument('--no-sim-gui', action='store_true',
+                        help='Run simulation in headless mode')
+    parser.add_argument('--no-rviz', action='store_true',
+                        help='Disable rviz visualizations')
     args = parser.parse_args()
 
-    if not args.no_visualize:
+    if not args.no_rviz:
+        # Only import ROS packages if rviz visualization is requested
         import rospy
         rospy.init_node('generate_dataset')
 
@@ -27,7 +30,8 @@ def main():
                      n_scenes=args.n_scenes,
                      n_grasps_per_scene=args.n_grasps_per_scene,
                      n_workers=args.n_workers,
-                     visualize=not args.no_visualize)
+                     sim_gui=not args.no_sim_gui,
+                     rviz=not args.no_rviz,)
 
 
 if __name__ == '__main__':

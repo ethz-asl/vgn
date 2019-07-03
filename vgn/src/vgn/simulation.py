@@ -15,9 +15,9 @@ class Simulation(object):
         sim_time: The current virtual time.
     """
 
-    def __init__(self, length, visualize):
+    def __init__(self, length, gui):
         self.length = length
-        connection_mode = pybullet.GUI if visualize else pybullet.DIRECT
+        connection_mode = pybullet.GUI if gui else pybullet.DIRECT
         self._p = bullet_client.BulletClient(connection_mode=connection_mode)
 
         self.sim_time = 0.
