@@ -1,4 +1,3 @@
-from mayavi import mlab
 import numpy as np
 import open3d
 
