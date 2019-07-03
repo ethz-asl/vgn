@@ -1,5 +1,12 @@
 import numpy as np
-from scipy.spatial.transform import Rotation
+import scipy.spatial.transform
+
+
+class Rotation(scipy.spatial.transform.Rotation):
+
+    @classmethod
+    def identity(cls):
+        return cls.from_quat([0., 0., 0., 1.])
 
 
 class Transform(object):
@@ -11,11 +18,11 @@ class Transform(object):
     """
 
     def __init__(self, rotation, translation):
-        assert isinstance(rotation, Rotation)
-        assert isinstance(translation, np.ndarray)
+        assert isinstance(rotation, scipy.spatial.transform.Rotation)
+        assert isinstance(translation, (np.ndarray, list))
 
         self.rotation = rotation
-        self.translation = translation
+        self.translation = np.asarray(translation)
 
     def as_matrix(self):
         """Represent as a 4x4 matrix."""
