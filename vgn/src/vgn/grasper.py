@@ -18,4 +18,8 @@ class Grasper(object):
         self.robot.close_gripper()
         self.robot.move_tcp_xyz(T_body_pregrasp)
 
-        return 1.0
+        threshold = 0.2
+        if self.robot.get_gripper_opening_width() > threshold:
+            return True
+        else:
+            return False

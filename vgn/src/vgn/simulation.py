@@ -113,6 +113,10 @@ class Simulation(robot.Robot):
         T_world_tool0 = Transform(Rotation.from_quat(ori), list(pos))
         return T_world_tool0 * self.T_tcp_tool0.inverse()
 
+    def get_gripper_opening_width(self):
+        states = self._p.getJointStates(self.robot_uid, [0, 1])
+        return 20. * (states[0][0] + states[1][0])
+
     def set_tcp_pose(self, pose, override_dynamics=True):
         T_world_tool0 = pose * self.T_tcp_tool0
 

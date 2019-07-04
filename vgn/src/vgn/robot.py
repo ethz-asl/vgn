@@ -1,7 +1,15 @@
 class Robot(object):
 
+    def get_tcp_pose(self):
+        """Return the pose of the TCP in body frame."""
+        raise NotImplementedError
+
+    def get_gripper_opening_width(self):
+        """Return the gripper opening width, normalized to [0, 1]."""
+        raise NotImplementedError
+
     def set_tcp_pose(self, target_pose):
-        """Move the tool center point to the given pose.
+        """Move the TCP to the given pose.
 
         Args:
             target_pose: The target pose of the TCP in body frame, T_body_tcp.
