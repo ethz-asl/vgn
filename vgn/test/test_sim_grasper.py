@@ -27,9 +27,8 @@ def main():
         s.restore_state()
         s.sleep(1.0)
         result = g.grasp(T_world_tcp)
+        print(result)
         s.sleep(1.0)
-
-        assert result
 
 
 if __name__ == '__main__':

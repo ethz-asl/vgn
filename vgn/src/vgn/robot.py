@@ -13,15 +13,22 @@ class Robot(object):
 
         Args:
             target_pose: The target pose of the TCP in body frame, T_body_tcp.
+
+        Returns:
+            False if the target pose is in collision.
         """
         raise NotImplementedError
 
-    def move_tcp_xyz(self, target_pose, eef_step):
+    def move_tcp_xyz(self, target_pose, eef_step, check_collisions):
         """Linearly move the EE in cartesian space to the given pose.
 
         Args:
             target_pose: The target pose of the TCP in body frame.
             eef_step: Path interpolation resolution [m].
+            check_collisions: Abort the movement if a collision is detected.
+
+        Returns:
+            False if a collision was detected.
         """
         raise NotImplementedError
 

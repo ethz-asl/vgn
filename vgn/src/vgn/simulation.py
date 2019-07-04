@@ -64,11 +64,19 @@ class Simulation(robot.Robot):
         self.sim_time = 0.
         self.start_time = time.time()
 
+    def save_state(self):
+        """Save a snapshot of the current configuration."""
+        self._state_id = self._p.saveState()
+
+    def restore_state(self):
+        """Restore the state of the simulation from the latest snapshot."""
+        assert self._state_id is not None, 'save_state must be called first'
+        self._p.restoreState(stateId=self._state_id)
+
     def spawn_plane(self):
         self._p.loadURDF('data/urdfs/plane/plane.urdf', [0., 0., 0.])
 
     def spawn_cuboid(self):
-        """Spawn a cuboid at fixed pose for debugging purpose."""
         position = np.r_[0.1, 0.1, 0.2]
         self._p.loadURDF('data/urdfs/wooden_blocks/cuboid0.urdf', position)
 
@@ -99,15 +107,6 @@ class Simulation(robot.Robot):
             childFramePosition=position,
             childFrameOrientation=orientation)
 
-    def save_state(self):
-        """Save a snapshot of the current configuration."""
-        self._state_id = self._p.saveState()
-
-    def restore_state(self):
-        """Restore the state of the simulation from the latest snapshot."""
-        assert self._state_id is not None, 'save_state must be called first'
-        self._p.restoreState(stateId=self._state_id)
-
     def get_tcp_pose(self):
         pos, ori = self._p.getBasePositionAndOrientation(self.robot_uid)
         T_world_tool0 = Transform(Rotation.from_quat(ori), list(pos))
@@ -116,6 +115,9 @@ class Simulation(robot.Robot):
     def get_gripper_opening_width(self):
         states = self._p.getJointStates(self.robot_uid, [0, 1])
         return 20. * (states[0][0] + states[1][0])
+
+    def detect_collisions(self):
+        return self._p.getContactPoints(self.robot_uid)
 
     def set_tcp_pose(self, pose, override_dynamics=True):
         T_world_tool0 = pose * self.T_tcp_tool0
@@ -132,11 +134,10 @@ class Simulation(robot.Robot):
                                  jointChildFrameOrientation=orientation,
                                  maxForce=300)
 
-    def move_tcp_xyz(self, target_pose, eef_step=0.002, vel=0.05):
-        """
-        Args:
-            eef_step: Path interpolation resolution[m].
-        """
+        self.step()
+        return len(self.detect_collisions()) == 0
+
+    def move_tcp_xyz(self, target_pose, eef_step=0.002, check_collisions=False, vel=0.10):
         pose = self.get_tcp_pose()
         pos_diff = target_pose.translation - pose.translation
         n_steps = int(np.linalg.norm(pos_diff) / eef_step)
@@ -149,13 +150,17 @@ class Simulation(robot.Robot):
             self.set_tcp_pose(pose, override_dynamics=False)
             for _ in range(int(dur_step * self.hz)):
                 self.step()
+            if check_collisions and self.detect_collisions():
+                return False
+
+        return True
 
     def open_gripper(self):
         self._p.setJointMotorControlArray(self.robot_uid,
                                           jointIndices=[0, 1],
                                           controlMode=pybullet.POSITION_CONTROL,
                                           targetPositions=[0.025, 0.025])
-        for _ in range(self.hz):
+        for _ in range(self.hz // 2):
             self.step()
 
     def close_gripper(self):
@@ -164,7 +169,7 @@ class Simulation(robot.Robot):
                                           controlMode=pybullet.POSITION_CONTROL,
                                           targetPositions=[0.0, 0.0],
                                           forces=[10, 10])
-        for _ in range(self.hz):
+        for _ in range(self.hz // 2):
             self.step()
 
 
