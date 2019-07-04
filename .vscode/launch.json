@@ -21,6 +21,14 @@
             "args": [
                 "--no-rviz"
             ]
+        },
+        {
+            "name": "test_sim_grasper",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/vgn/test/test_sim_grasper.py",
+            "cwd": "${workspaceFolder}/vgn",
+            "console": "integratedTerminal",
         }
     ]
 }
