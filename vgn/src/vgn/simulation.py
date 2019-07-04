@@ -4,60 +4,72 @@ import numpy as np
 import pybullet
 from pybullet_utils import bullet_client
 
+from vgn import robot
+from vgn.utils.transform import Rotation, Transform
 from vgn.utils.camera_intrinsics import PinholeCameraIntrinsic
 
 
-class Simulation(object):
+class Simulation(robot.Robot):
     """
+    In this simulation, world, task and body frames are identical.
+
     Attributes:
         camera: A virtual camera.
         robot: A simulated robot hand.
         sim_time: The current virtual time.
     """
 
-    def __init__(self, length, gui):
-        self.length = length
+    def __init__(self, gui):
         connection_mode = pybullet.GUI if gui else pybullet.DIRECT
         self._p = bullet_client.BulletClient(connection_mode=connection_mode)
 
+        self.hz = 240
+        self.dt = 1. / self.hz
+        self.solver_steps = 150
+        self.real_time = gui
         self.sim_time = 0.
-
-        self._time_step = 1. / 240.
-        self._solver_iterations = 150
-        self._real_time = visualize
 
         # Initialize a virtual camera
         intrinsic = PinholeCameraIntrinsic(640, 480, 540., 540., 320., 240.)
         self.camera = Camera(intrinsic, 0.1, 2.0, self._p)
 
-        # Initialize a simulated robot
-        self.robot = Robot()
+        # Static transform between tool0 and tcp
+        self.T_tool0_tcp = Transform(Rotation.identity(), [0., 0., 0.08])
+        self.T_tcp_tool0 = self.T_tool0_tcp.inverse()
 
         # Default initializations
         self._state_id = None
 
     def reset(self):
+        """Reset the state of the physics simulation and create a new scene."""
         self._p.resetSimulation()
-        self._p.setPhysicsEngineParameter(
-            fixedTimeStep=self._time_step,
-            numSolverIterations=self._solver_iterations)
+        self._p.setPhysicsEngineParameter(fixedTimeStep=self.dt,
+                                          numSolverIterations=self.solver_steps)
         self._p.setGravity(0., 0., -9.81)
 
-        # Load a scene
-        self._p.loadURDF('data/urdfs/plane/plane.urdf', [0., 0., 0.1])
-        position = np.r_[np.random.uniform(0.2*self.length,
-                                           0.8*self.length,
-                                           size=(2,)), 0.2]
-        self._p.loadURDF('data/urdfs/wooden_blocks/cuboid0.urdf',
-                         position, globalScaling=1.)
-
-        # Start the simulation
         self.sim_time = 0.
         self._start_time = time.time()
 
-        # Wait unti the objects rest
+    def spawn_plane(self):
+        self._p.loadURDF('data/urdfs/plane/plane.urdf', [0., 0., 0.])
+
+    def spawn_cuboid(self):
+        """Spawn a cuboid at fixed pose for debugging purpose."""
+        position = np.r_[0.1, 0.1, 0.2]
+        self._p.loadURDF('data/urdfs/wooden_blocks/cuboid0.urdf', position)
+
+        # wait for the object to rest
         while self.sim_time < 1.0:
             self._step()
+
+    def spawn_objects(self):
+        # position = np.r_[np.random.uniform(0.2*self.length,
+        #                                    0.8*self.length, size=(2,)), 0.2]
+        pass
+
+    def spawn_robot(self):
+        self._robot_uid = self._p.loadURDF('data/urdfs/hand/hand.urdf',
+                                           basePosition=[0., 0., 1.])
 
     def save_state(self):
         """Save a snapshot of the current configuration."""
@@ -68,30 +80,56 @@ class Simulation(object):
         assert self._state_id is not None, 'save_state must be called first'
         self._p.restoreState(stateId=self._state_id)
 
+    def set_tcp_pose(self, pose):
+        T_body_tool0 = pose * self.T_tcp_tool0
+
+        position = T_body_tool0.translation
+        orientation = T_body_tool0.rotation.as_quat()
+
+        self._p.resetBasePositionAndOrientation(self._robot_uid,
+                                                position, orientation)
+
+        self._cuid = self._p.createConstraint(
+            parentBodyUniqueId=self._robot_uid,
+            parentLinkIndex=-1,
+            childBodyUniqueId=-1,
+            childLinkIndex=-1,
+            jointType=pybullet.JOINT_FIXED,
+            jointAxis=[0., 0., 0.],
+            parentFramePosition=[0., 0., 0.],
+            childFramePosition=position,
+            childFrameOrientation=orientation)
+
+    def move_tcp_xyz(self, displacement, eef_step):
+        """
+        Args:
+            eef_step: Path interpolation resolution[m].
+        """
+        pass
+
+    def open_gripper(self):
+        self._p.setJointMotorControlArray(self._robot_uid,
+                                          jointIndices=[0, 1],
+                                          controlMode=pybullet.POSITION_CONTROL,
+                                          targetPositions=[0.025, 0.025])
+        for _ in range(self.hz):
+            self._step()
+
+    def close_gripper(self):
+        self._p.setJointMotorControlArray(self._robot_uid,
+                                          jointIndices=[0, 1],
+                                          controlMode=pybullet.POSITION_CONTROL,
+                                          targetPositions=[0.0, 0.0],
+                                          forces=[15, 15])
+        for _ in range(self.hz):
+            self._step()
+
     def _step(self):
         self._p.stepSimulation()
-        self.sim_time += self._time_step
-        if self._real_time:
+        self.sim_time += self.dt
+        if self.real_time:
             real_time = time.time()
             time.sleep(max(0., self.sim_time - real_time + self._start_time))
-
-
-class Robot(object):
-
-    def reset(self):
-        pass
-
-    def set_ee_pose(self, pose):
-        pass
-
-    def move_ee_xyz(self, displacement, ee_step):
-        pass
-
-    def open_hand(self):
-        pass
-
-    def close_hand(self):
-        pass
 
 
 class Camera(object):
