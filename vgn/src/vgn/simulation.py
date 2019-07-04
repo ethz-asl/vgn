@@ -1,3 +1,5 @@
+from __future__ import division
+
 import time
 
 import numpy as np
@@ -40,6 +42,18 @@ class Simulation(robot.Robot):
         # Default initializations
         self._state_id = None
 
+    def step(self):
+        """Perform one forward step of the physics simulation."""
+        self._p.stepSimulation()
+        self.sim_time += self.dt
+        if self.real_time:
+            time.sleep(max(0., self.sim_time - time.time() + self.start_time))
+
+    def sleep(self, duration):
+        """Pause the simulation for the given duration [s]."""
+        time.sleep(duration)
+        self.start_time += duration
+
     def reset(self):
         """Reset the state of the physics simulation and create a new scene."""
         self._p.resetSimulation()
@@ -48,7 +62,7 @@ class Simulation(robot.Robot):
         self._p.setGravity(0., 0., -9.81)
 
         self.sim_time = 0.
-        self._start_time = time.time()
+        self.start_time = time.time()
 
     def spawn_plane(self):
         self._p.loadURDF('data/urdfs/plane/plane.urdf', [0., 0., 0.])
@@ -59,8 +73,8 @@ class Simulation(robot.Robot):
         self._p.loadURDF('data/urdfs/wooden_blocks/cuboid0.urdf', position)
 
         # wait for the object to rest
-        while self.sim_time < 1.0:
-            self._step()
+        for _ in range(self.hz):
+            self.step()
 
     def spawn_objects(self):
         # position = np.r_[np.random.uniform(0.2*self.length,
@@ -68,8 +82,22 @@ class Simulation(robot.Robot):
         pass
 
     def spawn_robot(self):
-        self._robot_uid = self._p.loadURDF('data/urdfs/hand/hand.urdf',
-                                           basePosition=[0., 0., 1.])
+        position = [0., 0., 1.]
+        orientation = [0., 0., 0., 1.]
+
+        self.robot_uid = self._p.loadURDF('data/urdfs/hand/hand.urdf',
+                                          basePosition=position,
+                                          baseOrientation=orientation)
+        self.cuid = self._p.createConstraint(
+            parentBodyUniqueId=self.robot_uid,
+            parentLinkIndex=-1,
+            childBodyUniqueId=-1,
+            childLinkIndex=-1,
+            jointType=pybullet.JOINT_FIXED,
+            jointAxis=[0., 0., 0.],
+            parentFramePosition=[0., 0., 0.],
+            childFramePosition=position,
+            childFrameOrientation=orientation)
 
     def save_state(self):
         """Save a snapshot of the current configuration."""
@@ -80,56 +108,60 @@ class Simulation(robot.Robot):
         assert self._state_id is not None, 'save_state must be called first'
         self._p.restoreState(stateId=self._state_id)
 
-    def set_tcp_pose(self, pose):
-        T_body_tool0 = pose * self.T_tcp_tool0
+    def get_tcp_pose(self):
+        pos, ori = self._p.getBasePositionAndOrientation(self.robot_uid)
+        T_world_tool0 = Transform(Rotation.from_quat(ori), list(pos))
+        return T_world_tool0 * self.T_tcp_tool0.inverse()
 
-        position = T_body_tool0.translation
-        orientation = T_body_tool0.rotation.as_quat()
+    def set_tcp_pose(self, pose, override_dynamics=True):
+        T_world_tool0 = pose * self.T_tcp_tool0
 
-        self._p.resetBasePositionAndOrientation(self._robot_uid,
-                                                position, orientation)
+        position = T_world_tool0.translation
+        orientation = T_world_tool0.rotation.as_quat()
 
-        self._cuid = self._p.createConstraint(
-            parentBodyUniqueId=self._robot_uid,
-            parentLinkIndex=-1,
-            childBodyUniqueId=-1,
-            childLinkIndex=-1,
-            jointType=pybullet.JOINT_FIXED,
-            jointAxis=[0., 0., 0.],
-            parentFramePosition=[0., 0., 0.],
-            childFramePosition=position,
-            childFrameOrientation=orientation)
+        if override_dynamics:
+            self._p.resetBasePositionAndOrientation(self.robot_uid,
+                                                    position, orientation)
 
-    def move_tcp_xyz(self, displacement, eef_step):
+        self._p.changeConstraint(self.cuid,
+                                 jointChildPivot=position,
+                                 jointChildFrameOrientation=orientation,
+                                 maxForce=300)
+
+    def move_tcp_xyz(self, target_pose, eef_step=0.002, vel=0.05):
         """
         Args:
             eef_step: Path interpolation resolution[m].
         """
-        pass
+        pose = self.get_tcp_pose()
+        pos_diff = target_pose.translation - pose.translation
+        n_steps = int(np.linalg.norm(pos_diff) / eef_step)
+
+        dist_step = pos_diff / n_steps
+        dur_step = np.linalg.norm(dist_step) / vel
+
+        for _ in range(n_steps):
+            pose.translation += dist_step
+            self.set_tcp_pose(pose, override_dynamics=False)
+            for _ in range(int(dur_step * self.hz)):
+                self.step()
 
     def open_gripper(self):
-        self._p.setJointMotorControlArray(self._robot_uid,
+        self._p.setJointMotorControlArray(self.robot_uid,
                                           jointIndices=[0, 1],
                                           controlMode=pybullet.POSITION_CONTROL,
                                           targetPositions=[0.025, 0.025])
         for _ in range(self.hz):
-            self._step()
+            self.step()
 
     def close_gripper(self):
-        self._p.setJointMotorControlArray(self._robot_uid,
+        self._p.setJointMotorControlArray(self.robot_uid,
                                           jointIndices=[0, 1],
                                           controlMode=pybullet.POSITION_CONTROL,
                                           targetPositions=[0.0, 0.0],
-                                          forces=[15, 15])
+                                          forces=[10, 10])
         for _ in range(self.hz):
-            self._step()
-
-    def _step(self):
-        self._p.stepSimulation()
-        self.sim_time += self.dt
-        if self.real_time:
-            real_time = time.time()
-            time.sleep(max(0., self.sim_time - real_time + self._start_time))
+            self.step()
 
 
 class Camera(object):
