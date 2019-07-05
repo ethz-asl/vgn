@@ -30,7 +30,7 @@ class Grasper(object):
         T_body_pregrasp = T_body_grasp * self.T_grasp_pregrasp
 
         if not self.robot.set_tcp_pose(T_body_pregrasp):
-            return Outcome.COLIISION,
+            return Outcome.COLLISION
 
         self.robot.open_gripper()
 
