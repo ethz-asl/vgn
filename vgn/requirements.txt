@@ -1,13 +1,10 @@
 autopep8
 catkin_pkg
-h5py
 ipython
+jupyter
 matplotlib
-mayavi
 numpy
 open3d-python
-pybullet
+# pybullet
 pylint
-pytest
 scipy
-torch

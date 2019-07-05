@@ -6,7 +6,6 @@ Panels:
       Expanded:
         - /Status1
         - /Axes1
-        - /Volume1
       Splitter Ratio: 0.5
     Tree Height: 755
   - Class: rviz/Selection
@@ -77,7 +76,7 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 0.03177926689386368
+        Max Value: 0.031893614679574966
         Min Value: 0.0044999998062849045
         Value: true
       Axis: Z
@@ -92,7 +91,7 @@ Visualization Manager:
       Max Intensity: 4096
       Min Color: 0; 0; 0
       Min Intensity: 0
-      Name: Volume
+      Name: Point Cloud
       Position Transformer: XYZ
       Queue Size: 1
       Selectable: true
@@ -124,7 +123,7 @@ Visualization Manager:
       Marker Topic: /grasp_candidates
       Name: Grasp candidates
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -155,25 +154,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.750259518623352
+      Distance: 0.8961835503578186
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.08694243431091309
-        Y: 0.23891501128673553
-        Z: -0.023851117119193077
+        X: 0.06565380841493607
+        Y: 0.2023223489522934
+        Z: -0.026049556210637093
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4647970199584961
+      Pitch: 0.4897969663143158
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.808589458465576
+      Yaw: 5.7285871505737305
     Saved: ~
 Window Geometry:
   Displays:
