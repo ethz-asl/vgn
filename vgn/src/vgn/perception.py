@@ -1,5 +1,8 @@
+from math import pi, cos, sin
 import numpy as np
 import open3d
+
+from vgn.utils.transform import Transform
 
 
 class TSDFVolume(object):
@@ -78,3 +81,26 @@ class TSDFVolume(object):
     def draw_point_cloud(self):
         point_cloud = self._volume.extract_point_cloud()
         open3d.draw_geometries([point_cloud])
+
+
+def random_viewpoints_on_hemisphere(n, length):
+    """Generate random viewpoints on a half-sphere.
+
+    Args:
+        n: The number of viewpoints.
+        length: The length of the workspace.
+    """
+    for _ in range(n):
+        half_length = 0.5 * length
+
+        phi = np.random.uniform(0., 2. * pi)
+        theta = np.random.uniform(pi/6., 5.*pi/12.)
+        r = 3 * half_length
+
+        eye = np.array([r * sin(theta) * cos(phi) + half_length,
+                        r * sin(theta) * sin(phi) + half_length,
+                        r * cos(theta)])
+        target = np.array([half_length, half_length, 0.])
+        up = [0., 0., 1.]
+
+        yield Transform.look_at(eye, target, up)
