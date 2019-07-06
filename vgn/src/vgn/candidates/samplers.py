@@ -1,31 +1,48 @@
-"""Various samplers of grasp candidates."""
-
 import numpy as np
+import open3d
 
 from vgn.utils.transform import Rotation, Transform
 
 
-def uniform(n, volume):
+def uniform(point_cloud, n):
     """Sample grasp candidates uniformly from a point cloud."""
-    points, normals, curvatures = volume.sample_surface_points(n)
-    grasp_candidates = []
+    points = np.asarray(point_cloud.points)
+    normals = np.asarray(point_cloud.normals)
 
-    for point, normal, axis_of_principal_curvature in zip(points, normals, curvatures):
+    # Build a kd-tree for efficient lookup
+    kdtree = open3d.KDTreeFlann(point_cloud)
+    radius = 0.025
 
-        # TODO First, define a frame on the object surface
-        # normal and principal curvature might not be orthogonal
-        R = np.empty((3, 3))
-        R[:, 0] = axis_of_principal_curvature
-        R[:, 1] = np.cross(axis_of_principal_curvature, normal)
-        R[:, 2] = -normal
-        T_world_surface = Transform(Rotation.from_dcm(R), point)
+    selection = np.random.choice(len(points), size=n, replace=False)
 
-        # Next, add a random offset along the approach vector
-        z_offset = np.random.uniform(0., 0.05)
-        T_surface_grasp = Transform(Rotation.identity(),
-                                    np.r_[0., 0., z_offset])
+    candidates = []
+    for point in points[selection]:
+        candidate = estimate_frame(normals, point, radius, kdtree)
 
-        T_world_grasp = T_world_surface * T_surface_grasp
-        grasp_candidates.append(T_world_grasp)
+        # Randonly shift frame along the approach vector
+        offset = Transform(Rotation.identity(),
+                           np.r_[0., 0., np.random.uniform(0., 0.05)])
 
-    return grasp_candidates
+        candidates.append(candidate * offset)
+
+    return candidates
+
+
+def estimate_frame(normals, query, radius, kdtree):
+    """Estimate grasp frame on the surface using a PCA of the local normals.
+
+    TODO
+        * Ensure normal is pointing in the same direction as existing ones
+    """
+
+    [_, nn_idx, _] = kdtree.search_radius_vector_3d(query, radius)
+
+    m = np.dot(normals[nn_idx].T, normals[nn_idx])
+    w, v = np.linalg.eigh(m)
+
+    normal = v[:, np.argmax(w)]
+    curvature = v[:, np.argmin(w)]
+    binormal = np.cross(curvature, normal)
+
+    r = np.vstack((curvature, binormal, -normal)).T
+    return Transform(Rotation.from_dcm(r), query)

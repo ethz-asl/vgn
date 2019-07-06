@@ -76,7 +76,7 @@ class Simulation(robot.Robot):
     def spawn_plane(self):
         self._p.loadURDF('data/urdfs/plane/plane.urdf', [0., 0., 0.])
 
-    def spawn_cuboid(self):
+    def spawn_debug_cuboid(self):
         position = np.r_[0.1, 0.1, 0.2]
         self._p.loadURDF('data/urdfs/wooden_blocks/cuboid0.urdf', position)
 

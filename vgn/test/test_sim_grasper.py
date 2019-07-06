@@ -13,7 +13,7 @@ def main():
 
     s.reset()
     s.spawn_plane()
-    s.spawn_cuboid()
+    s.spawn_debug_cuboid()
     s.spawn_robot()
     s.save_state()
 

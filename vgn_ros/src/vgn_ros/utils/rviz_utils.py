@@ -9,8 +9,14 @@ from visualization_msgs.msg import Marker
 from vgn_ros.utils import ros_utils
 
 
-def draw_grasp_pose(pose):
-    """Draw a single grasp pose."""
+def draw_point_cloud(points, colors):
+    """Draw a point cloud in rviz."""
+    msg = ros_utils.as_point_cloud_msg(points, colors, frame='task')
+    ros_utils.publish(msg, '/reconstruction')
+
+
+def draw_candidate(pose):
+    """Draw the frame of a single candidate grasp pose."""
     msg = geometry_msgs.msg.PoseStamped()
     msg.header.stamp = rospy.Time.now()
     msg.header.frame_id = 'task'
@@ -18,7 +24,7 @@ def draw_grasp_pose(pose):
     ros_utils.publish(msg, '/grasp_pose')
 
 
-def draw_grasp_candidates(poses, scores, topic):
+def draw_candidates(poses, scores, topic='/grasp_candidates'):
     """Draw grasp candidates as arrows colored according to their score."""
     remove_all_markers(topic)
 
@@ -49,12 +55,6 @@ def draw_grasp_candidates(poses, scores, topic):
         marker.color = ros_utils.as_color_msg(color)
 
         ros_utils.publish(marker, topic)
-
-
-def draw_point_cloud(points, colors):
-    """Draw a point cloud in rviz."""
-    msg = ros_utils.as_point_cloud_msg(points, colors, frame='task')
-    ros_utils.publish(msg, '/reconstructed_point_cloud')
 
 
 def remove_all_markers(topic):

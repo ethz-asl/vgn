@@ -7,13 +7,13 @@ from vgn.perception import integration, viewpoints
 from vgn.utils import camera_intrinsics
 
 
-def generate_dataset(dataset_path, n_scenes, n_grasps_per_scene, n_workers, sim_gui, rviz):
+def generate_dataset(dataset_path, n_scenes, n_candidates_per_scene, n_workers, sim_gui, rviz):
     """Generate a dataset of synthetic grasps.
 
     Args:
         dataset_path: Path to which the HDF5 dataset is written to.
         n_scenes: Number of generated virtual scenes.
-        n_grasps_per_scene: Number of grasps sampled per scene.
+        n_candidates_per_scene: Number of candidates sampled per scene.
         n_workers: Number of processes used for the data generation.
         sim_gui: Run the simulation in a GUI or in headless mode.
         rviz: Publish point clouds and grasp candidates to rviz.
@@ -31,42 +31,42 @@ def generate_dataset(dataset_path, n_scenes, n_grasps_per_scene, n_workers, sim_
     if rviz:
         from vgn_ros.utils import rviz_utils
 
-    for n_scene in range(n_scenes):
+    for _ in range(n_scenes):
         # Generate a new scene
         s.reset()
         s.spawn_plane()
-        s.spawn_cuboid()
+        s.spawn_debug_cuboid()
         s.spawn_robot()
         s.save_state()
 
         # Reconstruct the volume
         volume = integration.TSDFVolume(length=length, resolution=100)
         camera_poses = viewpoints.sample_hemisphere(n_views_per_scene, length)
-
         for T_eye_world in camera_poses:
             rgb, depth = s.camera.get_rgb_depth(T_eye_world)
             volume.integrate(rgb, depth, s.camera.intrinsic, T_eye_world)
-
-        if rviz:
-            points, colors, _ = volume.get_point_cloud()
-            rviz_utils.draw_point_cloud(points, colors)
+        point_cloud = volume.extract_point_cloud()
         # volume.draw_point_cloud()
 
-        # Sample grasps
-        grasp_poses = samplers.uniform(n_grasps_per_scene, volume)
+        if rviz:
+            points = np.asarray(point_cloud.points)
+            colors = np.asarray(point_cloud.colors)
+            rviz_utils.draw_point_cloud(points, colors)
+
+        # Sample grasp candidates
+        poses = samplers.uniform(point_cloud, n_candidates_per_scene)
 
         # Score the grasps
-        scores = np.ones(shape=(n_grasps_per_scene,))
-        for i, grasp_pose in enumerate(grasp_poses):
+        scores = np.zeros(shape=(n_candidates_per_scene,))
+        for i, pose in enumerate(poses):
 
             if rviz:
-                rviz_utils.draw_grasp_pose(grasp_pose)
+                rviz_utils.draw_candidate(pose)
 
             s.restore_state()
-            outcome = g.grasp(grasp_pose)
+            outcome = g.grasp(pose)
             scores[i] = 1. if outcome == grasper.Outcome.SUCCESS else 0.
             print(outcome)
 
-        # if rviz:
-        #     rviz_utils.draw_grasp_candidates(grasp_poses,
-        #                                      scores, '/grasp_candidates')
+        if rviz:
+            rviz_utils.draw_candidates(poses, scores)

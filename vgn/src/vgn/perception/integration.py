@@ -49,31 +49,8 @@ class TSDFVolume(object):
 
         self._volume.integrate(rgbd, intrinsic, extrinsic)
 
-    def get_point_cloud(self):
-        point_cloud = self._volume.extract_point_cloud()
-        points = np.asarray(point_cloud.points)
-        colors = np.asarray(point_cloud.colors)
-        normals = np.asarray(point_cloud.normals)
-        return points, colors, normals
-
-    def sample_surface_points(self, n=1):
-        point_cloud = self._volume.extract_point_cloud()
-        points = np.asarray(point_cloud.points)
-        normals = np.asarray(point_cloud.normals)
-
-        # Sample random points from the point cloud
-        indices = np.random.choice(len(points), size=n)
-
-        # TODO Estimate curvature at these points
-        tree = open3d.KDTreeFlann(point_cloud)
-        axes_of_principal_curvature = np.zeros((n, 3))
-        for i, idx in enumerate(indices):
-            [_, nn_idx, _] = tree.search_radius_vector_3d(points[idx], 0.05)
-            cov = np.cov(np.asarray(points[nn_idx].T))
-            w, v = np.linalg.eig(cov)
-            axes_of_principal_curvature[i] = v[:, np.argmax(w)]
-
-        return points[indices], normals[indices], axes_of_principal_curvature
+    def extract_point_cloud(self):
+        return self._volume.extract_point_cloud()
 
     def draw_point_cloud(self):
         point_cloud = self._volume.extract_point_cloud()
