@@ -1,4 +1,8 @@
 {
     "editor.formatOnSave": true,
-    "python.pythonPath": "venv/bin/python"
+    "python.pythonPath": "venv/bin/python",
+    "python.autoComplete.extraPaths": [
+        "./vgn/src",
+        "./vgn_ros/src"
+    ]
 }
