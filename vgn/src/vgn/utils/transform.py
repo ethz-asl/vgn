@@ -3,7 +3,6 @@ import scipy.spatial.transform
 
 
 class Rotation(scipy.spatial.transform.Rotation):
-
     @classmethod
     def identity(cls):
         return cls.from_quat([0., 0., 0., 1.])
@@ -16,7 +15,6 @@ class Transform(object):
         rotation (scipy.spatial.transform.Rotation)
         translation (np.ndarray)
     """
-
     def __init__(self, rotation, translation):
         assert isinstance(rotation, scipy.spatial.transform.Rotation)
         assert isinstance(translation, (np.ndarray, list))
@@ -26,7 +24,10 @@ class Transform(object):
 
     def as_matrix(self):
         """Represent as a 4x4 matrix."""
-        return np.vstack((np.c_[self.rotation.as_dcm(), self.translation], [0., 0., 0., 1.]))
+        return np.vstack((
+            np.c_[self.rotation.as_dcm(), self.translation],
+            [0., 0., 0., 1.],
+        ))
 
     def __mul__(self, other):
         """Compose this transform with another."""

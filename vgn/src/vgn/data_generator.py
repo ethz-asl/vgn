@@ -7,7 +7,8 @@ from vgn.perception import integration, viewpoints
 from vgn.utils import camera_intrinsics
 
 
-def generate_dataset(dataset_path, n_scenes, n_candidates_per_scene, n_workers, sim_gui, rviz):
+def generate_dataset(dataset_path, n_scenes, n_candidates_per_scene, n_workers,
+                     sim_gui, rviz):
     """Generate a dataset of synthetic grasps.
 
     Args:
@@ -57,7 +58,7 @@ def generate_dataset(dataset_path, n_scenes, n_candidates_per_scene, n_workers, 
         poses = samplers.uniform(point_cloud, n_candidates_per_scene)
 
         # Score the grasps
-        scores = np.zeros(shape=(n_candidates_per_scene,))
+        scores = np.zeros(shape=(n_candidates_per_scene, ))
         for i, pose in enumerate(poses):
 
             if rviz:

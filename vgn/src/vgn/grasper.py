@@ -18,11 +18,9 @@ class Grasper(object):
     is approached linearly. If the grasp pose is reached without any collisions,
     the gripper is closed and the object retrieved.
     """
-
     def __init__(self, robot):
         self.robot = robot
-        self.T_grasp_pregrasp = Transform(Rotation.identity(),
-                                          [0., 0., -0.05])
+        self.T_grasp_pregrasp = Transform(Rotation.identity(), [0., 0., -0.05])
 
     def grasp(self, T_body_grasp):
         """Execute the given grasp and report the outcome."""

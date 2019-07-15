@@ -15,12 +15,13 @@ def sample_hemisphere(n, length):
         half_length = 0.5 * length
 
         phi = np.random.uniform(0., 2. * pi)
-        theta = np.random.uniform(pi/6., 5.*pi/12.)
+        theta = np.random.uniform(pi / 6., 5. * pi / 12.)
         r = 3 * half_length
 
-        eye = np.array([r * sin(theta) * cos(phi) + half_length,
-                        r * sin(theta) * sin(phi) + half_length,
-                        r * cos(theta)])
+        eye = np.array([
+            r * sin(theta) * cos(phi) + half_length,
+            r * sin(theta) * sin(phi) + half_length, r * cos(theta)
+        ])
         target = np.array([half_length, half_length, 0.])
         up = [0., 0., 1.]
 

@@ -20,23 +20,23 @@ class Simulation(robot.Robot):
         robot: A simulated robot hand.
         sim_time: The current virtual time.
     """
-
     def __init__(self, gui):
         connection_mode = pybullet.GUI if gui else pybullet.DIRECT
         self._p = bullet_client.BulletClient(connection_mode=connection_mode)
 
         self.hz = 240
-        self.dt = 1. / self.hz
+        self.dt = 1.0 / self.hz
         self.solver_steps = 150
         self.real_time = gui
-        self.sim_time = 0.
+        self.sim_time = 0.0
 
         # Initialize a virtual camera
-        intrinsic = PinholeCameraIntrinsic(640, 480, 540., 540., 320., 240.)
+        intrinsic = PinholeCameraIntrinsic(640, 480, 540.0, 540.0, 320.0,
+                                           240.0)
         self.camera = Camera(intrinsic, 0.1, 2.0, self._p)
 
         # Static transform between tool0 and tcp
-        self.T_tool0_tcp = Transform(Rotation.identity(), [0., 0., 0.08])
+        self.T_tool0_tcp = Transform(Rotation.identity(), [0.0, 0.0, 0.08])
         self.T_tcp_tool0 = self.T_tool0_tcp.inverse()
 
         # Default initializations
@@ -47,7 +47,7 @@ class Simulation(robot.Robot):
         self._p.stepSimulation()
         self.sim_time += self.dt
         if self.real_time:
-            time.sleep(max(0., self.sim_time - time.time() + self.start_time))
+            time.sleep(max(0.0, self.sim_time - time.time() + self.start_time))
 
     def sleep(self, duration):
         """Pause the simulation for the given duration [s]."""
@@ -57,11 +57,11 @@ class Simulation(robot.Robot):
     def reset(self):
         """Reset the state of the physics simulation and create a new scene."""
         self._p.resetSimulation()
-        self._p.setPhysicsEngineParameter(fixedTimeStep=self.dt,
-                                          numSolverIterations=self.solver_steps)
-        self._p.setGravity(0., 0., -9.81)
+        self._p.setPhysicsEngineParameter(
+            fixedTimeStep=self.dt, numSolverIterations=self.solver_steps)
+        self._p.setGravity(0.0, 0.0, -9.81)
 
-        self.sim_time = 0.
+        self.sim_time = 0.0
         self.start_time = time.time()
 
     def save_state(self):
@@ -70,15 +70,15 @@ class Simulation(robot.Robot):
 
     def restore_state(self):
         """Restore the state of the simulation from the latest snapshot."""
-        assert self._state_id is not None, 'save_state must be called first'
+        assert self._state_id is not None, "save_state must be called first"
         self._p.restoreState(stateId=self._state_id)
 
     def spawn_plane(self):
-        self._p.loadURDF('data/urdfs/plane/plane.urdf', [0., 0., 0.])
+        self._p.loadURDF("data/urdfs/plane/plane.urdf", [0.0, 0.0, 0.0])
 
     def spawn_debug_cuboid(self):
         position = np.r_[0.1, 0.1, 0.2]
-        self._p.loadURDF('data/urdfs/wooden_blocks/cuboid0.urdf', position)
+        self._p.loadURDF("data/urdfs/wooden_blocks/cuboid0.urdf", position)
 
         # wait for the object to rest
         for _ in range(self.hz):
@@ -90,22 +90,25 @@ class Simulation(robot.Robot):
         pass
 
     def spawn_robot(self):
-        position = [0., 0., 1.]
-        orientation = [0., 0., 0., 1.]
+        position = [0.0, 0.0, 1.0]
+        orientation = [0.0, 0.0, 0.0, 1.0]
 
-        self.robot_uid = self._p.loadURDF('data/urdfs/hand/hand.urdf',
-                                          basePosition=position,
-                                          baseOrientation=orientation)
+        self.robot_uid = self._p.loadURDF(
+            "data/urdfs/hand/hand.urdf",
+            basePosition=position,
+            baseOrientation=orientation,
+        )
         self.cuid = self._p.createConstraint(
             parentBodyUniqueId=self.robot_uid,
             parentLinkIndex=-1,
             childBodyUniqueId=-1,
             childLinkIndex=-1,
             jointType=pybullet.JOINT_FIXED,
-            jointAxis=[0., 0., 0.],
-            parentFramePosition=[0., 0., 0.],
+            jointAxis=[0.0, 0.0, 0.0],
+            parentFramePosition=[0.0, 0.0, 0.0],
             childFramePosition=position,
-            childFrameOrientation=orientation)
+            childFrameOrientation=orientation,
+        )
 
     def get_tcp_pose(self):
         pos, ori = self._p.getBasePositionAndOrientation(self.robot_uid)
@@ -114,7 +117,7 @@ class Simulation(robot.Robot):
 
     def get_gripper_opening_width(self):
         states = self._p.getJointStates(self.robot_uid, [0, 1])
-        return 20. * (states[0][0] + states[1][0])
+        return 20.0 * (states[0][0] + states[1][0])
 
     def detect_collisions(self):
         return self._p.getContactPoints(self.robot_uid)
@@ -126,18 +129,24 @@ class Simulation(robot.Robot):
         orientation = T_world_tool0.rotation.as_quat()
 
         if override_dynamics:
-            self._p.resetBasePositionAndOrientation(self.robot_uid,
-                                                    position, orientation)
+            self._p.resetBasePositionAndOrientation(self.robot_uid, position,
+                                                    orientation)
 
-        self._p.changeConstraint(self.cuid,
-                                 jointChildPivot=position,
-                                 jointChildFrameOrientation=orientation,
-                                 maxForce=300)
+        self._p.changeConstraint(
+            self.cuid,
+            jointChildPivot=position,
+            jointChildFrameOrientation=orientation,
+            maxForce=300,
+        )
 
         self.step()
         return len(self.detect_collisions()) == 0
 
-    def move_tcp_xyz(self, target_pose, eef_step=0.002, check_collisions=False, vel=0.10):
+    def move_tcp_xyz(self,
+                     target_pose,
+                     eef_step=0.002,
+                     check_collisions=False,
+                     vel=0.10):
         pose = self.get_tcp_pose()
         pos_diff = target_pose.translation - pose.translation
         n_steps = int(np.linalg.norm(pos_diff) / eef_step)
@@ -156,19 +165,23 @@ class Simulation(robot.Robot):
         return True
 
     def open_gripper(self):
-        self._p.setJointMotorControlArray(self.robot_uid,
-                                          jointIndices=[0, 1],
-                                          controlMode=pybullet.POSITION_CONTROL,
-                                          targetPositions=[0.025, 0.025])
+        self._p.setJointMotorControlArray(
+            self.robot_uid,
+            jointIndices=[0, 1],
+            controlMode=pybullet.POSITION_CONTROL,
+            targetPositions=[0.025, 0.025],
+        )
         for _ in range(self.hz // 2):
             self.step()
 
     def close_gripper(self):
-        self._p.setJointMotorControlArray(self.robot_uid,
-                                          jointIndices=[0, 1],
-                                          controlMode=pybullet.POSITION_CONTROL,
-                                          targetPositions=[0.0, 0.0],
-                                          forces=[10, 10])
+        self._p.setJointMotorControlArray(
+            self.robot_uid,
+            jointIndices=[0, 1],
+            controlMode=pybullet.POSITION_CONTROL,
+            targetPositions=[0.0, 0.0],
+            forces=[10, 10],
+        )
         for _ in range(self.hz // 2):
             self.step()
 
@@ -181,7 +194,6 @@ class Camera(object):
         near (float): The near plane of the virtual camera.
         far (float): The far plane of the virtual camera.
     """
-
     def __init__(self, intrinsic, near, far, physics_client):
         self.intrinsic = intrinsic
         self.near = near
@@ -195,37 +207,44 @@ class Camera(object):
         Args:
             extrinsic: Extrinsic parameters, T_eye_ref.
         """
-        assert self._p.isNumpyEnabled(), 'Pybullet needs to be built with NumPy support'
+        assert (self._p.isNumpyEnabled()
+                ), "Pybullet needs to be built with NumPy support"
 
         # Construct OpenGL compatible view and projection matrices.
         gl_view_matrix = extrinsic.as_matrix()
         gl_view_matrix[2, :] *= -1  # flip the Z axis
-        gl_view_matrix = gl_view_matrix.flatten(order='F')
-        gl_proj_matrix = self._proj_matrix.flatten(order='F')
+        gl_view_matrix = gl_view_matrix.flatten(order="F")
+        gl_proj_matrix = self._proj_matrix.flatten(order="F")
 
-        result = self._p.getCameraImage(width=self.intrinsic.width,
-                                        height=self.intrinsic.height,
-                                        viewMatrix=gl_view_matrix,
-                                        projectionMatrix=gl_proj_matrix,
-                                        renderer=pybullet.ER_TINY_RENDERER)
+        result = self._p.getCameraImage(
+            width=self.intrinsic.width,
+            height=self.intrinsic.height,
+            viewMatrix=gl_view_matrix,
+            projectionMatrix=gl_proj_matrix,
+            renderer=pybullet.ER_TINY_RENDERER,
+        )
 
         rgb, z_buffer = result[2][:, :, :3], result[3]
-        depth = 1.*self.far*self.near/(self.far-(self.far-self.near)*z_buffer)
+        depth = (1.0 * self.far * self.near /
+                 (self.far - (self.far - self.near) * z_buffer))
         return rgb, depth
 
 
 def _build_projection_matrix(intrinsic, near, far):
-    perspective = np.array([[intrinsic.fx, 0., -intrinsic.cx, 0.],
-                            [0., intrinsic.fy, -intrinsic.cy, 0.],
-                            [0., 0., near + far, near * far],
-                            [0., 0., -1., 0.]])
-    ortho = _gl_ortho(0., intrinsic.width, intrinsic.height, 0., near, far)
+    perspective = np.array([
+        [intrinsic.fx, 0.0, -intrinsic.cx, 0.0],
+        [0.0, intrinsic.fy, -intrinsic.cy, 0.0],
+        [0.0, 0.0, near + far, near * far],
+        [0.0, 0.0, -1.0, 0.0],
+    ])
+    ortho = _gl_ortho(0.0, intrinsic.width, intrinsic.height, 0.0, near, far)
     return np.matmul(ortho, perspective)
 
 
 def _gl_ortho(left, right, bottom, top, near, far):
-    ortho = np.diag([2./(right-left), 2./(top-bottom), - 2./(far-near), 1.])
-    ortho[0, 3] = - (right + left) / (right - left)
-    ortho[1, 3] = - (top + bottom) / (top - bottom)
-    ortho[2, 3] = - (far + near) / (far - near)
+    ortho = np.diag(
+        [2.0 / (right - left), 2.0 / (top - bottom), -2.0 / (far - near), 1.0])
+    ortho[0, 3] = -(right + left) / (right - left)
+    ortho[1, 3] = -(top + bottom) / (top - bottom)
+    ortho[2, 3] = -(far + near) / (far - near)
     return ortho

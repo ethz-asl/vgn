@@ -3,7 +3,6 @@ from __future__ import division
 import numpy as np
 import open3d
 
-from vgn.utils.misc import truncated_normal
 from vgn.utils.transform import Rotation, Transform
 
 
@@ -42,8 +41,8 @@ def sample_orientation(normal):
     # Randomly perturbe around yaw, pitch and roll
     x_rot = 0.  # truncated_normal(stddev=np.pi/18.)
     y_rot = 0.  # truncated_normal(stddev=np.pi/18.)
-    z_rot = np.random.uniform(-np.pi/2., np.pi/2.)
-    r = r * Rotation.from_euler('xyz', [x_rot, y_rot, z_rot])
+    z_rot = np.random.uniform(-np.pi / 2., np.pi / 2.)
+    r = r * Rotation.from_euler("xyz", [x_rot, y_rot, z_rot])
 
     # TODO Flip  if y is pointing downards, to be consistent
 

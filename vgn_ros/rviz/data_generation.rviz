@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Status1
         - /Axes1
+        - /Point Cloud1/Status1
       Splitter Ratio: 0.5
     Tree Height: 755
   - Class: rviz/Selection
@@ -26,7 +27,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: Volume
+    SyncSource: Point Cloud
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -76,7 +77,7 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 0.031893614679574966
+        Max Value: 0.03185371682047844
         Min Value: 0.0044999998062849045
         Value: true
       Axis: Z
@@ -98,7 +99,7 @@ Visualization Manager:
       Size (Pixels): 3
       Size (m): 0.003000000026077032
       Style: Points
-      Topic: /reconstructed_point_cloud
+      Topic: /reconstruction
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
@@ -154,7 +155,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.8961835503578186
+      Distance: 0.708649754524231
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -169,10 +170,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4897969663143158
+      Pitch: 0.5397972464561462
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.7285871505737305
+      Yaw: 5.458581447601318
     Saved: ~
 Window Geometry:
   Displays:

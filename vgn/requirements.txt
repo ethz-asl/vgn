@@ -1,10 +1,10 @@
-autopep8
 catkin_pkg
 ipython
 jupyter
 matplotlib
 numpy
 open3d-python
-# pybullet
+pybullet
 pylint
 scipy
+yapf

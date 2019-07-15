@@ -20,6 +20,8 @@
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
+                "--n-scenes=2",
+                "--n-candidates-per-scene=100",
                 "--no-rviz"
             ]
         }

@@ -10,7 +10,6 @@ class TSDFVolume(object):
     TODO
         * Handle scaling properly
     """
-
     def __init__(self, length, resolution):
         self._resolution = resolution
         self._voxel_length = length / self._resolution
@@ -20,7 +19,8 @@ class TSDFVolume(object):
             length=length,
             resolution=self._resolution,
             sdf_trunc=self._sdf_trunc,
-            color_type=open3d.integration.TSDFVolumeColorType.None)
+            color_type=open3d.integration.TSDFVolumeColorType.None,
+        )
 
     def integrate(self, rgb, depth, intrinsic, extrinsic):
         """
@@ -35,7 +35,8 @@ class TSDFVolume(object):
             open3d.Image(depth),
             depth_scale=1.0,
             depth_trunc=1.0,
-            convert_rgb_to_intensity=False)
+            convert_rgb_to_intensity=False,
+        )
 
         intrinsic = open3d.PinholeCameraIntrinsic(
             width=intrinsic.width,
@@ -43,7 +44,8 @@ class TSDFVolume(object):
             fx=intrinsic.fx,
             fy=intrinsic.fy,
             cx=intrinsic.cx,
-            cy=intrinsic.cy)
+            cy=intrinsic.cy,
+        )
 
         extrinsic = extrinsic.as_matrix()
 

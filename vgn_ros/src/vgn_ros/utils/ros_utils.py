@@ -73,7 +73,11 @@ def as_color_msg(color):
     return msg
 
 
-def as_point_cloud_msg(points, colors=None, intensities=None, frame=None, stamp=None):
+def as_point_cloud_msg(points,
+                       colors=None,
+                       intensities=None,
+                       frame=None,
+                       stamp=None):
     """Represent unstructured points as a PointCloud2 message.
 
     Args:
@@ -90,9 +94,11 @@ def as_point_cloud_msg(points, colors=None, intensities=None, frame=None, stamp=
     msg = PointCloud2()
     msg.height = 1
     msg.width = points.shape[0]
-    msg.fields = [PointField('x', 0, PointField.FLOAT32, 1),
-                  PointField('y', 4, PointField.FLOAT32, 1),
-                  PointField('z', 8, PointField.FLOAT32, 1)]
+    msg.fields = [
+        PointField("x", 0, PointField.FLOAT32, 1),
+        PointField("y", 4, PointField.FLOAT32, 1),
+        PointField("z", 8, PointField.FLOAT32, 1),
+    ]
     msg.is_bigendian = False
     msg.point_step = 12
     msg.row_step = msg.point_step * points.shape[0]

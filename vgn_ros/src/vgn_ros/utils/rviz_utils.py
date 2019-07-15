@@ -11,25 +11,25 @@ from vgn_ros.utils import ros_utils
 
 def draw_point_cloud(points, colors):
     """Draw a point cloud in rviz."""
-    msg = ros_utils.as_point_cloud_msg(points, colors, frame='task')
-    ros_utils.publish(msg, '/reconstruction')
+    msg = ros_utils.as_point_cloud_msg(points, colors, frame="task")
+    ros_utils.publish(msg, "/reconstruction")
 
 
 def draw_candidate(pose):
     """Draw the frame of a single candidate grasp pose."""
     msg = geometry_msgs.msg.PoseStamped()
     msg.header.stamp = rospy.Time.now()
-    msg.header.frame_id = 'task'
+    msg.header.frame_id = "task"
     msg.pose = ros_utils.as_pose_msg(pose)
-    ros_utils.publish(msg, '/grasp_pose')
+    ros_utils.publish(msg, "/grasp_pose")
 
 
-def draw_candidates(poses, scores, topic='/grasp_candidates'):
+def draw_candidates(poses, scores, topic="/grasp_candidates"):
     """Draw grasp candidates as arrows colored according to their score."""
     remove_all_markers(topic)
 
     cnorm = matplotlib.colors.Normalize(vmin=0., vmax=1.0)
-    cmap = matplotlib.cm.get_cmap('winter')
+    cmap = matplotlib.cm.get_cmap("winter")
     scalar_cmap = matplotlib.cm.ScalarMappable(norm=cnorm, cmap=cmap)
 
     for i, (pose, score) in enumerate(zip(poses, scores)):
@@ -39,7 +39,7 @@ def draw_candidates(poses, scores, topic='/grasp_candidates'):
         color = scalar_cmap.to_rgba(score)
 
         marker = Marker()
-        marker.header.frame_id = 'task'
+        marker.header.frame_id = "task"
         marker.header.stamp = rospy.Time.now()
 
         marker.id = i

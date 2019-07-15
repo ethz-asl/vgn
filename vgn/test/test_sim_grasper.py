@@ -17,9 +17,7 @@ def main():
     s.spawn_robot()
     s.save_state()
 
-    rotation = np.array([[1., 0., 0.],
-                         [0., -1., 0.],
-                         [0., 0., -1.]])
+    rotation = np.array([[1., 0., 0.], [0., -1., 0.], [0., 0., -1.]])
     position = np.array([0.1, 0.1, 0.01])
     T_world_tcp = Transform(Rotation.from_dcm(rotation), position)
 
@@ -31,5 +29,5 @@ def main():
         s.sleep(1.0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

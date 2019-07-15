@@ -9,7 +9,6 @@ class PinholeCameraIntrinsic(object):
         height(int): The height in pixels of the camera.
         K: The intrinsic camera matrix.
     """
-
     def __init__(self, width, height, fx, fy, cx, cy):
         self.width = width
         self.height = height

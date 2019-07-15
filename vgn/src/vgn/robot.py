@@ -1,5 +1,4 @@
 class Robot(object):
-
     def get_tcp_pose(self):
         """Return the pose of the TCP in body frame."""
         raise NotImplementedError
