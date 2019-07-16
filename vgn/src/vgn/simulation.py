@@ -8,7 +8,7 @@ from pybullet_utils import bullet_client
 
 from vgn import robot
 from vgn.utils.transform import Rotation, Transform
-from vgn.utils.camera_intrinsics import PinholeCameraIntrinsic
+from vgn.utils.camera import PinholeCameraIntrinsic
 
 
 class Simulation(robot.Robot):

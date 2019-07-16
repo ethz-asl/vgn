@@ -4,7 +4,7 @@ from vgn import grasper
 from vgn import simulation
 from vgn.candidates import samplers
 from vgn.perception import integration, viewpoints
-from vgn.utils import camera_intrinsics
+from vgn.utils import camera
 
 
 def generate_dataset(dataset_path, n_scenes, n_candidates_per_scene, n_workers,
