@@ -1,5 +1,4 @@
 """"Script to generate a synthetic grasp dataset using physical simulation."""
-
 import argparse
 
 from vgn.data_generator import generate_dataset
@@ -8,10 +7,9 @@ from vgn.data_generator import generate_dataset
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--dataset-path",
+        "basedir",
         type=str,
-        default="data/dataset.hdf5",
-        help="Path to which the HDF5 dataset is written to",
+        help="The base directory in which data is stored",
     )
     parser.add_argument(
         "--n-scenes",
@@ -36,26 +34,14 @@ def main():
         action="store_true",
         help="Run simulation in headless mode",
     )
-    parser.add_argument(
-        "--no-rviz",
-        action="store_true",
-        help="Disable rviz visualizations",
-    )
     args = parser.parse_args()
 
-    if not args.no_rviz:
-        # Only import ROS packages if rviz visualization is requested
-        import rospy
-
-        rospy.init_node("generate_dataset")
-
     generate_dataset(
-        dataset_path=args.dataset_path,
+        basedir=args.basedir,
         n_scenes=args.n_scenes,
         n_candidates_per_scene=args.n_candidates_per_scene,
         n_workers=args.n_workers,
         sim_gui=not args.no_sim_gui,
-        rviz=not args.no_rviz,
     )
 
 

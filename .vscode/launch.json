@@ -5,25 +5,25 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
-            "type": "python",
-            "request": "launch",
-            "program": "${file}",
-            "cwd": "${workspaceFolder}/vgn",
-            "console": "integratedTerminal"
-        },
-        {
             "name": "generate_data",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/vgn/scripts/generate_dataset.py",
+            "program": "${workspaceFolder}/vgn/scripts/generate_data.py",
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
-                "--n-scenes=2",
+                "data/debug",
+                "--n-scenes=1",
                 "--n-candidates-per-scene=100",
-                "--no-rviz"
             ]
-        }
+        },
+        {
+            "name": "visualize_data",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/vgn/scripts/visualize_data.py",
+            "cwd": "${workspaceFolder}/vgn",
+            "console": "integratedTerminal",
+        },
     ]
 }

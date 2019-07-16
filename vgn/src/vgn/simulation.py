@@ -27,12 +27,11 @@ class Simulation(robot.Robot):
         self.hz = 240
         self.dt = 1.0 / self.hz
         self.solver_steps = 150
-        self.real_time = gui
+        self.real_time = False  #gui
         self.sim_time = 0.0
 
         # Initialize a virtual camera
-        intrinsic = PinholeCameraIntrinsic(640, 480, 540.0, 540.0, 320.0,
-                                           240.0)
+        intrinsic = PinholeCameraIntrinsic(640, 480, 540., 540., 320., 240.)
         self.camera = Camera(intrinsic, 0.1, 2.0, self._p)
 
         # Static transform between tool0 and tcp
