@@ -22,19 +22,18 @@ class TSDFVolume(object):
             color_type=open3d.integration.TSDFVolumeColorType.None,
         )
 
-    def integrate(self, rgb, depth, intrinsic, extrinsic):
+    def integrate(self, depth, intrinsic, extrinsic):
         """
         Args:
-            rgb
-            depth
+            depth: The depth image.
             intrinsic: The intrinsic parameters of a pinhole camera model.
             extrinsics: The transform from world to camera coordinages, T_eye_world.
         """
         rgbd = open3d.create_rgbd_image_from_color_and_depth(
-            open3d.Image(rgb),
+            open3d.Image(np.empty_like(depth)),
             open3d.Image(depth),
             depth_scale=1.0,
-            depth_trunc=1.0,
+            depth_trunc=2.0,
             convert_rgb_to_intensity=False,
         )
 
