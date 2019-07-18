@@ -12,37 +12,37 @@ from vgn_ros import ros_utils
 
 
 class RViz(object):
-    def __init__(self, frame='task'):
+    def __init__(self, frame="task"):
         self._pubs = dict()
-        self._pubs['point_cloud'] = rospy.Publisher('/point_cloud',
+        self._pubs["point_cloud"] = rospy.Publisher("/point_cloud",
                                                     PointCloud2,
                                                     queue_size=10)
-        self._pubs['grasp_pose'] = rospy.Publisher('/grasp_pose',
+        self._pubs["grasp_pose"] = rospy.Publisher("/grasp_pose",
                                                    PoseStamped,
                                                    queue_size=10)
-        self._pubs['candidates'] = rospy.Publisher('/grasp_candidates',
+        self._pubs["candidates"] = rospy.Publisher("/grasp_candidates",
                                                    MarkerArray,
                                                    queue_size=10)
         time.sleep(1.0)
 
     def draw_point_cloud(self, points):
-        msg = ros_utils.as_point_cloud_msg(points, frame='task')
-        self._pubs['point_cloud'].publish(msg)
+        msg = ros_utils.as_point_cloud_msg(points, frame="task")
+        self._pubs["point_cloud"].publish(msg)
 
     def draw_grasp_pose(self, pose):
         msg = PoseStamped()
         msg.header.stamp = rospy.Time.now()
-        msg.header.frame_id = 'task'
+        msg.header.frame_id = "task"
         msg.pose = ros_utils.as_pose_msg(pose)
-        self._pubs['grasp_pose'].publish(msg)
+        self._pubs["grasp_pose"].publish(msg)
 
     def draw_candidates(self, poses, scores):
         """Draw grasp candidates as arrows colored according to their score."""
         marker = Marker(action=Marker.DELETEALL)
-        self._pubs['candidates'].publish(MarkerArray(markers=[marker]))
+        self._pubs["candidates"].publish(MarkerArray(markers=[marker]))
 
         cnorm = matplotlib.colors.Normalize(vmin=0., vmax=1.0)
-        cmap = matplotlib.cm.get_cmap('winter')
+        cmap = matplotlib.cm.get_cmap("winter")
         scalar_cmap = matplotlib.cm.ScalarMappable(norm=cnorm, cmap=cmap)
 
         marker_array = MarkerArray()
@@ -53,7 +53,7 @@ class RViz(object):
             color = scalar_cmap.to_rgba(score)
 
             marker = Marker()
-            marker.header.frame_id = 'task'
+            marker.header.frame_id = "task"
             marker.header.stamp = rospy.Time.now()
 
             marker.id = i
@@ -70,4 +70,4 @@ class RViz(object):
 
             marker_array.markers.append(marker)
 
-        self._pubs['candidates'].publish(marker_array)
+        self._pubs["candidates"].publish(marker_array)

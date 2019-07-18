@@ -9,4 +9,9 @@
         "./vgn/src",
         "./vgn_ros/src"
     ],
+    "[python]": {
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": true
+        }
+    }
 }

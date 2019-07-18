@@ -1,4 +1,5 @@
-from math import pi, cos, sin
+from math import cos, pi, sin
+
 import numpy as np
 
 from vgn.utils.transform import Transform

@@ -13,14 +13,14 @@ from vgn_ros import rviz_utils
 
 
 def main():
-    rospy.init_node('data_visualizer')
+    rospy.init_node("data_visualizer")
 
     # Parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--datadir',
+    parser.add_argument("--datadir",
                         type=str,
-                        default='data/debug/tmp',
-                        help='Path to data of one generated scene')
+                        default="data/debug/tmp",
+                        help="Path to data of one generated scene")
     args = parser.parse_args()
 
     # Create connection to RViz
@@ -28,15 +28,15 @@ def main():
 
     # Load the data
     intrinsic = camera.PinholeCameraIntrinsic.load(
-        path.join(args.datadir, 'intrinsic.json'))
-    extrinsics = _load_transforms(path.join(args.datadir, 'extrinsics.txt'))
-    grasps = _load_transforms(path.join(args.datadir, 'grasps.txt'))
-    scores = np.loadtxt(path.join(args.datadir, 'scores.txt'), delimiter=',')
+        path.join(args.datadir, "intrinsic.json"))
+    extrinsics = _load_transforms(path.join(args.datadir, "extrinsics.txt"))
+    grasps = _load_transforms(path.join(args.datadir, "grasps.txt"))
+    scores = np.loadtxt(path.join(args.datadir, "scores.txt"), delimiter=",")
 
     # Reconstruct point cloud
     volume = integration.TSDFVolume(length=0.2, resolution=60)
     for i, extrinsic in enumerate(extrinsics):
-        depth = image.load(path.join(args.datadir, '{0:03d}.png'.format(i)))
+        depth = image.load(path.join(args.datadir, "{0:03d}.png".format(i)))
         volume.integrate(depth, intrinsic, extrinsic)
     point_cloud = volume.extract_point_cloud()
     # volume.draw_point_cloud()
@@ -51,10 +51,10 @@ def main():
 
 def _load_transforms(fname):
     transforms = []
-    for v in np.loadtxt(fname, delimiter=','):
+    for v in np.loadtxt(fname, delimiter=","):
         transforms.append(Transform(Rotation.from_quat(v[3:7]), v[:3]))
     return transforms
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

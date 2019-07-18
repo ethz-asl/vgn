@@ -1,9 +1,9 @@
-import numpy as np
-from os import makedirs, path
 import uuid
+from os import makedirs, path
 
-from vgn import grasper
-from vgn import simulation
+import numpy as np
+
+from vgn import grasper, simulation
 from vgn.candidates import samplers
 from vgn.perception import integration, viewpoints
 from vgn.utils import camera, image
