@@ -1,17 +1,15 @@
 {
     "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": true
+    },
     "files.exclude": {
         "**/*.pyc": true,
     },
     "python.pythonPath": "venv/bin/python",
     "python.formatting.provider": "yapf",
     "python.autoComplete.extraPaths": [
-        "./vgn/src",
-        "./vgn_ros/src"
+        "vgn/src",
+        "vgn_ros/src"
     ],
-    "[python]": {
-        "editor.codeActionsOnSave": {
-            "source.organizeImports": true
-        }
-    }
 }
