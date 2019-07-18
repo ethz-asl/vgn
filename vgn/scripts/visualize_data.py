@@ -23,6 +23,8 @@ def main():
                         help="Path to data of one generated scene")
     args = parser.parse_args()
 
+    assert path.exists(args.datadir), "Datadir does not exist"
+
     # Create connection to RViz
     vis = rviz_utils.RViz()
 
