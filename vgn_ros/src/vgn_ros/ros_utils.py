@@ -1,21 +1,8 @@
+import geometry_msgs.msg
+import numpy as np
+import rospy
 import std_msgs.msg
 from sensor_msgs.msg import PointCloud2, PointField
-import numpy as np
-import geometry_msgs.msg
-import rospy
-
-cached_publishers = {}
-
-
-def publish(msg, topic):
-    """Publish message on the given topic."""
-    global cached_publishers
-    if topic in cached_publishers:
-        publisher = cached_publishers[topic]
-    else:
-        publisher = rospy.Publisher(topic, type(msg), queue_size=10)
-        cached_publishers[topic] = publisher
-    publisher.publish(msg)
 
 
 def as_point_msg(position):
@@ -55,14 +42,6 @@ def as_pose_msg(transform):
     return msg
 
 
-def as_tf_msg(transform):
-    """Represent a `Transform` object as a Transform message."""
-    msg = geometry_msgs.msg.Transform()
-    msg.translation = as_vector3_msg(transform.translation)
-    msg.rotation = as_quat_msg(transform.rotation)
-    return msg
-
-
 def as_color_msg(color):
     """Represent a numpy array as a ColorRGBA message."""
     msg = std_msgs.msg.ColorRGBA()
@@ -73,23 +52,13 @@ def as_color_msg(color):
     return msg
 
 
-def as_point_cloud_msg(points,
-                       colors=None,
-                       intensities=None,
-                       frame=None,
-                       stamp=None):
+def as_point_cloud_msg(points, frame=None, stamp=None):
     """Represent unstructured points as a PointCloud2 message.
 
     Args:
         points: Point coordinates as array of shape (N,3).
-        colors
-        intensities
         frame
         stamp
-
-    TODO:
-        * Color channel
-        * Intensity channel
     """
     msg = PointCloud2()
     msg.height = 1

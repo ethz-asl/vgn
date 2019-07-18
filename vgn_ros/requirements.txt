@@ -1,0 +1,3 @@
+catkin_pkg
+pyyaml
+rospkg

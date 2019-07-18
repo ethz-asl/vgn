@@ -3,11 +3,8 @@ Panels:
     Help Height: 78
     Name: Displays
     Property Tree Widget:
-      Expanded:
-        - /Status1
-        - /Axes1
-        - /Point Cloud1/Status1
-      Splitter Ratio: 0.5
+      Expanded: ~
+      Splitter Ratio: 0.5132978558540344
     Tree Height: 755
   - Class: rviz/Selection
     Name: Selection
@@ -27,7 +24,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: Point Cloud
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -77,8 +74,8 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 0.03185371682047844
-        Min Value: 0.0044999998062849045
+        Max Value: 0.031774356961250305
+        Min Value: 0.004999999888241291
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -99,7 +96,7 @@ Visualization Manager:
       Size (Pixels): 3
       Size (m): 0.003000000026077032
       Style: Points
-      Topic: /reconstruction
+      Topic: /point_cloud
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
@@ -119,7 +116,7 @@ Visualization Manager:
       Topic: /grasp_pose
       Unreliable: false
       Value: true
-    - Class: rviz/Marker
+    - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /grasp_candidates
       Name: Grasp candidates
@@ -155,25 +152,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.708649754524231
+      Distance: 0.720386266708374
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.06565380841493607
-        Y: 0.2023223489522934
-        Z: -0.026049556210637093
+        X: 0.08099975436925888
+        Y: 0.22087760269641876
+        Z: -0.002406434854492545
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5397972464561462
+      Pitch: 0.38979747891426086
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.458581447601318
+      Yaw: 5.253557205200195
     Saved: ~
 Window Geometry:
   Displays:

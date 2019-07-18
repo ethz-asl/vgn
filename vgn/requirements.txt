@@ -1,10 +1,10 @@
 catkin_pkg
-ipython
 jupyter
 matplotlib
 numpy
 open3d-python
+opencv-python
+pandas
 pybullet
-pylint
 scipy
 yapf

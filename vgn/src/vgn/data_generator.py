@@ -23,7 +23,7 @@ def generate_dataset(basedir, n_scenes, n_candidates_per_scene, n_workers,
     TODO:
         * Distribute data collection.
     """
-    n_views_per_scene = 20
+    n_views_per_scene = 30
 
     s = simulation.Simulation(sim_gui)
     g = grasper.Grasper(robot=s)
