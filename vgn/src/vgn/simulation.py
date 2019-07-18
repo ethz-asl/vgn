@@ -1,5 +1,3 @@
-from __future__ import division
-
 import time
 
 import numpy as np
@@ -20,14 +18,14 @@ class Simulation(robot.Robot):
         robot: A simulated robot hand.
         sim_time: The current virtual time.
     """
-    def __init__(self, gui):
+    def __init__(self, gui, real_time=False):
         connection_mode = pybullet.GUI if gui else pybullet.DIRECT
         self._p = bullet_client.BulletClient(connection_mode=connection_mode)
 
         self.hz = 240
         self.dt = 1.0 / self.hz
         self.solver_steps = 150
-        self.real_time = False  #gui
+        self.real_time = real_time
         self.sim_time = 0.0
 
         # Initialize a virtual camera
@@ -75,11 +73,15 @@ class Simulation(robot.Robot):
     def spawn_plane(self):
         self._p.loadURDF("data/urdfs/plane/plane.urdf", [0.0, 0.0, 0.0])
 
+    def spawn_debug_cylinder(self):
+        position = np.r_[0.1, 0.1, 0.2]
+        self._p.loadURDF("data/urdfs/wooden_blocks/cylinder.urdf", position)
+        for _ in range(self.hz):
+            self.step()
+
     def spawn_debug_cuboid(self):
         position = np.r_[0.1, 0.1, 0.2]
         self._p.loadURDF("data/urdfs/wooden_blocks/cuboid0.urdf", position)
-
-        # wait for the object to rest
         for _ in range(self.hz):
             self.step()
 

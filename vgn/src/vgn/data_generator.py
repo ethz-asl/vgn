@@ -3,10 +3,10 @@ from os import makedirs, path
 
 import numpy as np
 
-from vgn import grasper, simulation
-from vgn.candidates import samplers
+from vgn import candidate, grasp, samplers, simulation
 from vgn.perception import integration, viewpoints
 from vgn.utils import camera, image
+from vgn.utils.transform import Rotation, Transform
 
 
 def generate_dataset(basedir, n_scenes, n_candidates_per_scene, n_workers,
@@ -23,10 +23,11 @@ def generate_dataset(basedir, n_scenes, n_candidates_per_scene, n_workers,
     TODO:
         * Distribute data collection.
     """
-    n_views_per_scene = 30
+    n_views_per_scene = 16
+    real_time = False
 
-    s = simulation.Simulation(sim_gui)
-    g = grasper.Grasper(robot=s)
+    s = simulation.Simulation(sim_gui, real_time)
+    g = grasp.Grasper(robot=s)
 
     # Create the base dir if not existing
     if not path.exists(basedir):
@@ -46,6 +47,7 @@ def generate_dataset(basedir, n_scenes, n_candidates_per_scene, n_workers,
         s.reset()
         s.spawn_plane()
         s.spawn_debug_cuboid()
+        # s.spawn_debug_cylinder()
         s.spawn_robot()
         s.save_state()
 
@@ -57,26 +59,23 @@ def generate_dataset(basedir, n_scenes, n_candidates_per_scene, n_workers,
             _, depth = s.camera.get_rgb_depth(extrinsic)
             volume.integrate(depth, s.camera.intrinsic, extrinsic)
 
-            # Write the image as disk
+            # Write the image to disk
             fname = path.join(dirname, "{0:03d}.png".format(i))
             image.save(fname, depth)
             extrinsics[i] = np.r_[extrinsic.translation,
                                   extrinsic.rotation.as_quat()]
 
-        # volume.draw_point_cloud()
+        # Sample candidate grasp points
+        points, normals = samplers.uniform(n_candidates_per_scene,
+                                           volume,
+                                           min_z_offset=0.005,
+                                           max_z_offset=0.02)
 
-        # Sample grasp candidates
-        point_cloud = volume.extract_point_cloud()
-        poses = samplers.uniform(point_cloud, n_candidates_per_scene)
-
-        # Score the grasps
-        for i, pose in enumerate(poses):
-            s.restore_state()
-            outcome = g.grasp(pose)
-            score = 1. if outcome == grasper.Outcome.SUCCESS else 0.
-
-            grasps[i] = np.r_[pose.translation, pose.rotation.as_quat()]
+        # Score the candidates
+        for i, (point, normal) in enumerate(zip(points, normals)):
+            score, orientation = candidate.evaluate(s, g, point, normal)
             scores[i] = score
+            grasps[i] = np.r_[point, orientation.as_quat()]
 
         # Write the intrinsic, extrinsics, grasp poses, and scores to disk
         fmt = "%.3f"

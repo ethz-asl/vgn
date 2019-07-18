@@ -2,14 +2,13 @@
 
 import numpy as np
 
-from vgn.grasper import Grasper
-from vgn.simulation import Simulation
+from vgn import grasp, simulation
 from vgn.utils.transform import Rotation, Transform
 
 
-def main():
-    s = Simulation(gui=True)
-    g = Grasper(robot=s)
+def test_sim_grasper():
+    s = simulation.Simulation(gui=True, real_time=True)
+    g = grasp.Grasper(robot=s)
 
     s.reset()
     s.spawn_plane()
@@ -21,13 +20,12 @@ def main():
     position = np.array([0.1, 0.1, 0.01])
     T_world_tcp = Transform(Rotation.from_dcm(rotation), position)
 
-    while True:
-        s.restore_state()
-        s.sleep(1.0)
-        result = g.grasp(T_world_tcp)
-        print(result)
-        s.sleep(1.0)
+    s.restore_state()
+    result = g.grasp(T_world_tcp)
+    s.sleep(1.0)
+
+    assert result == grasp.Outcome.SUCCESS
 
 
 if __name__ == "__main__":
-    main()
+    test_sim_grasper()
