@@ -5,8 +5,8 @@ import std_msgs.msg
 from sensor_msgs.msg import PointCloud2, PointField
 
 
-def as_point_msg(position):
-    """Represent a numpy array as a Point message."""
+def to_point_msg(position):
+    """Convert numpy array to a Point message."""
     msg = geometry_msgs.msg.Point()
     msg.x = position[0]
     msg.y = position[1]
@@ -14,8 +14,8 @@ def as_point_msg(position):
     return msg
 
 
-def as_vector3_msg(vector3):
-    """Represent a numpy array as a Vector3 message."""
+def to_vector3_msg(vector3):
+    """Convert numpy array to a Vector3 message."""
     msg = geometry_msgs.msg.Vector3()
     msg.x = vector3[0]
     msg.y = vector3[1]
@@ -23,8 +23,8 @@ def as_vector3_msg(vector3):
     return msg
 
 
-def as_quat_msg(orientation):
-    """Represent a `Rotation` object as a Quaternion message."""
+def to_quat_msg(orientation):
+    """Convert a `Rotation` object to a Quaternion message."""
     quat = orientation.as_quat()
     msg = geometry_msgs.msg.Quaternion()
     msg.x = quat[0]
@@ -34,16 +34,16 @@ def as_quat_msg(orientation):
     return msg
 
 
-def as_pose_msg(transform):
-    """Represent a `Transform` object as a Pose message."""
+def to_pose_msg(transform):
+    """Convert a `Transform` object to a Pose message."""
     msg = geometry_msgs.msg.Pose()
-    msg.position = as_point_msg(transform.translation)
-    msg.orientation = as_quat_msg(transform.rotation)
+    msg.position = to_point_msg(transform.translation)
+    msg.orientation = to_quat_msg(transform.rotation)
     return msg
 
 
-def as_color_msg(color):
-    """Represent a numpy array as a ColorRGBA message."""
+def to_color_msg(color):
+    """Convert a numpy array to a ColorRGBA message."""
     msg = std_msgs.msg.ColorRGBA()
     msg.r = color[0]
     msg.g = color[1]
@@ -52,8 +52,8 @@ def as_color_msg(color):
     return msg
 
 
-def as_point_cloud_msg(points, frame=None, stamp=None):
-    """Represent unstructured points as a PointCloud2 message.
+def to_point_cloud_msg(points, frame=None, stamp=None):
+    """Convert list of unstructured points to a PointCloud2 message.
 
     Args:
         points: Point coordinates as array of shape (N,3).

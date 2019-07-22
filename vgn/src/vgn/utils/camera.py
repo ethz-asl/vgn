@@ -32,29 +32,29 @@ class PinholeCameraIntrinsic(object):
     def cy(self):
         return self.K[1, 2]
 
-    def save(self, fname):
+    def to_json(self, fname):
         """Save intrinsic parameters to a JSON file."""
         data = {
-            "width": self.width,
-            "height": self.height,
-            "fx": self.fx,
-            "fy": self.fy,
-            "cx": self.cx,
-            "cy": self.cy,
+            'width': self.width,
+            'height': self.height,
+            'fx': self.fx,
+            'fy': self.fy,
+            'cx': self.cx,
+            'cy': self.cy,
         }
-        with open(fname, "wb") as f:
+        with open(fname, 'wb') as f:
             json.dump(data, f, indent=2)
 
     @classmethod
-    def load(cls, fname):
+    def from_json(cls, fname):
         """Load intrinsic parameters from a JSON file."""
-        with open(fname, "rb") as f:
+        with open(fname, 'rb') as f:
             data = json.load(f)
         return cls(
-            data["width"],
-            data["height"],
-            data["fx"],
-            data["fy"],
-            data["cx"],
-            data["cy"],
+            data['width'],
+            data['height'],
+            data['fx'],
+            data['fy'],
+            data['cx'],
+            data['cy'],
         )

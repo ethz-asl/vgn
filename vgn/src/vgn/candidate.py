@@ -27,14 +27,14 @@ def evaluate(s, g, point, normal):
 
     good_yaws = []
     for yaw in np.linspace(-0.5 * np.pi, 0.5 * np.pi, 16):
-        orientation = R * Rotation.from_euler("z", yaw)
+        orientation = R * Rotation.from_euler('z', yaw)
         s.restore_state()
         outcome = g.grasp(Transform(orientation, point))
         if outcome == grasp.Outcome.SUCCESS:
             good_yaws.append(yaw)
 
     if good_yaws:
-        orientation = R * Rotation.from_euler("z", np.mean(good_yaws))
+        orientation = R * Rotation.from_euler('z', np.mean(good_yaws))
         return 1., _ensure_consistent_orientation(orientation)
     else:
         return 0., _ensure_consistent_orientation(R)
@@ -46,5 +46,5 @@ def _ensure_consistent_orientation(orientation):
     """
     y = orientation.as_dcm()[:, 1]
     if np.dot(y, np.array([0., 0., 1.])) < 0.:
-        orientation *= Rotation.from_euler("z", np.pi)
+        orientation *= Rotation.from_euler('z', np.pi)
     return orientation

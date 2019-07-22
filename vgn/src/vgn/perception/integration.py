@@ -50,7 +50,7 @@ class TSDFVolume(object):
 
         self._volume.integrate(rgbd, intrinsic, extrinsic)
 
-    def extract_point_cloud(self):
+    def get_point_cloud(self):
         return self._volume.extract_point_cloud()
 
     def draw_point_cloud(self):

@@ -8,10 +8,11 @@ from vgn import robot
 from vgn.utils.camera import PinholeCameraIntrinsic
 from vgn.utils.transform import Rotation, Transform
 
+assert pybullet.isNumpyEnabled(), 'Pybullet needs to be built with NumPy'
+
 
 class Simulation(robot.Robot):
-    """
-    In this simulation, world, task and body frames are identical.
+    """In this simulation, world, task and body frames are identical.
 
     Attributes:
         camera: A virtual camera.
@@ -67,21 +68,21 @@ class Simulation(robot.Robot):
 
     def restore_state(self):
         """Restore the state of the simulation from the latest snapshot."""
-        assert self._state_id is not None, "save_state must be called first"
+        assert self._state_id is not None, 'save_state must be called first'
         self._p.restoreState(stateId=self._state_id)
 
     def spawn_plane(self):
-        self._p.loadURDF("data/urdfs/plane/plane.urdf", [0.0, 0.0, 0.0])
+        self._p.loadURDF('data/urdfs/plane/plane.urdf', [0.0, 0.0, 0.0])
 
     def spawn_debug_cylinder(self):
         position = np.r_[0.1, 0.1, 0.2]
-        self._p.loadURDF("data/urdfs/wooden_blocks/cylinder.urdf", position)
+        self._p.loadURDF('data/urdfs/wooden_blocks/cylinder.urdf', position)
         for _ in range(self.hz):
             self.step()
 
     def spawn_debug_cuboid(self):
         position = np.r_[0.1, 0.1, 0.2]
-        self._p.loadURDF("data/urdfs/wooden_blocks/cuboid0.urdf", position)
+        self._p.loadURDF('data/urdfs/wooden_blocks/cuboid0.urdf', position)
         for _ in range(self.hz):
             self.step()
 
@@ -95,7 +96,7 @@ class Simulation(robot.Robot):
         orientation = [0.0, 0.0, 0.0, 1.0]
 
         self.robot_uid = self._p.loadURDF(
-            "data/urdfs/hand/hand.urdf",
+            'data/urdfs/hand/hand.urdf',
             basePosition=position,
             baseOrientation=orientation,
         )
@@ -208,14 +209,12 @@ class Camera(object):
         Args:
             extrinsic: Extrinsic parameters, T_eye_ref.
         """
-        assert (self._p.isNumpyEnabled()
-                ), "Pybullet needs to be built with NumPy support"
 
         # Construct OpenGL compatible view and projection matrices.
         gl_view_matrix = extrinsic.as_matrix()
         gl_view_matrix[2, :] *= -1  # flip the Z axis
-        gl_view_matrix = gl_view_matrix.flatten(order="F")
-        gl_proj_matrix = self._proj_matrix.flatten(order="F")
+        gl_view_matrix = gl_view_matrix.flatten(order='F')
+        gl_proj_matrix = self._proj_matrix.flatten(order='F')
 
         result = self._p.getCameraImage(
             width=self.intrinsic.width,

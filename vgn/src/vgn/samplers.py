@@ -7,7 +7,7 @@ def uniform(n, volume, min_z_offset, max_z_offset):
     Also, a random offset along the negative surface normal is applied to the
     fingertip position.
     """
-    point_cloud = volume.extract_point_cloud()
+    point_cloud = volume.get_point_cloud()
     points = np.asarray(point_cloud.points)
     normals = np.asarray(point_cloud.normals)
     selection = np.random.choice(len(points), size=n)

@@ -12,9 +12,10 @@
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
-                "data/debug",
+                "data/datasets/debug",
                 "--n-scenes=1",
-                "--n-candidates-per-scene=100",
+                "--n-grasps-per-scene=100",
+                "--sim-gui",
             ]
         },
         {
@@ -24,6 +25,9 @@
             "program": "${workspaceFolder}/vgn/scripts/visualize_data.py",
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
+            "args": [
+                "data/datasets/debug/00"
+            ]
         },
     ]
 }
