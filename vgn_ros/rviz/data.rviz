@@ -3,7 +3,8 @@ Panels:
     Help Height: 78
     Name: Displays
     Property Tree Widget:
-      Expanded: ~
+      Expanded:
+        - /TSDF1/Autocompute Value Bounds1
       Splitter Ratio: 0.5132978558540344
     Tree Height: 755
   - Class: rviz/Selection
@@ -24,7 +25,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: Point Cloud
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -74,7 +75,7 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 0.03171565756201744
+        Max Value: 0.031800251454114914
         Min Value: 0.004999999888241291
         Value: true
       Axis: Z
@@ -102,6 +103,36 @@ Visualization Manager:
       Use rainbow: true
       Value: true
     - Alpha: 1
+      Autocompute Intensity Bounds: false
+      Autocompute Value Bounds:
+        Max Value: 0.036666665226221085
+        Min Value: 0
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: true
+      Max Color: 255; 255; 255
+      Max Intensity: 1
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: TSDF
+      Position Transformer: XYZ
+      Queue Size: 1
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.003329999977722764
+      Style: Boxes
+      Topic: /tsdf
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
       Axes Length: 0.05000000074505806
       Axes Radius: 0.004999999888241291
       Class: rviz/Pose
@@ -121,7 +152,7 @@ Visualization Manager:
       Marker Topic: /grasp_candidates
       Name: Grasp candidates
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -152,25 +183,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.6397268772125244
+      Distance: 0.5716220140457153
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.08887559175491333
-        Y: 0.22891072928905487
-        Z: 0.0006111071561463177
-      Focal Shape Fixed Size: true
+        X: 0.06943419575691223
+        Y: 0.09371472150087357
+        Z: -0.006620496511459351
+      Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.43979787826538086
+      Pitch: 0.5653986930847168
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.33355712890625
+      Yaw: 5.613579273223877
     Saved: ~
 Window Geometry:
   Displays:

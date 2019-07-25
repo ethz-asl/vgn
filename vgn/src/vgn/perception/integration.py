@@ -3,22 +3,16 @@ import open3d
 
 
 class TSDFVolume(object):
-    """Integration of multiple depth images using a TSDF.
-
-    The volume is scaled to the unit cube.
-
-    TODO
-        * Handle scaling properly
-    """
-    def __init__(self, length, resolution):
-        self._resolution = resolution
-        self._voxel_length = length / self._resolution
-        self._sdf_trunc = 4 * self._voxel_length
+    """Integration of multiple depth images using a TSDF."""
+    def __init__(self, size, resolution):
+        self.resolution = resolution
+        self.voxel_size = size / self.resolution
+        self.sdf_trunc = 4 * self.voxel_size
 
         self._volume = open3d.integration.UniformTSDFVolume(
-            length=length,
-            resolution=self._resolution,
-            sdf_trunc=self._sdf_trunc,
+            length=size,
+            resolution=self.resolution,
+            sdf_trunc=self.sdf_trunc,
             color_type=open3d.integration.TSDFVolumeColorType.None,
         )
 
@@ -50,9 +44,8 @@ class TSDFVolume(object):
 
         self._volume.integrate(rgbd, intrinsic, extrinsic)
 
+    def get_voxel_grid(self):
+        return self._volume.extract_voxel_grid()
+
     def get_point_cloud(self):
         return self._volume.extract_point_cloud()
-
-    def draw_point_cloud(self):
-        point_cloud = self._volume.extract_point_cloud()
-        open3d.draw_geometries([point_cloud])

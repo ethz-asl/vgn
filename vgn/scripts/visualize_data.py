@@ -31,12 +31,12 @@ def visualize_scene(data_dir):
     poses, scores = vgn_data.load_grasps(fname)
 
     # Reconstruct point cloud
-    volume = integration.TSDFVolume(length=0.2, resolution=60)
+    volume = integration.TSDFVolume(size=0.2, resolution=60)
     for i, extrinsic in enumerate(extrinsics):
         depth = image.load(path.join(data_dir, '{0:03d}.png'.format(i)))
         volume.integrate(depth, intrinsic, extrinsic)
     point_cloud = volume.get_point_cloud()
-    # volume.draw_point_cloud()
+    # open3d.draw_geometries([point_cloud])
 
     # Visualize point cloud
     points = np.asarray(point_cloud.points)
@@ -44,6 +44,10 @@ def visualize_scene(data_dir):
 
     # Visualize grasps
     vis.draw_candidates(poses, scores)
+
+    # Visialize TSDF
+    voxel_grid = volume.get_voxel_grid()
+    vis.draw_tsdf(voxel_grid)
 
 
 def main():

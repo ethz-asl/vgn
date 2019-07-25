@@ -16,18 +16,35 @@ class RViz(object):
         self._pubs = dict()
         self._pubs['point_cloud'] = rospy.Publisher('/point_cloud',
                                                     PointCloud2,
-                                                    queue_size=10)
+                                                    queue_size=1)
+        self._pubs['tsdf'] = rospy.Publisher('/tsdf',
+                                             PointCloud2,
+                                             queue_size=1)
         self._pubs['grasp_pose'] = rospy.Publisher('/grasp_pose',
                                                    PoseStamped,
-                                                   queue_size=10)
+                                                   queue_size=1)
         self._pubs['candidates'] = rospy.Publisher('/grasp_candidates',
                                                    MarkerArray,
-                                                   queue_size=10)
+                                                   queue_size=1)
         time.sleep(1.0)
 
     def draw_point_cloud(self, points):
         msg = ros_utils.to_point_cloud_msg(points, frame='task')
         self._pubs['point_cloud'].publish(msg)
+
+    def draw_tsdf(self, voxel_grid):
+        n_voxels = len(voxel_grid.voxels)
+        voxel_size = voxel_grid.voxel_size
+
+        points = np.empty((n_voxels, 3))
+        intensities = np.empty((n_voxels, 1))
+        for i, voxel in enumerate(voxel_grid.voxels):
+            ix, iy, iz = voxel.grid_index
+            points[i] = [ix * voxel_size, iy * voxel_size, iz * voxel_size]
+            intensities[i] = voxel.color[0]
+
+        msg = ros_utils.to_point_cloud_msg(points, intensities, frame='task')
+        self._pubs['tsdf'].publish(msg)
 
     def draw_grasp_pose(self, pose):
         msg = PoseStamped()

@@ -70,9 +70,9 @@ def generate_dataset(base_dir, n_scenes, n_grasps_per_scene, n_workers,
         s.save_state()
 
         # Reconstruct the volume
-        length = 0.2
-        volume = integration.TSDFVolume(length, resolution=60)
-        extrinsics = viewpoints.sample_hemisphere(n_views_per_scene, length)
+        size = 0.2
+        volume = integration.TSDFVolume(size, resolution=60)
+        extrinsics = viewpoints.sample_hemisphere(n_views_per_scene, size)
         for i, extrinsic in enumerate(extrinsics):
             _, depth = s.camera.get_rgb_depth(extrinsic)
             volume.integrate(depth, s.camera.intrinsic, extrinsic)
