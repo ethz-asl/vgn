@@ -52,29 +52,38 @@ def to_color_msg(color):
     return msg
 
 
-def to_point_cloud_msg(points, frame=None, stamp=None):
+def to_point_cloud_msg(points, intensities=None, frame=None, stamp=None):
     """Convert list of unstructured points to a PointCloud2 message.
 
     Args:
         points: Point coordinates as array of shape (N,3).
+        colors: Colors as array of shape (N,3).
         frame
         stamp
     """
     msg = PointCloud2()
-    msg.height = 1
-    msg.width = points.shape[0]
-    msg.fields = [
-        PointField("x", 0, PointField.FLOAT32, 1),
-        PointField("y", 4, PointField.FLOAT32, 1),
-        PointField("z", 8, PointField.FLOAT32, 1),
-    ]
-    msg.is_bigendian = False
-    msg.point_step = 12
-    msg.row_step = msg.point_step * points.shape[0]
-    msg.is_dense = False
-    msg.data = points.astype(np.float32).tostring()
-
     msg.header.frame_id = frame
     msg.header.stamp = stamp or rospy.Time.now()
+
+    msg.height = 1
+    msg.width = points.shape[0]
+    msg.is_bigendian = False
+    msg.is_dense = False
+
+    msg.fields = [
+        PointField('x', 0, PointField.FLOAT32, 1),
+        PointField('y', 4, PointField.FLOAT32, 1),
+        PointField('z', 8, PointField.FLOAT32, 1),
+    ]
+    msg.point_step = 12
+    data = points
+
+    if intensities is not None:
+        msg.fields.append(PointField('intensity', 12, PointField.FLOAT32, 1))
+        msg.point_step += 4
+        data = np.hstack([points, intensities])
+
+    msg.row_step = msg.point_step * points.shape[0]
+    msg.data = data.astype(np.float32).tostring()
 
     return msg
