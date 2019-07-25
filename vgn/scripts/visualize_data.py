@@ -47,7 +47,7 @@ def visualize_scene(data_dir):
 
     # Visialize TSDF
     voxel_grid = volume.get_voxel_grid()
-    vis.draw_tsdf(voxel_grid)
+    vis.draw_tsdf(voxel_grid, slice_x=30)
 
 
 def main():

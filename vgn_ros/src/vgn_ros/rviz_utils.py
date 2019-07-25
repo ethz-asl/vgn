@@ -32,13 +32,19 @@ class RViz(object):
         msg = ros_utils.to_point_cloud_msg(points, frame='task')
         self._pubs['point_cloud'].publish(msg)
 
-    def draw_tsdf(self, voxel_grid):
-        n_voxels = len(voxel_grid.voxels)
+    def draw_tsdf(self, voxel_grid, slice_x=None):
+        if slice_x is not None:
+            fn = lambda voxel: voxel.grid_index[0] == slice_x
+            voxels = filter(fn, voxel_grid.voxels)
+        else:
+            voxels = voxel_grid.voxels
+
+        n_voxels = len(voxels)
         voxel_size = voxel_grid.voxel_size
 
         points = np.empty((n_voxels, 3))
         intensities = np.empty((n_voxels, 1))
-        for i, voxel in enumerate(voxel_grid.voxels):
+        for i, voxel in enumerate(voxels):
             ix, iy, iz = voxel.grid_index
             points[i] = [ix * voxel_size, iy * voxel_size, iz * voxel_size]
             intensities[i] = voxel.color[0]
