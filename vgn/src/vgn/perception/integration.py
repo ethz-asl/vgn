@@ -23,15 +23,15 @@ class TSDFVolume(object):
             intrinsic: The intrinsic parameters of a pinhole camera model.
             extrinsics: The transform from world to camera coordinages, T_eye_world.
         """
-        rgbd = open3d.create_rgbd_image_from_color_and_depth(
-            open3d.Image(np.empty_like(depth)),
-            open3d.Image(depth),
+        rgbd = open3d.geometry.create_rgbd_image_from_color_and_depth(
+            open3d.geometry.Image(np.empty_like(depth)),
+            open3d.geometry.Image(depth),
             depth_scale=1.0,
             depth_trunc=2.0,
             convert_rgb_to_intensity=False,
         )
 
-        intrinsic = open3d.PinholeCameraIntrinsic(
+        intrinsic = open3d.camera.PinholeCameraIntrinsic(
             width=intrinsic.width,
             height=intrinsic.height,
             fx=intrinsic.fx,
