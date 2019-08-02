@@ -1,40 +1,31 @@
-from __future__ import division, print_function
+from __future__ import print_function
 
 import argparse
-from os import path
+import os
 
 import numpy as np
+import open3d
 import rospy
 
-from vgn.data import vgn_data
+from vgn import dataset
 from vgn.perception import integration
-from vgn.utils import camera, image
 from vgn_ros import rviz_utils
 
 
-def visualize_scene(data_dir):
-    assert path.exists(data_dir), 'Data directory does not exist'
+def visualize_scene(sample_dir):
+    assert os.path.exists(sample_dir), 'Directory does not exist'
 
     # Create connection to RViz
     vis = rviz_utils.RViz()
 
-    # Load camera intrinsics
-    fname = path.join(data_dir, 'intrinsic.json')
-    intrinsic = camera.PinholeCameraIntrinsic.from_json(fname)
-
-    # Load camera extrinsics
-    fname = path.join(data_dir, 'extrinsics.csv')
-    extrinsics = vgn_data.load_extrinsics(fname)
-
-    # Load grasps
-    fname = path.join(data_dir, 'grasps.csv')
-    poses, scores = vgn_data.load_grasps(fname)
+    # Load data
+    sample = dataset.load_scene_data(sample_dir)
+    intrinsic = sample['intrinsic']
 
     # Reconstruct point cloud
     volume = integration.TSDFVolume(size=0.2, resolution=60)
-    for i, extrinsic in enumerate(extrinsics):
-        depth = image.load(path.join(data_dir, '{0:03d}.png'.format(i)))
-        volume.integrate(depth, intrinsic, extrinsic)
+    for extrinsic, depth_img in zip(sample['extrinsics'], sample['images']):
+        volume.integrate(depth_img, intrinsic, extrinsic)
     point_cloud = volume.get_point_cloud()
     # open3d.draw_geometries([point_cloud])
 
@@ -43,7 +34,7 @@ def visualize_scene(data_dir):
     vis.draw_point_cloud(points)
 
     # Visualize grasps
-    vis.draw_candidates(poses, scores)
+    vis.draw_candidates(sample['poses'], sample['scores'])
 
     # Visialize TSDF
     voxel_grid = volume.get_voxel_grid()
@@ -54,10 +45,10 @@ def main():
     rospy.init_node('data_visualizer')
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('data_dir', type=str)
+    parser.add_argument('sample_dir', type=str, help='Directory of one sample')
     args = parser.parse_args()
 
-    visualize_scene(args.data_dir)
+    visualize_scene(args.sample_dir)
 
 
 if __name__ == '__main__':

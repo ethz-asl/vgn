@@ -29,6 +29,13 @@ class Transform(object):
             [0., 0., 0., 1.],
         ))
 
+    def to_dict(self):
+        """Serialize Transform object into a dictionary."""
+        return {
+            'rotation': self.rotation.as_quat().tolist(),
+            'translation': self.translation.tolist()
+        }
+
     def __mul__(self, other):
         """Compose this transform with another."""
         rotation = self.rotation * other.rotation
@@ -52,6 +59,12 @@ class Transform(object):
         """Initialize from a 4x4 matrix."""
         rotation = Rotation.from_dcm(m[:3, :3])
         translation = m[:3, 3]
+        return cls(rotation, translation)
+
+    @classmethod
+    def from_dict(cls, dictionary):
+        rotation = Rotation.from_quat(dictionary['rotation'])
+        translation = np.asarray(dictionary['translation'])
         return cls(rotation, translation)
 
     @classmethod

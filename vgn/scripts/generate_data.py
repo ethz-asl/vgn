@@ -1,19 +1,19 @@
 """Script to generate a synthetic grasp dataset using physical simulation."""
 import argparse
+import json
+import os
 import uuid
-from collections import OrderedDict
-from os import makedirs, path
 
 import numpy as np
 
 from vgn import candidate, grasp, samplers, simulation
-from vgn.data_generator import generate_dataset
-from vgn.perception import integration, viewpoints
+from vgn.perception import integration
+from vgn.perception.viewpoints import sample_hemisphere
 from vgn.utils import camera, image
 from vgn.utils.transform import Rotation, Transform
 
 
-def generate_dataset(base_dir, n_scenes, n_grasps_per_scene, n_workers,
+def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, n_workers,
                      sim_gui):
     """Generate a dataset of synthetic grasps.
 
@@ -21,15 +21,15 @@ def generate_dataset(base_dir, n_scenes, n_grasps_per_scene, n_workers,
     render depth images from multiple viewpoints and sample a specified number
     of grasps.
 
-    For each scene, it will create a unique folder within base_dir, and store
+    For each scene, it will create a unique folder within root_dir, and store
 
-        - the rendered depth images as PNGs,
-        - intrinsic.json with the camera intrinsic parameters,
-        - extrinsics.csv with the extrinsic parameters corresponding to each image,
-        - grasps.csv containing grasp pose and score for each sampled grasp.
+        * the rendered depth images as PNGs,
+        * the camera intrinsic parameters,
+        * the extrinsic parameters corresponding to each image,
+        * pose and score for each sampled grasp.
 
     Args:
-        base_dir: Base directory of the dataset.
+        root_dir: Root directory of the dataset.
         n_scenes: Number of generated virtual scenes.
         n_grasps_per_scene: Number of grasp candidates sampled per scene.
         n_workers: Number of processes used for the data generation.
@@ -45,21 +45,16 @@ def generate_dataset(base_dir, n_scenes, n_grasps_per_scene, n_workers,
     g = grasp.Grasper(robot=s)
 
     # Create the base dir if not existing
-    if not path.exists(base_dir):
-        makedirs(base_dir)
-
-    # Pre-allocate memory
-    image_names = []
-    extrinsics_pos = np.empty((n_views_per_scene, 3))
-    extrinsics_ori = np.empty((n_views_per_scene, 4))
-    grasps_pos = np.empty((n_grasps_per_scene, 3))
-    grasps_ori = np.empty((n_grasps_per_scene, 4))
-    scores = np.empty((n_grasps_per_scene, 1))
+    if not os.path.exists(root_dir):
+        os.makedirs(root_dir)
 
     for _ in range(n_scenes):
+        viewpoints = []
+        grasps = []
+
         # Create a unique folder for storing data from this scene
-        dirname = path.join(base_dir, str(uuid.uuid4().hex))
-        makedirs(dirname)
+        dirname = os.path.join(root_dir, str(uuid.uuid4().hex))
+        os.makedirs(dirname)
 
         # Generate a new scene
         s.reset()
@@ -72,16 +67,18 @@ def generate_dataset(base_dir, n_scenes, n_grasps_per_scene, n_workers,
         # Reconstruct the volume
         size = 0.2
         volume = integration.TSDFVolume(size, resolution=60)
-        extrinsics = viewpoints.sample_hemisphere(n_views_per_scene, size)
+        extrinsics = sample_hemisphere(n_views_per_scene, size)
         for i, extrinsic in enumerate(extrinsics):
             _, depth = s.camera.get_rgb_depth(extrinsic)
             volume.integrate(depth, s.camera.intrinsic, extrinsic)
-            extrinsics_pos[i] = extrinsic.translation
-            extrinsics_ori[i] = extrinsic.rotation.as_quat()
 
             # Write the image to disk
             image_name = '{0:03d}.png'.format(i)
-            image.save(path.join(dirname, image_name), depth)
+            image.save(os.path.join(dirname, image_name), depth)
+            viewpoints.append({
+                'image_name': image_name,
+                'extrinsic': extrinsic.to_dict(),
+            })
 
         # Sample candidate grasp points
         points, normals = samplers.uniform(n_grasps_per_scene,
@@ -91,31 +88,29 @@ def generate_dataset(base_dir, n_scenes, n_grasps_per_scene, n_workers,
 
         # Score the candidates
         for i, (point, normal) in enumerate(zip(points, normals)):
-            score, orientation = candidate.evaluate(s, g, point, normal)
-            grasps_pos[i] = point
-            grasps_ori[i] = orientation.as_quat()
-            scores[i] = score
+            pose, score = candidate.evaluate(s, g, point, normal)
+            grasps.append({'pose': pose.to_dict(), 'score': score})
 
         # Write intrinsics to disk
-        s.camera.intrinsic.to_json(path.join(dirname, 'intrinsic.json'))
+        s.camera.intrinsic.to_json(os.path.join(dirname, 'intrinsic.json'))
 
         # Write extrinsics to disk
-        data = np.hstack((extrinsics_pos, extrinsics_ori))
-        fname = path.join(dirname, 'extrinsics.csv')
-        np.savetxt(fname, data, '%.3f', ',', header='x,y,z,qx,qy,qz,qw')
+        fname = os.path.join(dirname, 'viewpoints.json')
+        with open(fname, 'wb') as fp:
+            json.dump(viewpoints, fp, indent=4)
 
         # Write grasps to disk
-        data = np.hstack((grasps_pos, grasps_ori, scores))
-        fname = path.join(dirname, 'grasps.csv')
-        np.savetxt(fname, data, '%.3f', ',', header='x,y,z,qx,qy,qz,qw,score')
+        fname = os.path.join(dirname, 'grasps.json')
+        with open(fname, 'wb') as fp:
+            json.dump(grasps, fp, indent=4)
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        'base_dir',
+        'root_dir',
         type=str,
-        help='The base directory in which data is stored',
+        help='The root directory of the dataset',
     )
     parser.add_argument(
         '--n-scenes',
@@ -143,7 +138,7 @@ def main():
     args = parser.parse_args()
 
     generate_dataset(
-        base_dir=args.base_dir,
+        root_dir=args.root_dir,
         n_scenes=args.n_scenes,
         n_grasps_per_scene=args.n_grasps_per_scene,
         n_workers=args.n_workers,

@@ -7,9 +7,6 @@ from vgn.utils.transform import Rotation, Transform
 def evaluate(s, g, point, normal):
     """Evaluate the quality of the given grasp point.
 
-    We generate several grasp poses by rotating the hand around the surface
-    normal and, if succesfull, report the mean orientation.
-
     Args:
         s: The simulation used for evaluating the grasp point.
         g: A Grasper object.
@@ -34,10 +31,12 @@ def evaluate(s, g, point, normal):
             good_yaws.append(yaw)
 
     if good_yaws:
-        orientation = R * Rotation.from_euler('z', np.mean(good_yaws))
-        return 1., _ensure_consistent_orientation(orientation)
+        ori = R * Rotation.from_euler('z', np.mean(good_yaws))
+        ori = _ensure_consistent_orientation(ori)
+        return Transform(ori, point), 1.
     else:
-        return 0., _ensure_consistent_orientation(R)
+        ori = _ensure_consistent_orientation(R)
+        return Transform(ori, point), 0.
 
 
 def _ensure_consistent_orientation(orientation):

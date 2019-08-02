@@ -2,11 +2,6 @@ import cv2
 import numpy as np
 
 
-def show(img, name="default"):
-    cv2.imshow(name, img)
-    cv2.waitKey(0)
-
-
 def save(fname, img):
     """Save image as a PNG file."""
     img = (1000. * img).astype(np.uint16)
