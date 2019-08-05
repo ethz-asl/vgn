@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import argparse
 import os
+import time
 
 import numpy as np
 import open3d
@@ -39,6 +40,15 @@ def visualize_scene(sample_dir):
     # Visialize TSDF
     voxel_grid = volume.get_voxel_grid()
     vis.draw_tsdf(voxel_grid, slice_x=30)
+
+    # Iterate over good grasps and draw their pose
+    for pose, score in zip(sample['poses'], sample['scores']):
+        print('A')
+        if not np.isclose(score, 1.):
+            continue
+        print('B')
+        vis.draw_grasp_pose(pose)
+        time.sleep(1.0)
 
 
 def main():
