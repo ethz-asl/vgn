@@ -7,4 +7,6 @@ opencv-python
 pandas
 pybullet
 scipy
+torch
+tqdm
 yapf

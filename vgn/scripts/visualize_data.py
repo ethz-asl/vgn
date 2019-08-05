@@ -43,10 +43,8 @@ def visualize_scene(sample_dir):
 
     # Iterate over good grasps and draw their pose
     for pose, score in zip(sample['poses'], sample['scores']):
-        print('A')
         if not np.isclose(score, 1.):
             continue
-        print('B')
         vis.draw_grasp_pose(pose)
         time.sleep(1.0)
 
