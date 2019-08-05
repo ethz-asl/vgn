@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.signal as signal
 
 from vgn import grasp
 from vgn.utils.transform import Rotation, Transform
@@ -22,17 +23,24 @@ def evaluate(s, g, point, normal):
     x = np.cross(y, z)
     R = Rotation.from_dcm(np.vstack((x, y, z)).T)
 
-    good_yaws = []
-    for yaw in np.linspace(-0.5 * np.pi, 0.5 * np.pi, 16):
+    yaws = np.linspace(-0.5 * np.pi, 0.5 * np.pi, 16)
+    scores = []
+
+    for yaw in yaws:
         orientation = R * Rotation.from_euler('z', yaw)
         s.restore_state()
         outcome = g.grasp(Transform(orientation, point))
-        if outcome == grasp.Outcome.SUCCESS:
-            good_yaws.append(yaw)
+        scores.append(outcome == grasp.Outcome.SUCCESS)
 
-    if good_yaws:
-        ori = R * Rotation.from_euler('z', np.mean(good_yaws))
-        ori = _ensure_consistent_orientation(ori)
+    if np.sum(scores):
+        # Detect the peak over yaw orientations
+        peaks, properties = signal.find_peaks(x=np.r_[0, scores, 0],
+                                              height=1,
+                                              width=1)
+        idx_of_widest_peak = peaks[np.argmax(properties['widths'])] - 1
+        yaw = yaws[idx_of_widest_peak]
+
+        ori = _ensure_consistent_orientation(R * Rotation.from_euler('z', yaw))
         return Transform(ori, point), 1.
     else:
         ori = _ensure_consistent_orientation(R)
