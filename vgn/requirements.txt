@@ -1,6 +1,7 @@
 catkin_pkg
 jupyter
 matplotlib
+mpi4py
 numpy
 open3d-python
 opencv-python

@@ -1,20 +1,22 @@
 """Script to generate a synthetic grasp dataset using physical simulation."""
+from __future__ import division
+
 import argparse
 import json
+import logging
 import os
 import uuid
 
-import numpy as np
+import tqdm
+from mpi4py import MPI
 
 from vgn import candidate, grasp, samplers, simulation
 from vgn.perception import integration
 from vgn.perception.viewpoints import sample_hemisphere
-from vgn.utils import camera, image
-from vgn.utils.transform import Rotation, Transform
+from vgn.utils import image
 
 
-def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, n_workers,
-                     sim_gui):
+def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, sim_gui, rank):
     """Generate a dataset of synthetic grasps.
 
     This script will generate multiple virtual scenes, and for each scene
@@ -32,11 +34,8 @@ def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, n_workers,
         root_dir: Root directory of the dataset.
         n_scenes: Number of generated virtual scenes.
         n_grasps_per_scene: Number of grasp candidates sampled per scene.
-        n_workers: Number of processes used for the data generation.
         sim_gui: Run the simulation in a GUI or in headless mode.
-
-    TODO:
-        * Distribute data collection.
+        rank: MPI rank.
     """
     n_views_per_scene = 16
     real_time = False
@@ -44,11 +43,11 @@ def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, n_workers,
     s = simulation.Simulation(sim_gui, real_time)
     g = grasp.Grasper(robot=s)
 
-    # Create the base dir if not existing
+    # Create the root directory if it does not exist
     if not os.path.exists(root_dir):
         os.makedirs(root_dir)
 
-    for _ in range(n_scenes):
+    for _ in tqdm.tqdm(range(n_scenes), disable=rank is not 0):
         viewpoints = []
         grasps = []
 
@@ -121,14 +120,8 @@ def main():
     parser.add_argument(
         '--n-grasps-per-scene',
         type=int,
-        default=100,
+        default=10,
         help='Number of grasp candidates per scene',
-    )
-    parser.add_argument(
-        '--n-workers',
-        type=int,
-        default=1,
-        help='Number of processes used for data collection',
     )
     parser.add_argument(
         '--sim-gui',
@@ -137,12 +130,20 @@ def main():
     )
     args = parser.parse_args()
 
+    logging.basicConfig(level=logging.INFO)
+
+    n_workers = MPI.COMM_WORLD.Get_size()
+    rank = MPI.COMM_WORLD.Get_rank()
+
+    if rank == 0:
+        logging.info('Generating data using %d processes.', n_workers)
+
     generate_dataset(
         root_dir=args.root_dir,
-        n_scenes=args.n_scenes,
+        n_scenes=args.n_scenes // n_workers,
         n_grasps_per_scene=args.n_grasps_per_scene,
-        n_workers=args.n_workers,
         sim_gui=args.sim_gui,
+        rank=rank,
     )
 
 
