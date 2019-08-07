@@ -7,13 +7,14 @@ import torch.utils.data
 from send2trash import send2trash
 from tqdm import tqdm
 
+from vgn import utils
 from vgn.perception import integration
-from vgn.utils import camera, image
+from vgn.utils import camera
 from vgn.utils.transform import Rotation, Transform
 
 
 class VGNDataset(torch.utils.data.Dataset):
-    def __init__(self, root_dir, rebuild_cache=True):
+    def __init__(self, root_dir, rebuild_cache=False):
         """Dataset for the volumetric grasping network.
 
         Instances consist of an input voxelized tsdf, and the position, score
@@ -128,7 +129,8 @@ def _load_images(dirname):
 
     imgs, extrinsics = [], []
     for viewpoint in viewpoints:
-        imgs.append(image.load(os.path.join(dirname, viewpoint['image_name'])))
+        img = utils.load_image(os.path.join(dirname, viewpoint['image_name']))
+        imgs.append(img)
         extrinsics.append(Transform.from_dict(viewpoint['extrinsic']))
 
     return extrinsics, imgs

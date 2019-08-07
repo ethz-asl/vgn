@@ -10,10 +10,9 @@ import uuid
 import tqdm
 from mpi4py import MPI
 
-from vgn import candidate, grasp, samplers, simulation
+from vgn import candidate, grasp, samplers, simulation, utils
 from vgn.perception import integration
 from vgn.perception.viewpoints import sample_hemisphere
-from vgn.utils import image
 
 
 def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, sim_gui, rank):
@@ -73,7 +72,7 @@ def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, sim_gui, rank):
 
             # Write the image to disk
             image_name = '{0:03d}.png'.format(i)
-            image.save(os.path.join(dirname, image_name), depth)
+            utils.save_image(os.path.join(dirname, image_name), depth)
             viewpoints.append({
                 'image_name': image_name,
                 'extrinsic': extrinsic.to_dict(),
