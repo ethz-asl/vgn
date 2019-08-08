@@ -115,7 +115,7 @@ def main():
     parser.add_argument(
         '--model',
         type=str,
-        default='voxnet',
+        required=True,
         help='model',
     )
     parser.add_argument(
