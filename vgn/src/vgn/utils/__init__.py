@@ -4,7 +4,6 @@ import cv2
 import numpy as np
 import torch
 from ignite.engine import Engine
-from ignite.metrics import Accuracy, Loss
 from torch.utils import tensorboard
 
 
@@ -47,15 +46,9 @@ def create_trainer(model, optimizer, loss_fn, device):
         loss = loss_fn(score_pred, score)
         loss.backward()
         optimizer.step()
-        return loss, score_pred, score
+        return loss
 
-    engine = Engine(_update)
-
-    output_tf = lambda out: (out[1], out[2])
-    loss_metric = Loss(loss_fn, output_transform=output_tf)
-    loss_metric.attach(engine, 'loss')
-
-    return engine
+    return Engine(_update)
 
 
 def create_evaluator(model, loss_fn, device):
@@ -70,17 +63,6 @@ def create_evaluator(model, loss_fn, device):
             return score_pred, score
 
     engine = Engine(_inference)
-
-    loss = Loss(loss_fn)
-    loss.attach(engine, 'loss')
-
-    def thresholded_output_transform(output):
-        score_pred, score = output
-        score_pred = torch.round(score_pred)
-        return score_pred, score
-
-    score_acc = Accuracy(thresholded_output_transform)
-    score_acc.attach(engine, 'acc')
 
     return engine
 

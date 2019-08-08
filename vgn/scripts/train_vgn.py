@@ -6,8 +6,10 @@ import os
 import open3d
 import torch
 import torch.nn.functional as F
+from ignite.contrib.handlers.tqdm_logger import ProgressBar
 from ignite.engine import Events
 from ignite.handlers import ModelCheckpoint
+from ignite.metrics import Accuracy, Loss, RunningAverage
 
 import vgn.utils as utils
 from vgn.dataset import VGNDataset
@@ -23,6 +25,19 @@ def train(args):
     device = torch.device('cuda')
     kwargs = {'pin_memory': True}
 
+    # Create log directory for the current setup
+    descr = 'model={},data={},batch_size={},lr={:.0e},seed={}'.format(
+        args.model,
+        args.data,
+        args.batch_size,
+        args.lr,
+        args.seed,
+    )
+    log_dir = os.path.join(args.log_dir, descr)
+
+    assert not os.path.exists(log_dir), 'log with this setup already exists'
+
+    # Load and inspect data
     path = os.path.join('data/datasets', args.data, 'train')
     dataset = VGNDataset(path, args.rebuild_cache)
 
@@ -32,6 +47,7 @@ def train(args):
     print('Size of training dataset: {}'.format(train_size))
     print('Size of validation dataset: {}'.format(validation_size))
 
+    # Create train and validation data loaders
     train_dataset, validation_dataset = torch.utils.data.random_split(
         dataset, [train_size, validation_size])
 
@@ -45,35 +61,31 @@ def train(args):
                                                     shuffle=True,
                                                     **kwargs)
 
+    # Build the network
     model = get_model(args.model)
 
+    # Define optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
+    # Create Ignite engines for training and validation
     trainer = utils.create_trainer(model, optimizer, loss_fn, device)
-
     evaluator = utils.create_evaluator(model, loss_fn, device)
 
-    descr = 'model={},data={},batch_size={},lr={:.0E},seed={}'.format(
-        args.model,
-        args.data,
-        args.batch_size,
-        args.lr,
-        args.seed,
-    )
-    log_dir = os.path.join(args.log_dir, descr)
+    # Define metrics
+    def thresholded_output_transform(output):
+        score_pred, score = output
+        score_pred = torch.round(score_pred)
+        return score_pred, score
+
+    RunningAverage(output_transform=lambda x: x).attach(trainer, 'loss')
+    Loss(loss_fn).attach(evaluator, 'loss')
+    Accuracy(thresholded_output_transform).attach(evaluator, 'acc')
+
+    # Setup loggers and checkpoints
+    ProgressBar(persist=True, ascii=True).attach(trainer, ['loss'])
 
     train_writer, val_writer = utils.create_summary_writers(
         model, train_loader, device, log_dir)
-
-    @trainer.on(Events.ITERATION_COMPLETED)
-    def log_progress(engine):
-        epoch = engine.state.epoch
-        iteration = (engine.state.iteration - 1) % len(train_loader) + 1
-        loss = engine.state.output[0]
-
-        if iteration % args.log_interval == 0:
-            print('Epoch: {:2d}, Iteration: {}/{}, Loss: {:.4f}'.format(
-                epoch, iteration, len(train_loader), loss))
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_metrics(_):
@@ -87,10 +99,6 @@ def train(args):
         train_writer.add_scalar('loss', train_loss, epoch)
         val_writer.add_scalar('loss', val_loss, epoch)
         val_writer.add_scalar('accuracy', val_acc, epoch)
-
-        print(('Validation Results - Epoch: {}, '
-               'Avg loss: {:.4f}, '
-               'Avg accuracy: {:.2f}').format(epoch, val_loss, val_acc))
 
     checkpoint_handler = ModelCheckpoint(
         log_dir,
@@ -125,6 +133,12 @@ def main():
         help='dataset',
     )
     parser.add_argument(
+        '--log-dir',
+        type=str,
+        required=True,
+        help='path to log directory',
+    )
+    parser.add_argument(
         '--batch-size',
         type=int,
         default=32,
@@ -140,7 +154,7 @@ def main():
         '--lr',
         type=float,
         default=0.001,
-        help='learning rate (default: 1E-3)',
+        help='learning rate (default: 1e-3)',
     )
     parser.add_argument(
         '--seed',
@@ -153,18 +167,6 @@ def main():
         type=float,
         default=0.2,
         help='ratio of data used for validation (default: 0.2)',
-    )
-    parser.add_argument(
-        '--log-dir',
-        type=str,
-        default='data/runs',
-        help='path to log directory',
-    )
-    parser.add_argument(
-        '--log-interval',
-        type=int,
-        default=10,
-        help='how many batches to wait before logging training status',
     )
     parser.add_argument(
         '--rebuild-cache',
