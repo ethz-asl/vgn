@@ -1,6 +1,8 @@
 from __future__ import print_function
 
 import argparse
+import os
+from datetime import datetime
 
 import open3d
 import torch
@@ -51,6 +53,10 @@ def train(args):
 
     evaluator = utils.create_evaluator(model, loss_fn, device)
 
+    timestamp = datetime.now().strftime('%y-%m-%d-%H-%M-%S')
+    descr = 'batch_size={},lr={:.0E}'.format(args.batch_size, args.lr)
+    log_dir = os.path.join(args.log_dir, timestamp + '-' + descr)
+
     @trainer.on(Events.ITERATION_COMPLETED)
     def log_training_loss(engine):
         epoch = engine.state.epoch
@@ -71,9 +77,11 @@ def train(args):
                ))
 
     checkpoint_handler = ModelCheckpoint(
-        'data/models',
-        'checkpoint',
+        log_dir,
+        'best',
         score_function=lambda engine: -engine.state.metrics['loss'],
+        n_saved=1,
+        require_empty=True,
         save_as_state_dict=True,
     )
     evaluator.add_event_handler(
@@ -89,7 +97,7 @@ def train(args):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        'data',
+        '--data',
         type=str,
         help='path to train dataset',
     )
@@ -116,6 +124,11 @@ def main():
         type=float,
         default=0.2,
         help='ratio of data used for validation',
+    )
+    parser.add_argument(
+        '--log-dir',
+        type=str,
+        help='path to log directory',
     )
     parser.add_argument(
         '--log-interval',
