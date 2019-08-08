@@ -2,7 +2,6 @@ from __future__ import print_function
 
 import argparse
 import os
-from datetime import datetime
 
 import open3d
 import torch
@@ -45,7 +44,7 @@ def train(args):
                                                     shuffle=True,
                                                     **kwargs)
 
-    model = get_model('voxnet')
+    model = get_model(args.model)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
@@ -53,9 +52,13 @@ def train(args):
 
     evaluator = utils.create_evaluator(model, loss_fn, device)
 
-    timestamp = datetime.now().strftime('%y-%m-%d-%H-%M-%S')
-    descr = 'batch_size={},lr={:.0E}'.format(args.batch_size, args.lr)
-    log_dir = os.path.join(args.log_dir, timestamp + '-' + descr)
+    descr = 'model={},batch_size={},lr={:.0E},seed={}'.format(
+        args.model,
+        args.batch_size,
+        args.lr,
+        args.seed,
+    )
+    log_dir = os.path.join(args.log_dir, descr)
 
     train_writer, val_writer = utils.create_summary_writers(
         model, train_loader, device, log_dir)
@@ -105,8 +108,15 @@ def train(args):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        '--model',
+        type=str,
+        default='voxnet',
+        help='model',
+    )
+    parser.add_argument(
         '--data',
         type=str,
+        required=True,
         help='path to train dataset',
     )
     parser.add_argument(
@@ -126,6 +136,12 @@ def main():
         type=float,
         default=0.001,
         help='learning rate',
+    )
+    parser.add_argument(
+        '--seed',
+        type=int,
+        default=1,
+        help='random seed',
     )
     parser.add_argument(
         '--validation-split',
@@ -152,6 +168,8 @@ def main():
     args = parser.parse_args()
 
     assert torch.cuda.is_available(), 'ERROR: cuda is not available'
+
+    torch.manual_seed(args.seed)
 
     train(args)
 
