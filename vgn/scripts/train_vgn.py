@@ -82,12 +82,15 @@ def train(args):
         epoch = trainer.state.epoch
         train_loss = trainer.state.metrics['loss']
         val_loss = evaluator.state.metrics['loss']
+        val_acc = evaluator.state.metrics['acc']
 
-        train_writer.add_scalar('epoch_loss', train_loss, epoch)
-        val_writer.add_scalar('epoch_loss', val_loss, epoch)
+        train_writer.add_scalar('loss', train_loss, epoch)
+        val_writer.add_scalar('loss', val_loss, epoch)
+        val_writer.add_scalar('accuracy', val_acc, epoch)
 
         print(('Validation Results - Epoch: {}, '
-               'Avg loss: {:.4f}').format(epoch, val_loss))
+               'Avg loss: {:.4f}, '
+               'Avg accuracy: {:.2f}').format(epoch, val_loss, val_acc))
 
     checkpoint_handler = ModelCheckpoint(
         log_dir,
@@ -130,7 +133,7 @@ def main():
     parser.add_argument(
         '--epochs',
         type=int,
-        default=10,
+        default=100,
         help='number of epochs to train',
     )
     parser.add_argument(
