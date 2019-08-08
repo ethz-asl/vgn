@@ -23,7 +23,8 @@ def train(args):
     device = torch.device('cuda')
     kwargs = {'pin_memory': True}
 
-    dataset = VGNDataset(args.data, args.rebuild_cache)
+    path = os.path.join('data/datasets', args.data, 'train')
+    dataset = VGNDataset(path, args.rebuild_cache)
 
     train_size = int((1 - args.validation_split) * len(dataset))
     validation_size = int(args.validation_split * len(dataset))
@@ -52,8 +53,9 @@ def train(args):
 
     evaluator = utils.create_evaluator(model, loss_fn, device)
 
-    descr = 'model={},batch_size={},lr={:.0E},seed={}'.format(
+    descr = 'model={},data={},batch_size={},lr={:.0E},seed={}'.format(
         args.model,
+        args.data,
         args.batch_size,
         args.lr,
         args.seed,
@@ -117,7 +119,7 @@ def main():
         '--data',
         type=str,
         required=True,
-        help='path to train dataset',
+        help='dataset',
     )
     parser.add_argument(
         '--batch-size',
@@ -152,6 +154,7 @@ def main():
     parser.add_argument(
         '--log-dir',
         type=str,
+        default='data/runs',
         help='path to log directory',
     )
     parser.add_argument(
