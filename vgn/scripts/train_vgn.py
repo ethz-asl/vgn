@@ -128,31 +128,31 @@ def main():
         '--batch-size',
         type=int,
         default=32,
-        help='input batch size for training',
+        help='input batch size for training (default: 32)',
     )
     parser.add_argument(
         '--epochs',
         type=int,
         default=100,
-        help='number of epochs to train',
+        help='number of epochs to train (default: 100)',
     )
     parser.add_argument(
         '--lr',
         type=float,
         default=0.001,
-        help='learning rate',
+        help='learning rate (default: 1E-3)',
     )
     parser.add_argument(
         '--seed',
         type=int,
         default=1,
-        help='random seed',
+        help='random seed (default: 1)',
     )
     parser.add_argument(
         '--validation-split',
         type=float,
         default=0.2,
-        help='ratio of data used for validation',
+        help='ratio of data used for validation (default: 0.2)',
     )
     parser.add_argument(
         '--log-dir',
@@ -163,8 +163,8 @@ def main():
     parser.add_argument(
         '--log-interval',
         type=int,
-        default=1,
-        help='number of batches to wait before logging training status',
+        default=10,
+        help='how many batches to wait before logging training status',
     )
     parser.add_argument(
         '--rebuild-cache',
