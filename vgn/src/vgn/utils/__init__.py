@@ -1,8 +1,11 @@
+import os
+
 import cv2
 import ignite.engine
 import ignite.metrics
 import numpy as np
 import torch
+from torch.utils import tensorboard
 
 
 def save_image(fname, img):
@@ -44,9 +47,15 @@ def create_trainer(model, optimizer, loss_fn, device):
         loss = loss_fn(score_pred, score)
         loss.backward()
         optimizer.step()
-        return loss.item()
+        return loss, score_pred, score
 
-    return ignite.engine.Engine(_update)
+    engine = ignite.engine.Engine(_update)
+
+    output_tf = lambda out: (out[1], out[2])
+    loss_metric = ignite.metrics.Loss(loss_fn, output_transform=output_tf)
+    loss_metric.attach(engine, 'loss')
+
+    return engine
 
 
 def create_evaluator(model, loss_fn, device):
@@ -66,3 +75,17 @@ def create_evaluator(model, loss_fn, device):
     loss_metric.attach(engine, 'loss')
 
     return engine
+
+
+def create_summary_writers(model, data_loader, device, log_dir):
+    train_path = os.path.join(log_dir, 'train')
+    val_path = os.path.join(log_dir, 'validation')
+
+    train_writer = tensorboard.SummaryWriter(train_path, flush_secs=60)
+    val_writer = tensorboard.SummaryWriter(val_path, flush_secs=60)
+
+    # Write the graph to Tensorboard
+    trace, _, _ = _prepare_batch(next(iter(data_loader)), device)
+    train_writer.add_graph(model, trace)
+
+    return train_writer, val_writer

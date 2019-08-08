@@ -57,24 +57,32 @@ def train(args):
     descr = 'batch_size={},lr={:.0E}'.format(args.batch_size, args.lr)
     log_dir = os.path.join(args.log_dir, timestamp + '-' + descr)
 
+    train_writer, val_writer = utils.create_summary_writers(
+        model, train_loader, device, log_dir)
+
     @trainer.on(Events.ITERATION_COMPLETED)
-    def log_training_loss(engine):
+    def log_progress(engine):
         epoch = engine.state.epoch
         iteration = (engine.state.iteration - 1) % len(train_loader) + 1
-        loss = engine.state.output
+        loss = engine.state.output[0]
+
         if iteration % args.log_interval == 0:
             print('Epoch: {:2d}, Iteration: {}/{}, Loss: {:.4f}'.format(
                 epoch, iteration, len(train_loader), loss))
 
     @trainer.on(Events.EPOCH_COMPLETED)
-    def log_validation_results(engine):
+    def log_metrics(_):
         evaluator.run(validation_loader)
-        metrics = evaluator.state.metrics
+
+        epoch = trainer.state.epoch
+        train_loss = trainer.state.metrics['loss']
+        val_loss = evaluator.state.metrics['loss']
+
+        train_writer.add_scalar('epoch_loss', train_loss, epoch)
+        val_writer.add_scalar('epoch_loss', val_loss, epoch)
+
         print(('Validation Results - Epoch: {}, '
-               'Avg loss: {:.4f}').format(
-                   engine.state.epoch,
-                   metrics['loss'],
-               ))
+               'Avg loss: {:.4f}').format(epoch, val_loss))
 
     checkpoint_handler = ModelCheckpoint(
         log_dir,
