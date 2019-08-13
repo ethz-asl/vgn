@@ -8,7 +8,7 @@ import numpy as np
 import open3d
 import rospy
 
-from vgn import dataset
+from vgn import data
 from vgn.perception import integration
 from vgn_ros import rviz_utils
 
@@ -20,7 +20,7 @@ def visualize_scene(sample_dir):
     vis = rviz_utils.RViz()
 
     # Load data
-    sample = dataset.load_scene_data(sample_dir)
+    sample = data.load_scene_data(sample_dir)
     intrinsic = sample['intrinsic']
 
     # Reconstruct point cloud
