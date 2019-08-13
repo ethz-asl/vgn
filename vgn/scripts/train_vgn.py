@@ -7,11 +7,11 @@ import open3d
 import torch
 import torch.nn.functional as F
 from ignite.contrib.handlers.tqdm_logger import ProgressBar
-from ignite.engine import Events
+from ignite.engine import Engine, Events
 from ignite.handlers import ModelCheckpoint
 from ignite.metrics import Accuracy, Loss, RunningAverage
+from torch.utils import tensorboard
 
-import vgn.utils as utils
 from vgn.dataset import VGNDataset
 from vgn.models import get_model
 
@@ -19,6 +19,67 @@ from vgn.models import get_model
 def loss_fn(score_pred, score):
     loss = F.binary_cross_entropy(score_pred, score)
     return loss
+
+
+def _prepare_batch(batch, device):
+    tsdf, idx, score = batch
+    tsdf = tsdf.to(device)
+    idx = idx.to(device)
+    score = score.squeeze().to(device)
+    return tsdf, idx, score
+
+
+def _select_pred(out, idx):
+    score_pred = torch.cat(
+        [t[0, i, j, k].unsqueeze(0) for t, (i, j, k) in zip(out, idx)])
+    return score_pred
+
+
+def create_trainer(model, optimizer, loss_fn, device):
+    model.to(device)
+
+    def _update(_, batch):
+        model.train()
+        optimizer.zero_grad()
+        tsdf, idx, score = _prepare_batch(batch, device)
+        out = model(tsdf)
+        score_pred = _select_pred(out, idx)
+        loss = loss_fn(score_pred, score)
+        loss.backward()
+        optimizer.step()
+        return loss
+
+    return Engine(_update)
+
+
+def create_evaluator(model, loss_fn, device):
+    model.to(device)
+
+    def _inference(_, batch):
+        model.eval()
+        with torch.no_grad():
+            tsdf, idx, score = _prepare_batch(batch, device)
+            out = model(tsdf)
+            score_pred = _select_pred(out, idx)
+            return score_pred, score
+
+    engine = Engine(_inference)
+
+    return engine
+
+
+def create_summary_writers(model, data_loader, device, log_dir):
+    train_path = os.path.join(log_dir, 'train')
+    val_path = os.path.join(log_dir, 'validation')
+
+    train_writer = tensorboard.SummaryWriter(train_path, flush_secs=60)
+    val_writer = tensorboard.SummaryWriter(val_path, flush_secs=60)
+
+    # Write the graph to Tensorboard
+    trace, _, _ = _prepare_batch(next(iter(data_loader)), device)
+    train_writer.add_graph(model, trace)
+
+    return train_writer, val_writer
 
 
 def train(args):
@@ -68,8 +129,8 @@ def train(args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     # Create Ignite engines for training and validation
-    trainer = utils.create_trainer(model, optimizer, loss_fn, device)
-    evaluator = utils.create_evaluator(model, loss_fn, device)
+    trainer = create_trainer(model, optimizer, loss_fn, device)
+    evaluator = create_evaluator(model, loss_fn, device)
 
     # Define metrics
     def thresholded_output_transform(output):
@@ -84,8 +145,8 @@ def train(args):
     # Setup loggers and checkpoints
     ProgressBar(persist=True, ascii=True).attach(trainer, ['loss'])
 
-    train_writer, val_writer = utils.create_summary_writers(
-        model, train_loader, device, log_dir)
+    train_writer, val_writer = create_summary_writers(model, train_loader,
+                                                      device, log_dir)
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_metrics(_):
