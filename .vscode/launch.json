@@ -34,7 +34,8 @@
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
-                "data/datasets/debug/00"
+                "data/datasets/debug/00",
+                "--rviz",
             ]
         },
         {

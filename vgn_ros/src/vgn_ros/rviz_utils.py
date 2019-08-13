@@ -32,9 +32,9 @@ class RViz(object):
         msg = ros_utils.to_point_cloud_msg(points, frame='task')
         self._pubs['point_cloud'].publish(msg)
 
-    def draw_tsdf(self, voxel_grid, slice_x=None):
-        if slice_x is not None:
-            fn = lambda voxel: voxel.grid_index[0] == slice_x
+    def draw_tsdf(self, voxel_grid, idx):
+        if idx is not None:
+            fn = lambda voxel: voxel.grid_index[0] == idx
             voxels = filter(fn, voxel_grid.voxels)
         else:
             voxels = voxel_grid.voxels

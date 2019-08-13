@@ -6,57 +6,57 @@ import time
 
 import numpy as np
 import open3d
-import rospy
 
-from vgn import dataset
+from vgn import data, utils
 from vgn.perception import integration
-from vgn_ros import rviz_utils
+from vgn.utils import vis
 
 
-def visualize_scene(sample_dir):
-    assert os.path.exists(sample_dir), 'Directory does not exist'
+def visualize(args):
+    assert os.path.exists(args.scene_dir), 'Directory does not exist'
 
-    # Create connection to RViz
-    vis = rviz_utils.RViz()
+    if args.rviz:
+        from vgn_ros import rviz_utils
+        rviz = rviz_utils.RViz()
 
-    # Load data
-    sample = dataset.load_scene_data(sample_dir)
-    intrinsic = sample['intrinsic']
+    scene = data.load_scene(args.scene_dir)
+    point_cloud, voxel_grid = data.reconstruct_volume(scene)
 
-    # Reconstruct point cloud
-    volume = integration.TSDFVolume(size=0.2, resolution=60)
-    for extrinsic, depth_img in zip(sample['extrinsics'], sample['images']):
-        volume.integrate(depth_img, intrinsic, extrinsic)
-    point_cloud = volume.get_point_cloud()
-    # open3d.draw_geometries([point_cloud])
+    # Plot volume
+    tsdf = utils.voxel_grid_to_array(voxel_grid, resolution=40)
+    vis.plot_tsdf(tsdf)
 
-    # Visualize point cloud
-    points = np.asarray(point_cloud.points)
-    vis.draw_point_cloud(points)
+    if args.rviz:
+        rviz.draw_point_cloud(np.asarray(point_cloud.points))
+        rviz.draw_tsdf(voxel_grid, idx=18)
+        rviz.draw_candidates(scene['poses'], scene['scores'])
 
-    # Visualize grasps
-    vis.draw_candidates(sample['poses'], sample['scores'])
-
-    # Visialize TSDF
-    voxel_grid = volume.get_voxel_grid()
-    vis.draw_tsdf(voxel_grid, slice_x=30)
-
-    # Iterate over good grasps and draw their pose
-    for pose, score in zip(sample['poses'], sample['scores']):
-        if not np.isclose(score, 1.):
-            continue
-        vis.draw_grasp_pose(pose)
-        time.sleep(1.0)
+        for pose, score in zip(scene['poses'], scene['scores']):
+            if not np.isclose(score, 1.):
+                continue
+            rviz.draw_grasp_pose(pose)
+            time.sleep(1.0)
 
 
 def main():
-    rospy.init_node('data_visualizer')
-
     parser = argparse.ArgumentParser()
-    parser.add_argument('sample_dir', type=str, help='Directory of one sample')
+    parser.add_argument(
+        'scene_dir',
+        type=str,
+        help='path to data directory of one scene',
+    )
+    parser.add_argument(
+        '--rviz',
+        action='store_true',
+        help='publish point clouds and grasp poses to Rviz',
+    )
     args = parser.parse_args()
 
-    visualize_scene(args.sample_dir)
+    if args.rviz:
+        import rospy
+        rospy.init_node('data_visualizer')
+
+    visualize(args)
 
 
 if __name__ == '__main__':

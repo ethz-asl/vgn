@@ -2,7 +2,6 @@
 from __future__ import division
 
 import argparse
-import json
 import logging
 import os
 import uuid
@@ -10,7 +9,7 @@ import uuid
 import tqdm
 from mpi4py import MPI
 
-from vgn import candidate, grasp, samplers, simulation, utils
+from vgn import candidate, data, grasp, samplers, simulation
 from vgn.perception import integration
 from vgn.perception.viewpoints import sample_hemisphere
 
@@ -47,12 +46,13 @@ def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, sim_gui, rank):
         os.makedirs(root_dir)
 
     for _ in tqdm.tqdm(range(n_scenes), disable=rank is not 0):
-        viewpoints = []
-        grasps = []
-
-        # Create a unique folder for storing data from this scene
-        dirname = os.path.join(root_dir, str(uuid.uuid4().hex))
-        os.makedirs(dirname)
+        scene = {
+            'intrinsic': s.camera.intrinsic,
+            'extrinsics': [],
+            'depth_imgs': [],
+            'poses': [],
+            'scores': [],
+        }
 
         # Generate a new scene
         s.reset()
@@ -64,19 +64,13 @@ def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, sim_gui, rank):
 
         # Reconstruct the volume
         size = 0.2
-        volume = integration.TSDFVolume(size, resolution=60)
+        volume = integration.TSDFVolume(size, resolution=40)
         extrinsics = sample_hemisphere(n_views_per_scene, size)
         for i, extrinsic in enumerate(extrinsics):
             _, depth = s.camera.get_rgb_depth(extrinsic)
             volume.integrate(depth, s.camera.intrinsic, extrinsic)
-
-            # Write the image to disk
-            image_name = '{0:03d}.png'.format(i)
-            utils.save_image(os.path.join(dirname, image_name), depth)
-            viewpoints.append({
-                'image_name': image_name,
-                'extrinsic': extrinsic.to_dict(),
-            })
+            scene['extrinsics'].append(extrinsic)
+            scene['depth_imgs'].append(depth)
 
         # Sample candidate grasp points
         points, normals = samplers.uniform(n_grasps_per_scene,
@@ -87,20 +81,11 @@ def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, sim_gui, rank):
         # Score the candidates
         for i, (point, normal) in enumerate(zip(points, normals)):
             pose, score = candidate.evaluate(s, g, point, normal)
-            grasps.append({'pose': pose.to_dict(), 'score': score})
+            scene['poses'].append(pose)
+            scene['scores'].append(score)
 
-        # Write intrinsics to disk
-        s.camera.intrinsic.to_json(os.path.join(dirname, 'intrinsic.json'))
-
-        # Write extrinsics to disk
-        fname = os.path.join(dirname, 'viewpoints.json')
-        with open(fname, 'wb') as fp:
-            json.dump(viewpoints, fp, indent=4)
-
-        # Write grasps to disk
-        fname = os.path.join(dirname, 'grasps.json')
-        with open(fname, 'wb') as fp:
-            json.dump(grasps, fp, indent=4)
+        dirname = os.path.join(root_dir, str(uuid.uuid4().hex))
+        data.store_scene(dirname, scene)
 
 
 def main():
@@ -108,24 +93,24 @@ def main():
     parser.add_argument(
         'root_dir',
         type=str,
-        help='The root directory of the dataset',
+        help='root directory of the dataset',
     )
     parser.add_argument(
         '--n-scenes',
         type=int,
         default=1000,
-        help='Number of generated virtual scenes',
+        help='number of generated virtual scenes',
     )
     parser.add_argument(
         '--n-grasps-per-scene',
         type=int,
         default=10,
-        help='Number of grasp candidates per scene',
+        help='number of grasp candidates per scene',
     )
     parser.add_argument(
         '--sim-gui',
         action='store_true',
-        help='Disable headless mode',
+        help='disable headless mode',
     )
     args = parser.parse_args()
 
