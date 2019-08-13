@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 from vgn import utils
-from vgn.perception import camera
+from vgn.perception import camera, integration
 from vgn.utils.transform import Transform
 
 
@@ -28,6 +28,15 @@ def store_scene(dirname, scene):
     _store_intrinsic(dirname, scene['intrinsic'])
     _store_images(dirname, scene['extrinsics'], scene['depth_imgs'])
     _store_grasps(dirname, scene['poses'], scene['scores'])
+
+
+def reconstruct_volume(scene):
+    volume = integration.TSDFVolume(size=0.2, resolution=40)
+    for extrinsic, depth_img in zip(scene['extrinsics'], scene['images']):
+        volume.integrate(depth_img, scene['intrinsic'], extrinsic)
+    point_cloud = volume.get_point_cloud()
+    voxel_grid = volume.get_voxel_grid()
+    return point_cloud, voxel_grid
 
 
 def _load_intrinsic(dirname):

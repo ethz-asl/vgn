@@ -64,7 +64,7 @@ def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, sim_gui, rank):
 
         # Reconstruct the volume
         size = 0.2
-        volume = integration.TSDFVolume(size, resolution=60)
+        volume = integration.TSDFVolume(size, resolution=40)
         extrinsics = sample_hemisphere(n_views_per_scene, size)
         for i, extrinsic in enumerate(extrinsics):
             _, depth = s.camera.get_rgb_depth(extrinsic)
@@ -93,24 +93,24 @@ def main():
     parser.add_argument(
         'root_dir',
         type=str,
-        help='The root directory of the dataset',
+        help='root directory of the dataset',
     )
     parser.add_argument(
         '--n-scenes',
         type=int,
         default=1000,
-        help='Number of generated virtual scenes',
+        help='number of generated virtual scenes',
     )
     parser.add_argument(
         '--n-grasps-per-scene',
         type=int,
         default=10,
-        help='Number of grasp candidates per scene',
+        help='number of grasp candidates per scene',
     )
     parser.add_argument(
         '--sim-gui',
         action='store_true',
-        help='Disable headless mode',
+        help='disable headless mode',
     )
     args = parser.parse_args()
 

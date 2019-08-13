@@ -4,6 +4,7 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /TSDF1
         - /TSDF1/Autocompute Value Bounds1
       Splitter Ratio: 0.5132978558540344
     Tree Height: 755
@@ -75,8 +76,8 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 0.031800251454114914
-        Min Value: 0.004999999888241291
+        Max Value: 0.031674932688474655
+        Min Value: 0.007499999832361937
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -102,7 +103,7 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
-    - Alpha: 1
+    - Alpha: 0.4000000059604645
       Autocompute Intensity Bounds: false
       Autocompute Value Bounds:
         Max Value: 0.036666665226221085
@@ -125,7 +126,7 @@ Visualization Manager:
       Queue Size: 1
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.003329999977722764
+      Size (m): 0.004000000189989805
       Style: Boxes
       Topic: /tsdf
       Unreliable: false
@@ -183,7 +184,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.5716220140457153
+      Distance: 0.3784063160419464
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -198,10 +199,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5653986930847168
+      Pitch: 0.5047975182533264
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.613579273223877
+      Yaw: 5.538570880889893
     Saved: ~
 Window Geometry:
   Displays:
