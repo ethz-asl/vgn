@@ -65,12 +65,12 @@ def sample_uniform(point_cloud, min_z_offset, max_z_offset):
     selection = np.random.randint(len(points))
     point, normal = points[selection], normals[selection]
     z_offset = np.random.uniform(min_z_offset, max_z_offset)
-    points = point - normal * z_offset
+    point = point - normal * z_offset
 
     return point, normal
 
 
-def evaluate(sim, grasper, point, normal):
+def evaluate(sim, grasper, point, normal, n_rotations=12):
     """Evaluate the quality of the given grasp point.
 
     Args:
@@ -88,7 +88,7 @@ def evaluate(sim, grasper, point, normal):
     x = np.cross(y, z)
     R = Rotation.from_dcm(np.vstack((x, y, z)).T)
 
-    yaws = np.linspace(-0.5 * np.pi, 0.5 * np.pi, 16)
+    yaws = np.linspace(-0.5 * np.pi, 0.5 * np.pi, n_rotations)
     scores = []
 
     for yaw in yaws:

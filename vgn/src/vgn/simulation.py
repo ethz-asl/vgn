@@ -4,8 +4,9 @@ import numpy as np
 import pybullet
 from pybullet_utils import bullet_client
 
+import vgn.config as cfg
 from vgn import robot
-from vgn.utils.camera import PinholeCameraIntrinsic
+from vgn.perception.camera import PinholeCameraIntrinsic
 from vgn.utils.transform import Rotation, Transform
 
 assert pybullet.isNumpyEnabled(), 'Pybullet needs to be built with NumPy'
@@ -81,7 +82,7 @@ class Simulation(robot.Robot):
             self.step()
 
     def spawn_debug_cuboid(self):
-        position = np.r_[0.1, 0.1, 0.2]
+        position = np.r_[np.random.uniform(0.02, cfg.size - 0.02, 2), 0.2]
         self._p.loadURDF('data/urdfs/wooden_blocks/cuboid0.urdf', position)
         for _ in range(self.hz):
             self.step()

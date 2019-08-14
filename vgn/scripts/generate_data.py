@@ -66,7 +66,7 @@ def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, sim_gui, rank):
         s.save_state()
 
         # Reconstruct the volume
-        volume = integration.TSDFVolume(cfg.size, cfg.resolution)
+        volume = integration.TSDFVolume(cfg.size, 100)
         extrinsics = sample_hemisphere(n_views_per_scene, cfg.size)
         for i, extrinsic in enumerate(extrinsics):
             _, depth = s.camera.get_rgb_depth(extrinsic)
@@ -74,6 +74,8 @@ def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, sim_gui, rank):
             scene['extrinsics'].append(extrinsic)
             scene['depth_imgs'].append(depth)
         point_cloud = volume.get_point_cloud()
+        # import open3d as o3d
+        # o3d.visualization.draw_geometries([volume.get_point_cloud()])
 
         # Sample and evaluate candidate grasp points
         is_positive = lambda score: np.isclose(score, 1.)
