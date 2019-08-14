@@ -6,11 +6,12 @@ import logging
 import os
 import uuid
 
+import numpy as np
 import tqdm
 from mpi4py import MPI
 
 import vgn.config as cfg
-from vgn import candidate, data, grasp, samplers, simulation
+from vgn import data, grasp, simulation
 from vgn.perception import integration
 from vgn.perception.viewpoints import sample_hemisphere
 
@@ -20,7 +21,8 @@ def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, sim_gui, rank):
 
     This script will generate multiple virtual scenes, and for each scene
     render depth images from multiple viewpoints and sample a specified number
-    of grasps.
+    of grasps. It also ensures that the number of positive and  negative
+    samples are balanced.
 
     For each scene, it will create a unique folder within root_dir, and store
 
@@ -71,18 +73,19 @@ def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, sim_gui, rank):
             volume.integrate(depth, s.camera.intrinsic, extrinsic)
             scene['extrinsics'].append(extrinsic)
             scene['depth_imgs'].append(depth)
+        point_cloud = volume.get_point_cloud()
 
-        # Sample candidate grasp points
-        points, normals = samplers.uniform(n_grasps_per_scene,
-                                           volume,
-                                           min_z_offset=0.005,
-                                           max_z_offset=0.02)
+        # Sample and evaluate candidate grasp points
+        is_positive = lambda score: np.isclose(score, 1.)
+        n_negatives = 0
 
-        # Score the candidates
-        for i, (point, normal) in enumerate(zip(points, normals)):
-            pose, score = candidate.evaluate(s, g, point, normal)
-            scene['poses'].append(pose)
-            scene['scores'].append(score)
+        while len(scene['poses']) < n_grasps_per_scene:
+            point, normal = grasp.sample_uniform(point_cloud, 0.005, 0.02)
+            pose, score = grasp.evaluate(s, g, point, normal)
+            if is_positive(score) or n_negatives < n_grasps_per_scene // 2:
+                scene['poses'].append(pose)
+                scene['scores'].append(score)
+                n_negatives += not is_positive(score)
 
         dirname = os.path.join(root_dir, str(uuid.uuid4().hex))
         data.store_scene(dirname, scene)
