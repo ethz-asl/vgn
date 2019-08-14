@@ -3,6 +3,7 @@ import os
 
 import numpy as np
 
+import vgn.config as cfg
 from vgn import utils
 from vgn.perception import camera, integration
 from vgn.utils.transform import Transform
@@ -31,7 +32,7 @@ def store_scene(dirname, scene):
 
 
 def reconstruct_volume(scene):
-    volume = integration.TSDFVolume(size=0.2, resolution=40)
+    volume = integration.TSDFVolume(cfg.size, cfg.resolution)
     for extrinsic, depth_img in zip(scene['extrinsics'], scene['images']):
         volume.integrate(depth_img, scene['intrinsic'], extrinsic)
     point_cloud = volume.get_point_cloud()

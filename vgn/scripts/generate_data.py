@@ -9,6 +9,7 @@ import uuid
 import tqdm
 from mpi4py import MPI
 
+import vgn.config as cfg
 from vgn import candidate, data, grasp, samplers, simulation
 from vgn.perception import integration
 from vgn.perception.viewpoints import sample_hemisphere
@@ -63,9 +64,8 @@ def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, sim_gui, rank):
         s.save_state()
 
         # Reconstruct the volume
-        size = 0.2
-        volume = integration.TSDFVolume(size, resolution=40)
-        extrinsics = sample_hemisphere(n_views_per_scene, size)
+        volume = integration.TSDFVolume(cfg.size, cfg.resolution)
+        extrinsics = sample_hemisphere(n_views_per_scene, cfg.size)
         for i, extrinsic in enumerate(extrinsics):
             _, depth = s.camera.get_rgb_depth(extrinsic)
             volume.integrate(depth, s.camera.intrinsic, extrinsic)

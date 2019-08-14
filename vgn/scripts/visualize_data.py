@@ -7,6 +7,7 @@ import time
 import numpy as np
 import open3d
 
+import vgn.config as cfg
 from vgn import data, utils
 from vgn.perception import integration
 from vgn.utils import vis
@@ -23,7 +24,7 @@ def visualize(args):
     point_cloud, voxel_grid = data.reconstruct_volume(scene)
 
     # Plot volume
-    tsdf = utils.voxel_grid_to_array(voxel_grid, resolution=40)
+    tsdf = utils.voxel_grid_to_array(voxel_grid, resolution=cfg.resolution)
     vis.plot_tsdf(tsdf)
 
     if args.rviz:
