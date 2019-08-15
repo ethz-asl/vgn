@@ -16,8 +16,10 @@ def plot_tsdf(tsdf):
     skip = res // 6
 
     for i in range(6):
-        axs[i].imshow(tsdf[i * skip, :, :])
+        img = axs[i].imshow(tsdf[i * skip, :, :], vmin=0.0, vmax=1.0)
         axs[i].axis('off')
 
     plt.subplots_adjust(wspace=0.05, hspace=0.0)
+    fig.colorbar(img, ax=axs[:])
+
     plt.show()
