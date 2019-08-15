@@ -22,4 +22,20 @@ def plot_tsdf(tsdf):
     plt.subplots_adjust(wspace=0.05, hspace=0.0)
     fig.colorbar(img, ax=axs[:])
 
-    plt.show()
+    plt.title('TSDF')
+
+
+def plot_vgn(g):
+    res = g.shape[0]
+    fig, axs = plt.subplots(ncols=6)
+
+    skip = res // 6
+
+    for i in range(6):
+        img = axs[i].imshow(g[i * skip, :, :], vmin=0.0, vmax=1.0)
+        axs[i].axis('off')
+
+    plt.subplots_adjust(wspace=0.05, hspace=0.0)
+    fig.colorbar(img, ax=axs[:])
+
+    plt.title('Grasp map')
