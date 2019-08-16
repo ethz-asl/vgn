@@ -102,7 +102,7 @@ def train(args):
     assert not os.path.exists(log_dir), 'log with this setup already exists'
 
     # Load and inspect data
-    path = os.path.join('data/datasets', args.data, 'train')
+    path = os.path.join(args.data, 'train')
     dataset = VGNDataset(path, args.rebuild_cache)
 
     validation_size = int(args.validation_split * len(dataset))

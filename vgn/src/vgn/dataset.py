@@ -1,5 +1,6 @@
+from __future__ import print_function
+
 import json
-import logging
 import os
 
 import numpy as np
@@ -46,7 +47,7 @@ class VGNDataset(torch.utils.data.Dataset):
                 self.scenes.append(d)
 
     def build_cache(self):
-        logging.info('Building cache')
+        print('Verifying cache:')
 
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
