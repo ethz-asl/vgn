@@ -5,7 +5,6 @@ import os
 
 import numpy as np
 import torch.utils.data
-from send2trash import send2trash
 from tqdm import tqdm
 
 import vgn.config as cfg
@@ -33,11 +32,12 @@ class VGNDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         scene = self.scenes[idx]
         data = np.load(os.path.join(self.cache_dir, scene) + '.npz')
+
         return data['tsdf'], data['indices'], data['scores']
 
     @property
     def cache_dir(self):
-        return os.path.join(self.root_dir, '__cache__')
+        return os.path.join(self.root_dir, 'cache')
 
     def detect_scenes(self):
         self.scenes = []
@@ -53,6 +53,7 @@ class VGNDataset(torch.utils.data.Dataset):
             os.makedirs(self.cache_dir)
 
         for dirname in tqdm(self.scenes):
+
             path = os.path.join(self.cache_dir, dirname) + '.npz'
             if not os.path.exists(path) or self.rebuild_cache:
                 scene = data.load_scene(os.path.join(self.root_dir, dirname))
@@ -62,7 +63,9 @@ class VGNDataset(torch.utils.data.Dataset):
                 indices = np.empty((len(scene['poses']), 3), dtype=np.long)
                 scores = np.asarray(scene['scores'], dtype=np.float32)
                 for i, pose in enumerate(scene['poses']):
-                    indices[i] = voxel_grid.get_voxel(pose.translation)
+                    index = voxel_grid.get_voxel(pose.translation)
+                    indices[i] = np.clip(index, [0, 0, 0],
+                                         [cfg.resolution - 1] * 3)
 
                 np.savez_compressed(
                     path,
