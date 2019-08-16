@@ -47,7 +47,7 @@
             "console": "integratedTerminal",
             "args": [
                 "--model=conv",
-                "--data=cube",
+                "--data=data/datasets/cube",
                 "--log-dir=data/runs",
                 // "--rebuild-cache",
             ]

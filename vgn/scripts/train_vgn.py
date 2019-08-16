@@ -90,9 +90,9 @@ def train(args):
     kwargs = {'pin_memory': True}
 
     # Create log directory for the current setup
-    descr = 'model={},data={},batch_size={},lr={:.0e}-{}'.format(
+    descr = 'model={},data={},batch_size={},lr={:.0e},{}'.format(
         args.model,
-        args.data,
+        os.path.basename(args.data),
         args.batch_size,
         args.lr,
         args.description,
@@ -194,7 +194,7 @@ def main():
         '--data',
         type=str,
         required=True,
-        help='dataset',
+        help='path to dataset',
     )
     parser.add_argument(
         '--log-dir',
