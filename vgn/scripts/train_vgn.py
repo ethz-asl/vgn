@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import argparse
 import os
+from datetime import datetime
 
 import open3d
 import torch
@@ -89,12 +90,12 @@ def train(args):
     kwargs = {'pin_memory': True}
 
     # Create log directory for the current setup
-    descr = 'model={},data={},batch_size={},lr={:.0e},seed={}'.format(
+    descr = 'model={},data={},batch_size={},lr={:.0e}-{}'.format(
         args.model,
         args.data,
         args.batch_size,
         args.lr,
-        args.seed,
+        args.description,
     )
     log_dir = os.path.join(args.log_dir, descr)
 
@@ -104,8 +105,8 @@ def train(args):
     path = os.path.join('data/datasets', args.data, 'train')
     dataset = VGNDataset(path, args.rebuild_cache)
 
-    train_size = int((1 - args.validation_split) * len(dataset))
     validation_size = int(args.validation_split * len(dataset))
+    train_size = len(dataset) - validation_size
 
     print('Size of training dataset: {}'.format(train_size))
     print('Size of validation dataset: {}'.format(validation_size))
@@ -165,9 +166,9 @@ def train(args):
 
     checkpoint_handler = ModelCheckpoint(
         log_dir,
-        'best',
-        score_function=lambda engine: -engine.state.metrics['loss'],
-        n_saved=1,
+        'model',
+        save_interval=10,
+        n_saved=100,
         require_empty=True,
         save_as_state_dict=True,
     )
@@ -202,6 +203,12 @@ def main():
         help='path to log directory',
     )
     parser.add_argument(
+        '--description',
+        type=str,
+        default=datetime.now().strftime('%Y%m%d-%H%M%S'),
+        help='description appended to the run dirname',
+    )
+    parser.add_argument(
         '--batch-size',
         type=int,
         default=32,
@@ -220,12 +227,6 @@ def main():
         help='learning rate (default: 1e-3)',
     )
     parser.add_argument(
-        '--seed',
-        type=int,
-        default=1,
-        help='random seed (default: 1)',
-    )
-    parser.add_argument(
         '--validation-split',
         type=float,
         default=0.2,
@@ -239,8 +240,6 @@ def main():
     args = parser.parse_args()
 
     assert torch.cuda.is_available(), 'ERROR: cuda is not available'
-
-    torch.manual_seed(args.seed)
 
     train(args)
 

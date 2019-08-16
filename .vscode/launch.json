@@ -42,14 +42,13 @@
             "name": "train_vgn",
             "type": "python",
             "request": "launch",
-            "justMyCode": true,
             "program": "${workspaceFolder}/vgn/scripts/train_vgn.py",
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
-                "--model=small_conv",
-                "--data=debug",
-                "--log-dir=data/runs"
+                "--model=conv",
+                "--data=cube",
+                "--log-dir=data/runs",
                 // "--rebuild-cache",
             ]
         },
