@@ -82,7 +82,7 @@ class Simulation(robot.Robot):
             self.step()
 
     def spawn_debug_cuboid(self):
-        position = np.r_[np.random.uniform(0.02, cfg.size - 0.02, 2), 0.2]
+        position = np.r_[np.random.uniform(0.05, cfg.size - 0.05, 2), 0.2]
         self._p.loadURDF('data/urdfs/wooden_blocks/cuboid0.urdf', position)
         for _ in range(self.hz):
             self.step()
