@@ -29,9 +29,11 @@ def _prepare_batch(batch, device):
     return tsdf, idx, score
 
 
-def _select_pred(out, idx):
-    score_pred = torch.cat(
-        [t[0, i, j, k].unsqueeze(0) for t, (i, j, k) in zip(out, idx)])
+def _select_pred(out, indices):
+    score_pred = torch.cat([
+        o[0, i[:, 0], i[:, 1], i[:, 2]].unsqueeze(0)
+        for o, i in zip(out, indices)
+    ])
     return score_pred
 
 
