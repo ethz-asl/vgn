@@ -4,6 +4,7 @@ import argparse
 import os
 import time
 
+import matplotlib.pyplot as plt
 import numpy as np
 import open3d
 
@@ -26,6 +27,7 @@ def visualize(args):
     # Plot volume
     tsdf = utils.voxel_grid_to_array(voxel_grid, resolution=cfg.resolution)
     vis.plot_tsdf(tsdf)
+    plt.show()
 
     if args.rviz:
         rviz.draw_point_cloud(np.asarray(point_cloud.points))
