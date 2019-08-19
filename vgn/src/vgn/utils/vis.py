@@ -2,40 +2,50 @@ from __future__ import division
 
 import matplotlib.pyplot as plt
 import numpy as np
+from mpl_toolkits.axes_grid1 import ImageGrid
 
 
 def plot_tsdf(tsdf):
-    """Visualize multiple slices of a TSDF.
-    
-    Args:
-        v: A 3-dimensional numpy array.    
-    """
+    n_slices = 6
     res = tsdf.shape[0]
-    fig, axs = plt.subplots(ncols=6)
+    skip = res // n_slices
 
-    skip = res // 6
+    fig = plt.figure()
+    grid = ImageGrid(fig,
+                     111,
+                     nrows_ncols=(1, n_slices),
+                     share_all=True,
+                     axes_pad=0.05,
+                     cbar_mode='single',
+                     cbar_location='right',
+                     cbar_size='5%',
+                     cbar_pad=None)
 
-    for i in range(6):
-        img = axs[i].imshow(tsdf[i * skip, :, :], vmin=0.0, vmax=1.0)
-        axs[i].axis('off')
-
-    plt.subplots_adjust(wspace=0.05, hspace=0.0)
-    fig.colorbar(img, ax=axs[:])
-
-    plt.title('TSDF')
+    for i in range(n_slices):
+        ax = grid[i]
+        ax.axis('off')
+        img = ax.imshow(tsdf[i * skip, :, :], vmin=0.0, vmax=1.0)
+        ax.cax.colorbar(img)
 
 
 def plot_vgn(g):
+    n_slices = 6
     res = g.shape[0]
-    fig, axs = plt.subplots(ncols=6)
+    skip = res // n_slices
 
-    skip = res // 6
+    fig = plt.figure()
+    grid = ImageGrid(fig,
+                     111,
+                     nrows_ncols=(1, n_slices),
+                     share_all=True,
+                     axes_pad=0.05,
+                     cbar_mode='single',
+                     cbar_location='right',
+                     cbar_size='5%',
+                     cbar_pad=None)
 
-    for i in range(6):
-        img = axs[i].imshow(g[i * skip, :, :], vmin=0.0, vmax=1.0)
-        axs[i].axis('off')
-
-    plt.subplots_adjust(wspace=0.05, hspace=0.0)
-    fig.colorbar(img, ax=axs[:])
-
-    plt.title('Grasp map')
+    for i in range(n_slices):
+        ax = grid[i]
+        ax.axis('off')
+        img = ax.imshow(g[i * skip, :, :], vmin=0.0, vmax=1.0)
+        ax.cax.colorbar(img)
