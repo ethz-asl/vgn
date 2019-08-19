@@ -9,26 +9,24 @@ def get_model(name):
 
 
 class ConvNet(nn.Module):
-    def __init__(self, input_channels=1):
+    def __init__(self):
         super(ConvNet, self).__init__()
 
-        filter_sizes = [32, 16, 8, 8, 16, 32]
+        input_channels = 1
+        filter_sizes = [16, 32, 32, 32, 32, 16]
 
         self.conv1 = nn.Conv3d(input_channels,
                                filter_sizes[0],
                                kernel_size=5,
-                               padding=2,
-                               stride=2)
+                               padding=2)
         self.conv2 = nn.Conv3d(filter_sizes[0],
                                filter_sizes[1],
                                kernel_size=3,
-                               padding=1,
-                               stride=2)
+                               padding=1)
         self.conv3 = nn.Conv3d(filter_sizes[1],
                                filter_sizes[2],
                                kernel_size=3,
-                               padding=1,
-                               stride=2)
+                               padding=1)
         self.conv4 = nn.Conv3d(filter_sizes[2],
                                filter_sizes[3],
                                kernel_size=3,
@@ -39,28 +37,49 @@ class ConvNet(nn.Module):
                                padding=1)
         self.conv6 = nn.Conv3d(filter_sizes[4],
                                filter_sizes[5],
-                               kernel_size=5,
-                               padding=2)
+                               kernel_size=3,
+                               padding=1)
 
         self.conv_score = nn.Conv3d(filter_sizes[5],
                                     1,
-                                    kernel_size=3,
-                                    padding=1)
+                                    kernel_size=5,
+                                    padding=2)
 
     def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
-        x = F.relu(self.conv3(x))
+        # 1 x 40 x 40 x 40
+        x = self.conv1(x)
+        x = F.relu(x)
+        x = F.max_pool3d(x, 2)
 
+        # 16 x 20 x 20 x 20
+        x = self.conv2(x)
+        x = F.relu(x)
+        x = F.max_pool3d(x, 2)
+
+        # 32 x 10 x 10 x 10
+        x = self.conv3(x)
+        x = F.relu(x)
+        x = F.max_pool3d(x, 2)
+
+        # 32 x 5 x 5 x 5
+        x = self.conv4(x)
+        x = F.relu(x)
+
+        # 32 x 5 x 5 x 5
         x = F.interpolate(x, 10)
-        x = F.relu(self.conv4(x))
+        x = self.conv5(x)
+        x = F.relu(x)
+
+        # 32 x 10 x 10 x 10
         x = F.interpolate(x, 20)
-        x = F.relu(self.conv5(x))
-        x = F.interpolate(x, 40)
         x = F.relu(self.conv6(x))
 
-        score_out = torch.sigmoid(self.conv_score(x))
+        # 16 x 20 x 20 x 20
+        x = F.interpolate(x, 40)
+        x = self.conv_score(x)
+        score_out = torch.sigmoid(x)
 
+        # 1 x 40 x 40 x 40
         return score_out
 
 
@@ -68,6 +87,7 @@ if __name__ == '__main__':
     device = torch.device('cuda')
     model = get_model('conv').to(device)
     trace = torch.randn(32, 1, 40, 40, 40).to(device)
+
     out = model(trace)
 
     assert out.shape[0] == trace.shape[0], 'batch size is not the same'
