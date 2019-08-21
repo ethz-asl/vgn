@@ -50,7 +50,7 @@ def create_trainer(model, optimizer, loss_fn, device):
         loss = loss_fn(score_pred, score)
         loss.backward()
         optimizer.step()
-        return loss
+        return loss, score_pred, score
 
     return Engine(_update)
 
@@ -90,20 +90,22 @@ def train(args):
     kwargs = {'pin_memory': True}
 
     # Create log directory for the current setup
-    descr = 'model={},data={},batch_size={},lr={:.0e},{}'.format(
+    descr = '{},model={},data={},batch_size={},lr={:.0e}'.format(
+        datetime.now().strftime('%b%d_%H-%M-%S'),
         args.model,
         os.path.basename(args.data),
         args.batch_size,
         args.lr,
-        args.description,
     )
+    if args.descr != '':
+        descr += ',descr={}'.format(args.descr)
+
     log_dir = os.path.join(args.log_dir, descr)
 
     assert not os.path.exists(log_dir), 'log with this setup already exists'
 
     # Load and inspect data
-    path = os.path.join(args.data, 'train')
-    dataset = VGNDataset(path, args.rebuild_cache)
+    dataset = VGNDataset(args.data, args.rebuild_cache)
 
     validation_size = int(args.validation_split * len(dataset))
     train_size = len(dataset) - validation_size
@@ -135,15 +137,23 @@ def train(args):
     trainer = create_trainer(model, optimizer, loss_fn, device)
     evaluator = create_evaluator(model, loss_fn, device)
 
-    # Define metrics
-    def thresholded_output_transform(output):
+    # Train metrics
+    def output_transform(output):
+        score_pred, score = output[1], output[2]
+        score_pred = torch.round(score_pred)
+        return score_pred, score
+
+    RunningAverage(output_transform=lambda x: x[0]).attach(trainer, 'loss')
+    Accuracy(output_transform).attach(trainer, 'acc')
+
+    # Validation metrics
+    def output_transform(output):
         score_pred, score = output
         score_pred = torch.round(score_pred)
         return score_pred, score
 
-    RunningAverage(output_transform=lambda x: x).attach(trainer, 'loss')
     Loss(loss_fn).attach(evaluator, 'loss')
-    Accuracy(thresholded_output_transform).attach(evaluator, 'acc')
+    Accuracy(output_transform).attach(evaluator, 'acc')
 
     # Setup loggers and checkpoints
     ProgressBar(persist=True, ascii=True).attach(trainer, ['loss'])
@@ -156,11 +166,14 @@ def train(args):
         evaluator.run(validation_loader)
 
         epoch = trainer.state.epoch
+
         train_loss = trainer.state.metrics['loss']
+        train_acc = trainer.state.metrics['acc']
+        train_writer.add_scalar('loss', train_loss, epoch)
+        train_writer.add_scalar('accuracy', train_acc, epoch)
+
         val_loss = evaluator.state.metrics['loss']
         val_acc = evaluator.state.metrics['acc']
-
-        train_writer.add_scalar('loss', train_loss, epoch)
         val_writer.add_scalar('loss', val_loss, epoch)
         val_writer.add_scalar('accuracy', val_acc, epoch)
 
@@ -203,9 +216,9 @@ def main():
         help='path to log directory',
     )
     parser.add_argument(
-        '--description',
+        '--descr',
         type=str,
-        default=datetime.now().strftime('%Y%m%d-%H%M%S'),
+        default='',
         help='description appended to the run dirname',
     )
     parser.add_argument(
