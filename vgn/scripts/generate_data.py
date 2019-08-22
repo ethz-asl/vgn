@@ -98,7 +98,7 @@ def main():
     parser.add_argument(
         '--data',
         type=str,
-        help='path dataset',
+        help='path to dataset',
     )
     parser.add_argument(
         '--n-scenes',
@@ -109,7 +109,7 @@ def main():
     parser.add_argument(
         '--n-grasps-per-scene',
         type=int,
-        default=10,
+        default=40,
         help='number of grasp candidates per scene',
     )
     parser.add_argument(
@@ -128,7 +128,7 @@ def main():
         logging.info('Generating data using %d processes.', n_workers)
 
     generate_dataset(
-        root_dir=args.data,
+        root_dir=os.path.join('data', 'datasets', args.data),
         n_scenes=args.n_scenes // n_workers,
         n_grasps_per_scene=args.n_grasps_per_scene,
         sim_gui=args.sim_gui,
