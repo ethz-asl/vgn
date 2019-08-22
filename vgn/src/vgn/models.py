@@ -86,6 +86,10 @@ class ConvNet(nn.Module):
 if __name__ == '__main__':
     device = torch.device('cuda')
     model = get_model('conv').to(device)
+
+    n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print('Number of trainable parameters:', n_params)
+
     trace = torch.randn(32, 1, 40, 40, 40).to(device)
 
     out = model(trace)
