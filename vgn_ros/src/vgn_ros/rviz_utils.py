@@ -26,6 +26,10 @@ class RViz(object):
         self._pubs['candidates'] = rospy.Publisher('/grasp_candidates',
                                                    MarkerArray,
                                                    queue_size=1)
+        self._pubs['true_false'] = rospy.Publisher('/true_false',
+                                                   PointCloud2,
+                                                   queue_size=1)
+
         time.sleep(1.0)
 
     def draw_point_cloud(self, points):
@@ -94,3 +98,7 @@ class RViz(object):
             marker_array.markers.append(marker)
 
         self._pubs['candidates'].publish(marker_array)
+
+    def draw_true_false(self, points, trues):
+        msg = ros_utils.to_point_cloud_msg(points, trues, frame='task')
+        self._pubs['true_false'].publish(msg)
