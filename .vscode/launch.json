@@ -20,9 +20,9 @@
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
-                "data/datasets/debug",
+                "--data=data/datasets/debug",
                 "--n-scenes=2",
-                "--n-grasps-per-scene=100",
+                "--n-grasps-per-scene=10",
                 "--sim-gui",
             ]
         },
@@ -34,7 +34,7 @@
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
-                "data/datasets/debug/00",
+                "--scene=",
                 "--rviz",
             ]
         },
@@ -47,9 +47,19 @@
             "console": "integratedTerminal",
             "args": [
                 "--model=conv",
-                "--data=data/datasets/cube",
-                "--log-dir=data/runs",
+                "--data=cube",
                 // "--rebuild-cache",
+            ]
+        },
+        {
+            "name": "eval_vgn",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/vgn/scripts/eval_vgn.py",
+            "cwd": "${workspaceFolder}/vgn",
+            "console": "integratedTerminal",
+            "args": [
+                "--weights=",
             ]
         },
     ]

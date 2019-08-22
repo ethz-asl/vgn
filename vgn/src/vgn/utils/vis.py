@@ -6,7 +6,7 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 
 
 def plot_tsdf(tsdf):
-    n_slices = 6
+    n_slices = 8
     res = tsdf.shape[0]
     skip = res // n_slices
 
@@ -29,7 +29,7 @@ def plot_tsdf(tsdf):
 
 
 def plot_vgn(g):
-    n_slices = 6
+    n_slices = 8
     res = g.shape[0]
     skip = res // n_slices
 

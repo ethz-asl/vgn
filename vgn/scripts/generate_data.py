@@ -96,9 +96,9 @@ def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, sim_gui, rank):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        'root_dir',
+        '--data',
         type=str,
-        help='root directory of the dataset',
+        help='path dataset',
     )
     parser.add_argument(
         '--n-scenes',
@@ -128,7 +128,7 @@ def main():
         logging.info('Generating data using %d processes.', n_workers)
 
     generate_dataset(
-        root_dir=args.root_dir,
+        root_dir=args.data,
         n_scenes=args.n_scenes // n_workers,
         n_grasps_per_scene=args.n_grasps_per_scene,
         sim_gui=args.sim_gui,

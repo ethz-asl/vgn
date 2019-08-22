@@ -15,13 +15,13 @@ from vgn.utils import vis
 
 
 def visualize(args):
-    assert os.path.exists(args.scene_dir), 'Directory does not exist'
+    assert os.path.exists(args.scene), 'Directory does not exist'
 
     if args.rviz:
         from vgn_ros import rviz_utils
         rviz = rviz_utils.RViz()
 
-    scene = data.load_scene(args.scene_dir)
+    scene = data.load_scene(args.scene)
     point_cloud, voxel_grid = data.reconstruct_volume(scene)
 
     # Plot volume
@@ -44,9 +44,9 @@ def visualize(args):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        'scene_dir',
+        '--scene',
         type=str,
-        help='path to data directory of one scene',
+        help='path to scene',
     )
     parser.add_argument(
         '--rviz',

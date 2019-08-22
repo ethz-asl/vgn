@@ -22,25 +22,26 @@ def _prepare_batch(batch, device):
     return tsdf, idx, score
 
 
-def main():
-
+def main(args):
     from vgn_ros import rviz_utils
     rviz = rviz_utils.RViz()
 
-    model_path = 'data/runs/Aug21_17-21-18,model=conv,data=cube,batch_size=32,lr=1e-03/model_model_90.pth'
-    model_name = 'conv'
-    data_path = 'data/datasets/cube'
+    descr = os.path.basename(os.path.dirname(args.weights))
+    strings = descr.split(',')
+    model = strings[1][strings[1].find('=') + 1:]
+    dataset = strings[2][strings[2].find('=') + 1:]
 
     device = torch.device('cuda')
-    model = get_model(model_name).to(device)
-    model.load_state_dict(torch.load(model_path))
+    model = get_model(model).to(device)
+    model.load_state_dict(torch.load(args.weights))
 
-    dataset = VGNDataset(data_path)
+    dataset_path = os.path.join('data', 'datasets', dataset)
+    dataset = VGNDataset(dataset_path)
 
-    # select a random scene
-    idx = np.random.randint(len(dataset))
-    tsdf, indices, scores = dataset[idx]
-    scene_dir = os.path.join(data_path, dataset.scenes[idx])
+    # Visualize a random scene
+    index = np.random.randint(len(dataset))
+    tsdf, indices, scores = dataset[index]
+    scene_dir = os.path.join(dataset_path, dataset.scenes[index])
 
     scene = data.load_scene(scene_dir)
     point_cloud, _ = data.reconstruct_volume(scene)
@@ -59,13 +60,24 @@ def main():
         score_pred = grasp_map[xx, yy, zz]
         label = np.isclose(np.round(score_pred), scores[i])
         trues[i] = label
-    rviz.draw_true_false(poses, trues)
+    rviz.draw_candidates(scene['poses'], scene['scores'])
+    rviz.draw_true_false(scene['poses'], trues)
 
-    #     vis.plot_tsdf(tsdf.squeeze().cpu().numpy())
-    #     vis.plot_vgn(out.squeeze().cpu().numpy())
-    #     plt.show()
+    vis.plot_tsdf(tsdf.squeeze().cpu().numpy())
+    vis.plot_vgn(grasp_map)
+    plt.show()
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--weights',
+        type=str,
+        required=True,
+        help='path to model',
+    )
+    args = parser.parse_args()
+
     rospy.init_node('eval_model')
-    main()
+
+    main(args)
