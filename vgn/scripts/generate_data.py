@@ -60,11 +60,11 @@ def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, sim_gui, rank):
         # Generate a new scene
         s.reset()
         s.spawn_plane()
-        s.spawn_debug_cuboid(randomize=True)
-        # s.spawn_debug_cylinder()
+        # s.spawn_cuboid()
+        # s.spawn_cuboid_random()
+        s.spawn_cuboids()
         s.spawn_robot()
         s.save_state()
-
         # Reconstruct the volume
         volume = integration.TSDFVolume(cfg.size, 100)
         extrinsics = sample_hemisphere(n_views_per_scene, cfg.size)

@@ -1,3 +1,5 @@
+from __future__ import division
+
 import time
 
 import numpy as np
@@ -75,28 +77,26 @@ class Simulation(robot.Robot):
     def spawn_plane(self):
         self._p.loadURDF('data/urdfs/plane/plane.urdf', [0.0, 0.0, 0.0])
 
-    def spawn_debug_cylinder(self):
-        position = np.r_[0.1, 0.1, 0.2]
-        self._p.loadURDF('data/urdfs/wooden_blocks/cylinder.urdf', position)
-        for _ in range(self.hz):
-            self.step()
-
-    def spawn_debug_cuboid(self, randomize=False):
-        if randomize:
-            position = np.r_[np.random.uniform(0.05, cfg.size - 0.05, 2), 0.2]
-            orientation = Rotation.random().as_quat()
-        else:
-            position = np.r_[0.5 * cfg.size, 0.5 * cfg.size, 0.2]
-            orientation = np.r_[0., 0., 0., 1.]
+    def spawn_cuboid(self):
+        position = np.r_[0.5 * cfg.size, 0.5 * cfg.size, 0.12]
+        orientation = np.r_[0., 0., 0., 1.]
         urdf = 'data/urdfs/wooden_blocks/cuboid0.urdf'
-        self._p.loadURDF(urdf, position, orientation)
-        for _ in range(self.hz):
-            self.step()
+        self.spawn_object(urdf, position, orientation)
 
-    def spawn_objects(self):
-        # position = np.r_[np.random.uniform(0.2*self.length,
-        #                                    0.8*self.length, size=(2,)), 0.2]
-        pass
+    def spawn_cuboid_random(self):
+        position = np.r_[np.random.uniform(0.06, cfg.size - 0.06, 2), 0.12]
+        orientation = Rotation.random().as_quat()
+        urdf = 'data/urdfs/wooden_blocks/cuboid0.urdf'
+        self.spawn_object(urdf, position, orientation)
+
+    def spawn_cuboids(self):
+        for _ in range(1 + np.random.randint(4)):
+            self.spawn_cuboid_random()
+
+    def spawn_object(self, urdf, position, orientation):
+        self._p.loadURDF(urdf, position, orientation)
+        for _ in range(self.hz // 2):
+            self.step()
 
     def spawn_robot(self):
         position = [0.0, 0.0, 1.0]
