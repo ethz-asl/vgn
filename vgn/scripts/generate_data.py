@@ -60,7 +60,7 @@ def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, sim_gui, rank):
         # Generate a new scene
         s.reset()
         s.spawn_plane()
-        s.spawn_debug_cuboid()
+        s.spawn_debug_cuboid(randomize=True)
         # s.spawn_debug_cylinder()
         s.spawn_robot()
         s.save_state()
