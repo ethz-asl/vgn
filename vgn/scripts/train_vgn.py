@@ -93,7 +93,7 @@ def train(args):
     descr = '{},model={},data={},batch_size={},lr={:.0e}'.format(
         datetime.now().strftime('%b%d_%H-%M-%S'),
         args.model,
-        os.path.basename(args.data),
+        args.data,
         args.batch_size,
         args.lr,
     )
@@ -105,7 +105,8 @@ def train(args):
     assert not os.path.exists(log_dir), 'log with this setup already exists'
 
     # Load and inspect data
-    dataset = VGNDataset(args.data, args.rebuild_cache)
+    path = os.path.join('data', 'datasets', args.data)
+    dataset = VGNDataset(path, args.rebuild_cache)
 
     validation_size = int(args.validation_split * len(dataset))
     train_size = len(dataset) - validation_size
@@ -212,7 +213,7 @@ def main():
     parser.add_argument(
         '--log-dir',
         type=str,
-        required=True,
+        default='data/runs',
         help='path to log directory',
     )
     parser.add_argument(
