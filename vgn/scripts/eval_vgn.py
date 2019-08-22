@@ -53,15 +53,13 @@ def main():
 
     grasp_map = out.squeeze().cpu().numpy()
 
-    points = np.empty((40, 3))
     trues = np.empty((40, 1))
     for i in range(40):
-        points[i] = scene['poses'][i].translation
         xx, yy, zz = indices[i]
         score_pred = grasp_map[xx, yy, zz]
         label = np.isclose(np.round(score_pred), scores[i])
         trues[i] = label
-    rviz.draw_true_false(points, trues)
+    rviz.draw_true_false(poses, trues)
 
     #     vis.plot_tsdf(tsdf.squeeze().cpu().numpy())
     #     vis.plot_vgn(out.squeeze().cpu().numpy())

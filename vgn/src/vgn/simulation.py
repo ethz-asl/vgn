@@ -1,10 +1,10 @@
 import time
 
 import numpy as np
-import pybullet
-from pybullet_utils import bullet_client
 
+import pybullet
 import vgn.config as cfg
+from pybullet_utils import bullet_client
 from vgn import robot
 from vgn.perception.camera import PinholeCameraIntrinsic
 from vgn.utils.transform import Rotation, Transform
@@ -35,7 +35,7 @@ class Simulation(robot.Robot):
         self.camera = Camera(intrinsic, 0.1, 2.0, self._p)
 
         # Static transform between tool0 and tcp
-        self.T_tool0_tcp = Transform(Rotation.identity(), [0.0, 0.0, 0.08])
+        self.T_tool0_tcp = Transform(Rotation.identity(), [0.0, 0.0, 0.02])
         self.T_tcp_tool0 = self.T_tool0_tcp.inverse()
 
         # Default initializations
@@ -82,7 +82,7 @@ class Simulation(robot.Robot):
             self.step()
 
     def spawn_debug_cuboid(self):
-        position = np.r_[np.random.uniform(0.05, cfg.size - 0.05, 2), 0.2]
+        position = np.r_[0.5 * cfg.size, 0.5 * cfg.size, 0.2]
         self._p.loadURDF('data/urdfs/wooden_blocks/cuboid0.urdf', position)
         for _ in range(self.hz):
             self.step()

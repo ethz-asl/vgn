@@ -23,8 +23,8 @@ class RViz(object):
         self._pubs['grasp_pose'] = rospy.Publisher('/grasp_pose',
                                                    PoseStamped,
                                                    queue_size=1)
-        self._pubs['candidates'] = rospy.Publisher('/grasp_candidates',
-                                                   MarkerArray,
+        self._pubs['candidates'] = rospy.Publisher('/candidates',
+                                                   PointCloud2,
                                                    queue_size=1)
         self._pubs['true_false'] = rospy.Publisher('/true_false',
                                                    PointCloud2,
@@ -64,41 +64,16 @@ class RViz(object):
         self._pubs['grasp_pose'].publish(msg)
 
     def draw_candidates(self, poses, scores):
-        """Draw grasp candidates as arrows colored according to their score."""
-        marker = Marker(action=Marker.DELETEALL)
-        self._pubs['candidates'].publish(MarkerArray(markers=[marker]))
+        points = np.reshape([p.translation for p in poses], (len(poses), 3))
+        scores = np.expand_dims(scores, 1)
+        msg = ros_utils.to_point_cloud_msg(points,
+                                           intensities=scores,
+                                           frame='task')
+        self._pubs['candidates'].publish(msg)
 
-        cnorm = matplotlib.colors.Normalize(vmin=0., vmax=1.0)
-        cmap = matplotlib.cm.get_cmap('winter')
-        scalar_cmap = matplotlib.cm.ScalarMappable(norm=cnorm, cmap=cmap)
-
-        marker_array = MarkerArray()
-        for i, (pose, score) in enumerate(zip(poses, scores)):
-            start_point = pose.translation
-            end_point = pose.transform_point(np.array([0., 0., -0.02]))
-            scale = [0.002, 0.004, 0.]
-            color = scalar_cmap.to_rgba(score)
-
-            marker = Marker()
-            marker.header.frame_id = 'task'
-            marker.header.stamp = rospy.Time.now()
-
-            marker.id = i
-            marker.type = Marker.ARROW
-            marker.action = Marker.ADD
-            marker.lifetime = rospy.Duration()
-
-            marker.points = [
-                ros_utils.to_point_msg(start_point),
-                ros_utils.to_point_msg(end_point),
-            ]
-            marker.scale = ros_utils.to_vector3_msg(scale)
-            marker.color = ros_utils.to_color_msg(color)
-
-            marker_array.markers.append(marker)
-
-        self._pubs['candidates'].publish(marker_array)
-
-    def draw_true_false(self, points, trues):
-        msg = ros_utils.to_point_cloud_msg(points, trues, frame='task')
+    def draw_true_false(self, poses, trues):
+        points = np.reshape([p.translation for p in poses], (len(poses), 3))
+        msg = ros_utils.to_point_cloud_msg(points,
+                                           intensities=trues,
+                                           frame='task')
         self._pubs['true_false'].publish(msg)

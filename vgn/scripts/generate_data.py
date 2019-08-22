@@ -82,7 +82,7 @@ def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, sim_gui, rank):
         n_negatives = 0
 
         while len(scene['poses']) < n_grasps_per_scene:
-            point, normal = grasp.sample_uniform(point_cloud, 0.005, 0.02)
+            point, normal = grasp.sample_uniform(point_cloud)
             pose, score = grasp.evaluate(s, g, point, normal)
             if is_positive(score) or n_negatives < n_grasps_per_scene // 2:
                 scene['poses'].append(pose)

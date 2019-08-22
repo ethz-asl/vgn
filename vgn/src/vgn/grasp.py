@@ -3,6 +3,7 @@ import enum
 import numpy as np
 import scipy.signal as signal
 
+import vgn.config as cfg
 from vgn.utils.transform import Rotation, Transform
 
 
@@ -50,22 +51,23 @@ class Grasper(object):
         return Outcome.SUCCESS
 
 
-def sample_uniform(point_cloud, min_z_offset, max_z_offset):
+def sample_uniform(point_cloud):
     """Uniformly sample a grasp point from a point cloud.
 
     A random offset is applied to the point along the negative surface normal.
 
     Args:
         point_cloud: The point cloud from which the point is sampled
-        min_offset: The minimum offset along the surface normal.
-        max_offset: The maximum offset along the surface normal.
     """
+    gripper_depth = 0.5 * cfg.max_width
+    tol = 0.01
+
     points = np.asarray(point_cloud.points)
     normals = np.asarray(point_cloud.normals)
     selection = np.random.randint(len(points))
     point, normal = points[selection], normals[selection]
-    z_offset = np.random.uniform(min_z_offset, max_z_offset)
-    point = point - normal * z_offset
+    z_offset = np.random.uniform(tol, gripper_depth - tol)
+    point = point - normal * (z_offset - gripper_depth)
 
     return point, normal
 

@@ -21,8 +21,8 @@
             "console": "integratedTerminal",
             "args": [
                 "data/datasets/debug",
-                "--n-scenes=100",
-                "--n-grasps-per-scene=10",
+                "--n-scenes=2",
+                "--n-grasps-per-scene=100",
                 "--sim-gui",
             ]
         },
