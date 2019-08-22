@@ -73,6 +73,7 @@ class RViz(object):
 
     def draw_true_false(self, poses, trues):
         points = np.reshape([p.translation for p in poses], (len(poses), 3))
+        trues = np.expand_dims(trues, 1)
         msg = ros_utils.to_point_cloud_msg(points,
                                            intensities=trues,
                                            frame='task')

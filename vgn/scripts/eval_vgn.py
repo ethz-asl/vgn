@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import argparse
 import os
 
@@ -6,7 +8,6 @@ import numpy as np
 import open3d
 import rospy
 import torch
-from torch.utils.data.dataloader import DataLoader
 
 from vgn import data
 from vgn.dataset import VGNDataset
@@ -40,10 +41,15 @@ def main(args):
 
     # Visualize a random scene
     index = np.random.randint(len(dataset))
-    tsdf, indices, scores = dataset[index]
-    scene_dir = os.path.join(dataset_path, dataset.scenes[index])
+    scene = dataset.scenes[index]
 
-    scene = data.load_scene(scene_dir)
+    # scene = 'a4899970dc4c4a1bb76ae9c644ec5d92'
+    # index = dataset.scenes.index(scene)
+
+    print('Plotting scene', scene)
+    tsdf, indices, scores = dataset[index]
+
+    scene = data.load_scene(os.path.join(dataset_path, scene))
     point_cloud, _ = data.reconstruct_volume(scene)
 
     rviz.draw_point_cloud(np.asarray(point_cloud.points))
@@ -54,18 +60,17 @@ def main(args):
 
     grasp_map = out.squeeze().cpu().numpy()
 
-    trues = np.empty((40, 1))
-    for i in range(40):
+    trues = np.empty(len(indices))
+    for i in range(len(indices)):
         xx, yy, zz = indices[i]
         score_pred = grasp_map[xx, yy, zz]
-        label = np.isclose(np.round(score_pred), scores[i])
-        trues[i] = label
+        trues[i] = 1. if np.isclose(np.round(score_pred), scores[i]) else 0.
     rviz.draw_candidates(scene['poses'], scene['scores'])
     rviz.draw_true_false(scene['poses'], trues)
 
-    vis.plot_tsdf(tsdf.squeeze().cpu().numpy())
-    vis.plot_vgn(grasp_map)
-    plt.show()
+    # vis.plot_tsdf(tsdf.squeeze().cpu().numpy())
+    # vis.plot_vgn(grasp_map)
+    # plt.show()
 
 
 if __name__ == '__main__':

@@ -137,7 +137,7 @@ Visualization Manager:
       Axes Radius: 0.004999999888241291
       Class: rviz/Pose
       Color: 255; 25; 0
-      Enabled: false
+      Enabled: true
       Head Length: 0.30000001192092896
       Head Radius: 0.10000000149011612
       Name: Grasp pose
@@ -146,9 +146,9 @@ Visualization Manager:
       Shape: Axes
       Topic: /grasp_pose
       Unreliable: false
-      Value: false
+      Value: true
     - Alpha: 1
-      Autocompute Intensity Bounds: true
+      Autocompute Intensity Bounds: false
       Autocompute Value Bounds:
         Max Value: 10
         Min Value: -10
@@ -159,7 +159,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: Intensity
       Decay Time: 0
-      Enabled: true
+      Enabled: false
       Invert Rainbow: false
       Max Color: 0; 255; 0
       Max Intensity: 1
@@ -176,9 +176,9 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: false
-      Value: true
+      Value: false
     - Alpha: 1
-      Autocompute Intensity Bounds: true
+      Autocompute Intensity Bounds: false
       Autocompute Value Bounds:
         Max Value: 10
         Min Value: -10
@@ -235,7 +235,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.43071019649505615
+      Distance: 0.4053325653076172
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -250,10 +250,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.49979597330093384
+      Pitch: 0.45479753613471985
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.713555812835693
+      Yaw: 5.693524360656738
     Saved: ~
 Window Geometry:
   Displays:
