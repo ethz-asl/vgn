@@ -47,7 +47,7 @@
             "console": "integratedTerminal",
             "args": [
                 "--model=conv",
-                "--data=cube",
+                "--data=cuboid",
                 // "--rebuild-cache",
             ]
         },
