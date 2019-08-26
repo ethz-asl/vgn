@@ -1,9 +1,5 @@
-from __future__ import division
-
-import matplotlib.pyplot as plt
 import numpy as np
 from mayavi import mlab
-from mpl_toolkits.axes_grid1 import ImageGrid
 
 
 def draw_voxels(voxels, name=''):
