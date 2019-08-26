@@ -24,4 +24,8 @@ def draw_voxels(voxels, name=''):
         plane_orientation='x_axes',
         transparent=True,
     )
+
+    mlab.xlabel('x')
+    mlab.ylabel('y')
+    mlab.zlabel('z')
     mlab.colorbar(nb_labels=6, orientation='vertical')
