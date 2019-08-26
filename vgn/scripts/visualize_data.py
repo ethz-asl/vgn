@@ -10,7 +10,6 @@ import open3d
 
 import vgn.config as cfg
 from vgn import data, utils
-from vgn.perception import integration
 from vgn.utils import vis
 
 
