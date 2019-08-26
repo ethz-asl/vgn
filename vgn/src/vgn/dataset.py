@@ -33,7 +33,11 @@ class VGNDataset(torch.utils.data.Dataset):
         scene = self.scenes[idx]
         data = np.load(os.path.join(self.cache_dir, scene) + '.npz')
 
-        return data['tsdf'], data['indices'], data['scores']
+        tsdf = data['tsdf']
+        indices = data['indices']
+        scores = data['scores']
+
+        return np.expand_dims(tsdf, 0), indices, scores
 
     @property
     def cache_dir(self):
@@ -69,7 +73,7 @@ class VGNDataset(torch.utils.data.Dataset):
 
                 np.savez_compressed(
                     path,
-                    tsdf=np.expand_dims(tsdf, 0),
+                    tsdf=tsdf,
                     indices=indices,
                     scores=scores,
                 )
