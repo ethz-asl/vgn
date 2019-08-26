@@ -8,6 +8,7 @@ import numpy as np
 import open3d
 import rospy
 import torch
+from mayavi import mlab
 
 from vgn import data
 from vgn.dataset import VGNDataset
@@ -55,9 +56,9 @@ def main(args):
     rviz.draw_point_cloud(np.asarray(point_cloud.points))
 
     with torch.no_grad():
-        tsdf = torch.from_numpy(tsdf).unsqueeze(0).to(device)
-        out = model(tsdf)
+        out = model(torch.from_numpy(tsdf).unsqueeze(0).to(device))
 
+    tsdf = tsdf.squeeze()
     grasp_map = out.squeeze().cpu().numpy()
 
     trues = np.empty(len(indices))
@@ -68,9 +69,9 @@ def main(args):
     rviz.draw_candidates(scene['poses'], scene['scores'])
     rviz.draw_true_false(scene['poses'], trues)
 
-    # vis.plot_tsdf(tsdf.squeeze().cpu().numpy())
-    # vis.plot_vgn(grasp_map)
-    # plt.show()
+    vis.draw_voxels(tsdf, 'TSDF')
+    vis.draw_voxels(grasp_map, 'Grasp map')
+    mlab.show()
 
 
 if __name__ == '__main__':
