@@ -41,13 +41,14 @@ class VGNDataset(torch.utils.data.Dataset):
         scores = data['scores']
 
         if self.augment:
+            center = np.mean(indices, 0)
+            spread = np.max(indices, 0) - np.min(indices, 0)
 
-            center = np.asarray(np.where(tsdf > 0.)).mean(axis=1)
             T_center = Transform(Rotation.identity(), center)
 
             rotation = Rotation.random()
             translation = cfg.resolution / 2. - center
-            translation += np.random.uniform(-10, 10, size=(3, ))
+            translation += np.random.uniform(-spread / 2., spread / 2.)
             T_augment = Transform(rotation, translation)
 
             T = T_center * T_augment * T_center.inverse()

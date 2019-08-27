@@ -18,7 +18,7 @@ def draw_voxels(voxels):
         mode='cube',
         scale_mode='none',
         scale_factor=1.0,
-        opacity=0.01,
+        opacity=0.05,
     )
     mlab.volume_slice(
         voxels,
