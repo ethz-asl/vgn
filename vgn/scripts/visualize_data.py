@@ -4,12 +4,12 @@ import argparse
 import os
 import time
 
-import matplotlib.pyplot as plt
 import numpy as np
 import open3d
+from mayavi import mlab
 
-import vgn.config as cfg
-from vgn import data, utils
+from vgn import data
+from vgn.dataset import VGNDataset
 from vgn.utils import vis
 
 
@@ -20,15 +20,27 @@ def visualize(args):
         from vgn_ros import rviz_utils
         rviz = rviz_utils.RViz()
 
-    scene = data.load_scene(args.scene)
-    point_cloud, voxel_grid = data.reconstruct_volume(scene)
+    # Load data set
+    dataset = VGNDataset(os.path.dirname(args.scene), augment=False)
+    index = dataset.scenes.index(os.path.basename(args.scene))
 
-    # Plot volume
-    tsdf = utils.voxel_grid_to_array(voxel_grid, resolution=cfg.resolution)
-    vis.plot_tsdf(tsdf)
-    plt.show()
+    # Draw original sample
+    tsdf, indices, scores = dataset[index]
 
+    mlab.figure('Original')
+    vis.draw_voxels(tsdf)
+    vis.draw_candidates(indices, scores)
+
+    # Draw several augmented samples
+    dataset.augment = True
+
+    mlab.show()
+
+    # Draw point cloud and candidates in rviz
     if args.rviz:
+        scene = data.load_scene(args.scene)
+        point_cloud, voxel_grid = data.reconstruct_volume(scene)
+
         rviz.draw_point_cloud(np.asarray(point_cloud.points))
         rviz.draw_tsdf(voxel_grid, idx=18)
         rviz.draw_candidates(scene['poses'], scene['scores'])
@@ -56,7 +68,7 @@ def main():
 
     if args.rviz:
         import rospy
-        rospy.init_node('data_visualizer')
+        rospy.init_node('data_vis')
 
     visualize(args)
 
