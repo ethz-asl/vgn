@@ -4,8 +4,10 @@ import torch.nn.functional as F
 
 
 def get_model(name):
-    if name.lower() == 'conv':
-        return ConvNet()
+    models = {
+        'conv': ConvNet(),
+    }
+    return models[name.lower()]
 
 
 class ConvNet(nn.Module):
