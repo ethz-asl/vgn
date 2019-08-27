@@ -27,10 +27,10 @@
             ]
         },
         {
-            "name": "visualize_data",
+            "name": "vis_data",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/vgn/scripts/visualize_data.py",
+            "program": "${workspaceFolder}/vgn/scripts/vis_data.py",
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
