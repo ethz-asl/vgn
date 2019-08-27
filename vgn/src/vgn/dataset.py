@@ -43,22 +43,25 @@ class VGNDataset(torch.utils.data.Dataset):
         if self.augment:
             center = np.mean(indices, 0)
             spread = np.max(indices, 0) - np.min(indices, 0)
-
             T_center = Transform(Rotation.identity(), center)
 
-            rotation = Rotation.random()
-            translation = cfg.resolution / 2. - center
-            translation += np.random.uniform(-spread / 2., spread / 2.)
-            T_augment = Transform(rotation, translation)
+            while True:
+                rotation = Rotation.random()
+                translation = cfg.resolution / 2. - center
+                translation += np.random.uniform(-spread / 2., spread / 2.)
+                T_augment = Transform(rotation, translation)
 
-            T = T_center * T_augment * T_center.inverse()
+                T = T_center * T_augment * T_center.inverse()
+
+                indices = [T.apply_to_point(index) for index in indices]
+                indices = np.round(indices).astype(np.int32)
+
+                if np.all(indices) >= 0 and np.all(indices < cfg.resolution):
+                    break
+
             T_inv = T.inverse()
-
             matrix, offset = T_inv.rotation.as_dcm(), T_inv.translation
             tsdf = ndimage.affine_transform(tsdf, matrix, offset, order=2)
-
-            indices = [T.apply_to_point(index) for index in indices]
-            indices = np.round(indices).astype(np.int32)
 
         return np.expand_dims(tsdf, 0), indices, scores
 
