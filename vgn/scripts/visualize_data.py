@@ -31,8 +31,12 @@ def visualize(args):
     vis.draw_voxels(tsdf)
     vis.draw_candidates(indices, scores)
 
-    # Draw several augmented samples
+    # Draw an augmented sample
     dataset.augment = True
+    tsdf, indices, scores = dataset[index]
+    mlab.figure('Augmented')
+    vis.draw_voxels(tsdf)
+    vis.draw_candidates(indices, scores)
 
     mlab.show()
 
@@ -45,11 +49,11 @@ def visualize(args):
         rviz.draw_tsdf(voxel_grid, idx=18)
         rviz.draw_candidates(scene['poses'], scene['scores'])
 
-        for pose, score in zip(scene['poses'], scene['scores']):
-            if not np.isclose(score, 1.):
-                continue
-            rviz.draw_grasp_pose(pose)
-            time.sleep(1.0)
+        # for pose, score in zip(scene['poses'], scene['scores']):
+        #     if not np.isclose(score, 1.):
+        #         continue
+        #     rviz.draw_grasp_pose(pose)
+        #     time.sleep(1.0)
 
 
 def main():

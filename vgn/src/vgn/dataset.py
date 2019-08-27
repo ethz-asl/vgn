@@ -1,10 +1,11 @@
-from __future__ import print_function
+from __future__ import division, print_function
 
 import json
 import os
 
 import numpy as np
 import torch.utils.data
+from scipy import ndimage
 from tqdm import tqdm
 
 import vgn.config as cfg
@@ -13,14 +14,16 @@ from vgn.utils.transform import Rotation, Transform
 
 
 class VGNDataset(torch.utils.data.Dataset):
-    def __init__(self, root_dir, rebuild_cache=False):
+    def __init__(self, root_dir, augment=True, rebuild_cache=False):
         """Dataset for the volumetric grasping network.
 
         Args:
             root_dir: Path to the synthetic grasp dataset.
+            augment: Augment data by translations, rotations, and flipping.
             rebuild_cache: Discard cached volumes.
         """
         self.root_dir = root_dir
+        self.augment = augment
         self.rebuild_cache = rebuild_cache
 
         self.detect_scenes()
@@ -36,6 +39,25 @@ class VGNDataset(torch.utils.data.Dataset):
         tsdf = data['tsdf']
         indices = data['indices']
         scores = data['scores']
+
+        if self.augment:
+
+            center = np.asarray(np.where(tsdf > 0.)).mean(axis=1)
+            T_center = Transform(Rotation.identity(), center)
+
+            rotation = Rotation.random()
+            translation = cfg.resolution / 2. - center
+            translation += np.random.uniform(-10, 10, size=(3, ))
+            T_augment = Transform(rotation, translation)
+
+            T = T_center * T_augment * T_center.inverse()
+            T_inv = T.inverse()
+
+            matrix, offset = T_inv.rotation.as_dcm(), T_inv.translation
+            tsdf = ndimage.affine_transform(tsdf, matrix, offset, order=2)
+
+            indices = [T.apply_to_point(index) for index in indices]
+            indices = np.round(indices).astype(np.int32)
 
         return np.expand_dims(tsdf, 0), indices, scores
 
