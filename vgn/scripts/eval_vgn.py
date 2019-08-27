@@ -36,7 +36,7 @@ def main(args):
 
     # Load data
     dataset_path = os.path.join('data', 'datasets', dataset)
-    dataset = VGNDataset(dataset_path)
+    dataset = VGNDataset(dataset_path, augment=False)
 
     # Load model
     device = torch.device('cuda')
@@ -73,8 +73,12 @@ def main(args):
                                         scores[i]) else 0.
         rviz.draw_true_false(scene['poses'], trues)
 
-    vis.draw_voxels(tsdf, 'TSDF')
-    vis.draw_voxels(grasp_map, 'Grasp map')
+    mlab.figure('TSDF')
+    vis.draw_voxels(tsdf)
+
+    mlab.figure('Grasp map')
+    vis.draw_voxels(grasp_map)
+
     mlab.show()
 
 
