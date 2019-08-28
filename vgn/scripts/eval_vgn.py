@@ -5,7 +5,6 @@ import os
 
 import numpy as np
 import open3d
-import rospy
 import torch
 from mayavi import mlab
 from scipy import ndimage
@@ -110,6 +109,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.rviz:
+        import rospy
         rospy.init_node('eval_model')
 
     main(args)
