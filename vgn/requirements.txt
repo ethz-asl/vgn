@@ -1,15 +1,13 @@
 catkin_pkg
-jupyter
 matplotlib
+mayavi
 mpi4py
 numpy
 open3d-python
 opencv-python
-pandas
 pybullet
 pytorch-ignite
 scipy
-tensorflow
 tensorboard
 torch
 tqdm
