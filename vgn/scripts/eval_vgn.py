@@ -8,6 +8,7 @@ import open3d
 import rospy
 import torch
 from mayavi import mlab
+from scipy import ndimage
 
 from vgn import data
 from vgn.dataset import VGNDataset
@@ -46,38 +47,49 @@ def main(args):
     # Visualize a random scene
     index = np.random.randint(len(dataset))
     scene = dataset.scenes[index]
-
-    # scene = 'a4899970dc4c4a1bb76ae9c644ec5d92'
+    # scene = '70949ab2913a4f75b26605d92f5b8f85'
     # index = dataset.scenes.index(scene)
-
     print('Plotting scene', scene)
+
     tsdf, indices, scores = dataset[index]
-    scene = data.load_scene(os.path.join(dataset_path, scene))
-    point_cloud, _ = data.reconstruct_volume(scene)
 
     with torch.no_grad():
         out = model(torch.from_numpy(tsdf).unsqueeze(0).to(device))
 
     tsdf = tsdf.squeeze()
-    grasp_map = out.squeeze().cpu().numpy()
+    out = out.squeeze().cpu().numpy()
 
     if args.rviz:
+        scene = data.load_scene(os.path.join(dataset_path, scene))
+        point_cloud, _ = data.reconstruct_volume(scene)
+
         rviz.draw_point_cloud(np.asarray(point_cloud.points))
         rviz.draw_candidates(scene['poses'], scene['scores'])
 
-        trues = np.empty(len(indices))
-        for i in range(len(indices)):
-            xx, yy, zz = indices[i]
-            score_pred = grasp_map[xx, yy, zz]
-            trues[i] = 1. if np.isclose(np.round(score_pred),
-                                        scores[i]) else 0.
-        rviz.draw_true_false(scene['poses'], trues)
+    # Mask
+    grasp_map = out.copy()
+    grasp_map[tsdf == 0.0] = 0.0
+    grasp_map[grasp_map < 0.8] = 0.0
 
+    # Smooth
+    grasp_map = ndimage.gaussian_filter(grasp_map, sigma=1.)
+
+    # Non-maximum suppression
+    max_map = ndimage.filters.maximum_filter(grasp_map, size=5)
+    grasp_map = np.where(grasp_map == max_map, max_map, 0.)
+
+    # Select candidates
+    nonzero = np.nonzero(grasp_map)
+    scores = grasp_map[nonzero]
+    indices = np.transpose(nonzero)
+
+    # Draw
     mlab.figure('TSDF')
     vis.draw_voxels(tsdf)
+    vis.draw_candidates(indices, scores)
 
-    mlab.figure('Grasp map')
-    vis.draw_voxels(grasp_map)
+    mlab.figure('Network output')
+    vis.draw_voxels(out, tol=0.6)
 
     mlab.show()
 

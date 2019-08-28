@@ -2,11 +2,11 @@ import numpy as np
 from mayavi import mlab
 
 
-def draw_voxels(voxels):
+def draw_voxels(voxels, tol=0.001):
     voxels = voxels.squeeze()
 
-    x, y, z = np.where(voxels > 0.001)
-    scalars = voxels[voxels > 0.001]
+    x, y, z = np.where(voxels > tol)
+    scalars = voxels[voxels > tol]
 
     mlab.points3d(
         x,
