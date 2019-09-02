@@ -17,54 +17,61 @@ from vgn.dataset import VGNDataset
 from vgn.models import get_model
 
 
-def loss_fn(score_pred, score):
-    loss = F.binary_cross_entropy(score_pred, score)
-    return loss
-
-
 def _prepare_batch(batch, device):
-    tsdf, idx, score = batch
+    tsdf, idx, score, quat = batch
     tsdf = tsdf.to(device)
     idx = idx.to(device)
     score = score.squeeze().to(device)
-    return tsdf, idx, score
+    quat = quat.to(device)
+    return tsdf, idx, score, quat
 
 
-def _select_pred(out, indices):
+def _select_pred(scores, quats, indices):
     score_pred = torch.cat([
-        o[0, i[:, 0], i[:, 1], i[:, 2]].unsqueeze(0)
-        for o, i in zip(out, indices)
+        s[0, i[:, 0], i[:, 1], i[:, 2]].unsqueeze(0)
+        for s, i in zip(scores, indices)
     ])
-    return score_pred
+    quat_pred = torch.cat([
+        q[:, i[:, 0], i[:, 1], i[:, 2]].unsqueeze(0)
+        for q, i in zip(quats, indices)
+    ])
+    return score_pred, quat_pred
 
 
-def create_trainer(model, optimizer, loss_fn, device):
+def create_trainer(model, optimizer, score_loss_fn, quat_loss_fn, device):
     model.to(device)
 
     def _update(_, batch):
         model.train()
         optimizer.zero_grad()
-        tsdf, idx, score = _prepare_batch(batch, device)
-        out = model(tsdf)
-        score_pred = _select_pred(out, idx)
-        loss = loss_fn(score_pred, score)
+
+        # Forward pass
+        tsdf, idx, score, quat = _prepare_batch(batch, device)
+        score_out, quat_out = model(tsdf)
+        score_pred, quat_pred = _select_pred(score_out, quat_out, idx)
+        loss_score = score_loss_fn(score_pred, score)
+        loss_quat = quat_loss_fn(quat_pred, quat)
+        loss = loss_score + loss_quat
+
+        # Backward pass
         loss.backward()
         optimizer.step()
-        return loss, score_pred, score
+
+        return loss, loss_score, loss_quat, score_pred, score
 
     return Engine(_update)
 
 
-def create_evaluator(model, loss_fn, device):
+def create_evaluator(model, device):
     model.to(device)
 
     def _inference(_, batch):
         model.eval()
         with torch.no_grad():
-            tsdf, idx, score = _prepare_batch(batch, device)
-            out = model(tsdf)
-            score_pred = _select_pred(out, idx)
-            return score_pred, score
+            tsdf, idx, score, quat = _prepare_batch(batch, device)
+            score_out, quat_out = model(tsdf)
+            score_pred, quat_pred = _select_pred(score_out, quat_out, idx)
+        return score_pred, score, quat_pred, quat
 
     engine = Engine(_inference)
 
@@ -79,7 +86,7 @@ def create_summary_writers(model, data_loader, device, log_dir):
     val_writer = tensorboard.SummaryWriter(val_path, flush_secs=60)
 
     # Write the graph to Tensorboard
-    trace, _, _ = _prepare_batch(next(iter(data_loader)), device)
+    trace, _, _, _ = _prepare_batch(next(iter(data_loader)), device)
     train_writer.add_graph(model, trace)
 
     return train_writer, val_writer
@@ -131,30 +138,37 @@ def train(args):
     # Build the network
     model = get_model(args.model)
 
+    # Define loss functions
+    score_loss_fn = F.binary_cross_entropy
+    quat_loss_fn = torch.nn.L1Loss()
+
     # Define optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     # Create Ignite engines for training and validation
-    trainer = create_trainer(model, optimizer, loss_fn, device)
-    evaluator = create_evaluator(model, loss_fn, device)
+    trainer = create_trainer(model, optimizer, score_loss_fn, quat_loss_fn,
+                             device)
+    evaluator = create_evaluator(model, device)
 
     # Train metrics
-    def output_transform(output):
-        score_pred, score = output[1], output[2]
-        score_pred = torch.round(score_pred)
-        return score_pred, score
-
-    RunningAverage(output_transform=lambda x: x[0]).attach(trainer, 'loss')
-    Accuracy(output_transform).attach(trainer, 'acc')
+    score_loss_metric = RunningAverage(output_transform=lambda x: x[1])
+    score_loss_metric.attach(trainer, 'loss_score')
+    quat_loss_metric = RunningAverage(output_transform=lambda x: x[2])
+    quat_loss_metric.attach(trainer, 'loss_quat')
+    loss_metric = RunningAverage(output_transform=lambda x: x[0])
+    loss_metric.attach(trainer, 'loss')
+    acc_metric = Accuracy(lambda x: (torch.round(x[3]), x[4]))
+    acc_metric.attach(trainer, 'acc')
 
     # Validation metrics
-    def output_transform(output):
-        score_pred, score = output
-        score_pred = torch.round(score_pred)
-        return score_pred, score
-
-    Loss(loss_fn).attach(evaluator, 'loss')
-    Accuracy(output_transform).attach(evaluator, 'acc')
+    score_loss_metric = Loss(score_loss_fn, lambda x: (x[0], x[1]))
+    score_loss_metric.attach(evaluator, 'loss_score')
+    quat_loss_metric = Loss(quat_loss_fn, lambda x: (x[2], x[3]))
+    quat_loss_metric.attach(evaluator, 'loss_quat')
+    loss_metric = score_loss_metric + quat_loss_metric
+    loss_metric.attach(evaluator, 'loss')
+    acc_metric = Accuracy(lambda x: (torch.round(x[0]), x[1]))
+    acc_metric.attach(evaluator, 'acc')
 
     # Setup loggers and checkpoints
     ProgressBar(persist=True, ascii=True).attach(trainer, ['loss'])
@@ -168,15 +182,17 @@ def train(args):
 
         epoch = trainer.state.epoch
 
-        train_loss = trainer.state.metrics['loss']
-        train_acc = trainer.state.metrics['acc']
-        train_writer.add_scalar('loss', train_loss, epoch)
-        train_writer.add_scalar('accuracy', train_acc, epoch)
+        metrics = trainer.state.metrics
+        train_writer.add_scalar('loss_score', metrics['loss_score'], epoch)
+        train_writer.add_scalar('loss_quat', metrics['loss_quat'], epoch)
+        train_writer.add_scalar('loss', metrics['loss'], epoch)
+        train_writer.add_scalar('accuracy', metrics['acc'], epoch)
 
-        val_loss = evaluator.state.metrics['loss']
-        val_acc = evaluator.state.metrics['acc']
-        val_writer.add_scalar('loss', val_loss, epoch)
-        val_writer.add_scalar('accuracy', val_acc, epoch)
+        metrics = evaluator.state.metrics
+        val_writer.add_scalar('loss_score', metrics['loss_score'], epoch)
+        val_writer.add_scalar('loss_quat', metrics['loss_quat'], epoch)
+        val_writer.add_scalar('loss', metrics['loss'], epoch)
+        val_writer.add_scalar('accuracy', metrics['acc'], epoch)
 
     checkpoint_handler = ModelCheckpoint(
         log_dir,
