@@ -98,19 +98,20 @@ def main():
     parser.add_argument(
         '--data',
         type=str,
+        required=True,
         help='path to dataset',
     )
     parser.add_argument(
         '--n-scenes',
         type=int,
         default=1000,
-        help='number of generated virtual scenes',
+        help='number of generated virtual scenes (default: 1000)',
     )
     parser.add_argument(
         '--n-grasps-per-scene',
         type=int,
         default=40,
-        help='number of grasp candidates per scene',
+        help='number of grasp candidates per scene (default: 40)',
     )
     parser.add_argument(
         '--sim-gui',

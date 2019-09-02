@@ -61,6 +61,7 @@ def main():
     parser.add_argument(
         '--scene',
         type=str,
+        required=True,
         help='path to scene',
     )
     parser.add_argument(
