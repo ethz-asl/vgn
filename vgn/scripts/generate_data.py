@@ -39,10 +39,9 @@ def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, sim_gui, rank):
         rank: MPI rank.
     """
     n_views_per_scene = 16
-    real_time = False
+    rtf = -1.0
 
-    s = simulation.Simulation(sim_gui, real_time)
-    g = grasp.Grasper(robot=s)
+    s = simulation.Simulation(sim_gui, rtf)
 
     # Create the root directory if it does not exist
     if not os.path.exists(root_dir):
@@ -58,17 +57,18 @@ def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, sim_gui, rank):
         }
 
         # Generate a new scene
-        s.reset()
+        s.engine.reset()
         s.spawn_plane()
-        # s.spawn_cuboid()
+        s.spawn_cuboid()
         # s.spawn_cuboid_random()
-        s.spawn_cuboids()
-        s.spawn_robot()
+        # s.spawn_cuboids()
+        s.spawn_hand()
         s.save_state()
+
         # Reconstruct the volume
         volume = integration.TSDFVolume(cfg.size, 100)
         extrinsics = sample_hemisphere(n_views_per_scene, cfg.size)
-        for i, extrinsic in enumerate(extrinsics):
+        for extrinsic in extrinsics:
             _, depth = s.camera.get_rgb_depth(extrinsic)
             volume.integrate(depth, s.camera.intrinsic, extrinsic)
             scene['extrinsics'].append(extrinsic)
@@ -83,7 +83,7 @@ def generate_dataset(root_dir, n_scenes, n_grasps_per_scene, sim_gui, rank):
 
         while len(scene['poses']) < n_grasps_per_scene:
             point, normal = grasp.sample_uniform(point_cloud)
-            pose, score = grasp.evaluate(s, g, point, normal)
+            pose, score = grasp.evaluate(s, point, normal)
             if is_positive(score) or n_negatives < n_grasps_per_scene // 2:
                 scene['poses'].append(pose)
                 scene['scores'].append(score)

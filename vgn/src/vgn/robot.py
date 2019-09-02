@@ -1,10 +1,7 @@
-class Robot(object):
+class Manipulator(object):
+    """Abstract base class for a robot arm."""
     def get_tcp_pose(self):
         """Return the pose of the TCP in body frame."""
-        raise NotImplementedError
-
-    def get_gripper_opening_width(self):
-        """Return the gripper opening width, normalized to [0, 1]."""
         raise NotImplementedError
 
     def set_tcp_pose(self, target_pose):
@@ -29,6 +26,10 @@ class Robot(object):
         Returns:
             False if a collision was detected.
         """
+        raise NotImplementedError
+
+    def get_gripper_opening_width(self):
+        """Return the gripper opening width, normalized to [0, 1]."""
         raise NotImplementedError
 
     def open_gripper(self):

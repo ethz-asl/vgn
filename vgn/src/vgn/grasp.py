@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import enum
 
 import numpy as np
@@ -15,42 +17,6 @@ class Outcome(enum.Enum):
     SLIPPED = 3
 
 
-class Grasper(object):
-    """Open-loop grasp execution.
-
-    First, the TCP is positioned to a pre-grasp pose, from which the grasp pose
-    is approached linearly. If the grasp pose is reached without any collisions,
-    the gripper is closed and the object retrieved.
-    """
-    def __init__(self, robot):
-        self.robot = robot
-        self.T_grasp_pregrasp = Transform(Rotation.identity(), [0., 0., -0.05])
-
-    def grasp(self, T_body_grasp):
-        """Execute the given grasp and report the outcome."""
-        threshold = 0.2
-        T_body_pregrasp = T_body_grasp * self.T_grasp_pregrasp
-
-        if not self.robot.set_tcp_pose(T_body_pregrasp):
-            return Outcome.COLLISION
-
-        self.robot.open_gripper()
-
-        if not self.robot.move_tcp_xyz(T_body_grasp, check_collisions=True):
-            return Outcome.COLLISION
-
-        self.robot.close_gripper()
-        if self.robot.get_gripper_opening_width() < threshold:
-            return Outcome.EMPTY
-
-        self.robot.move_tcp_xyz(T_body_pregrasp)
-
-        if self.robot.get_gripper_opening_width() < threshold:
-            return Outcome.SLIPPED
-
-        return Outcome.SUCCESS
-
-
 def sample_uniform(point_cloud):
     """Uniformly sample a grasp point from a point cloud.
 
@@ -60,19 +26,53 @@ def sample_uniform(point_cloud):
         point_cloud: The point cloud from which the point is sampled
     """
     gripper_depth = 0.5 * cfg.max_width
-    tol = 0.01
 
     points = np.asarray(point_cloud.points)
     normals = np.asarray(point_cloud.normals)
     selection = np.random.randint(len(points))
     point, normal = points[selection], normals[selection]
-    z_offset = np.random.uniform(tol, gripper_depth - tol)
+    z_offset = np.random.uniform(-0.2 * gripper_depth, 1.2 * gripper_depth)
     point = point - normal * (z_offset - gripper_depth)
 
     return point, normal
 
 
-def evaluate(sim, grasper, point, normal, n_rotations=12):
+def execute(robot, T_base_grasp):
+    """Open-loop grasp execution.
+
+    First, the TCP is positioned to a pre-grasp pose, from which the grasp pose
+    is approached linearly. If the grasp pose is reached without any collisions,
+    the gripper is closed and the object retrieved.
+
+    Args:
+        robot: Reference to the manipulator which will execute the grasp.
+        T_base_grasp: The pose of the grasp w.r.t. manipulator base frame.
+    """
+    grasp_detection_threshold = 0.2
+    T_grasp_pregrasp = Transform(Rotation.identity(), [0., 0., -0.05])
+
+    T_base_pregrasp = T_base_grasp * T_grasp_pregrasp
+
+    robot.set_tcp_pose(T_base_pregrasp, override_dynamics=True)
+    robot.open_gripper()
+
+    if not robot.move_tcp_xyz(T_base_grasp, check_collisions=True):
+        return Outcome.COLLISION
+
+    robot.close_gripper()
+
+    if robot.get_gripper_opening_width() < grasp_detection_threshold:
+        return Outcome.EMPTY
+
+    robot.move_tcp_xyz(T_base_pregrasp)
+
+    if robot.get_gripper_opening_width() < grasp_detection_threshold:
+        return Outcome.SLIPPED
+
+    return Outcome.SUCCESS
+
+
+def evaluate(sim, point, normal, n_rotations=9):
     """Evaluate the quality of the given grasp point.
 
     Args:
@@ -96,7 +96,7 @@ def evaluate(sim, grasper, point, normal, n_rotations=12):
     for yaw in yaws:
         orientation = R * Rotation.from_euler('z', yaw)
         sim.restore_state()
-        outcome = grasper.grasp(Transform(orientation, point))
+        outcome = execute(sim.hand, Transform(orientation, point))
         scores.append(outcome == Outcome.SUCCESS)
 
     if np.sum(scores):
@@ -106,12 +106,12 @@ def evaluate(sim, grasper, point, normal, n_rotations=12):
                                               width=1)
         idx_of_widest_peak = peaks[np.argmax(properties['widths'])] - 1
         yaw = yaws[idx_of_widest_peak]
-
-        ori = _ensure_consistent_orientation(R * Rotation.from_euler('z', yaw))
-        return Transform(ori, point), 1.
+        ori, score = R * Rotation.from_euler('z', yaw), 1.0
     else:
-        ori = _ensure_consistent_orientation(R)
-        return Transform(ori, point), 0.
+        ori, score = R, 0.0
+
+    ori = _ensure_consistent_orientation(ori)
+    return Transform(ori, point), score
 
 
 def _ensure_consistent_orientation(orientation):
