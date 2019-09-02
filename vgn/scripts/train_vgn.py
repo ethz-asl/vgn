@@ -106,7 +106,7 @@ def train(args):
 
     # Load and inspect data
     path = os.path.join('data', 'datasets', args.data)
-    dataset = VGNDataset(path, augment=True, rebuild_cache=args.rebuild_cache)
+    dataset = VGNDataset(path, augment=False, rebuild_cache=args.rebuild_cache)
 
     validation_size = int(args.validation_split * len(dataset))
     train_size = len(dataset) - validation_size

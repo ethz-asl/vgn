@@ -41,6 +41,7 @@ class VGNDataset(torch.utils.data.Dataset):
         scores = data['scores']
 
         if self.augment:
+            # TODO fix me
             center = np.mean(indices, 0)
             spread = np.max(indices, 0) - np.min(indices, 0)
             T_center = Transform(Rotation.identity(), center)
