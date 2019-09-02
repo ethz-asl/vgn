@@ -58,7 +58,7 @@ def execute(robot, T_base_grasp):
     robot.set_tcp_pose(T_base_pregrasp, override_dynamics=True)
     robot.open_gripper()
 
-    if not robot.move_tcp_xyz(T_base_grasp, check_collisions=True):
+    if not robot.move_tcp_xyz(T_base_grasp):
         return Outcome.COLLISION
 
     robot.close_gripper()
@@ -66,7 +66,7 @@ def execute(robot, T_base_grasp):
     if robot.get_gripper_opening_width() < grasp_detection_threshold:
         return Outcome.EMPTY
 
-    robot.move_tcp_xyz(T_base_pregrasp)
+    robot.move_tcp_xyz(T_base_pregrasp, check_collisions=False)
 
     if robot.get_gripper_opening_width() < grasp_detection_threshold:
         return Outcome.SLIPPED

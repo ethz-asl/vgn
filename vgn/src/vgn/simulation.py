@@ -94,7 +94,7 @@ class Hand(robot.Manipulator):
     def move_tcp_xyz(self,
                      target_pose,
                      eef_step=0.002,
-                     check_collisions=False,
+                     check_collisions=True,
                      vel=0.10):
         pose = self.get_tcp_pose()
         pos_diff = target_pose.translation - pose.translation
