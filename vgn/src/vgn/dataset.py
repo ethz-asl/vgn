@@ -39,6 +39,7 @@ class VGNDataset(torch.utils.data.Dataset):
         tsdf = data['tsdf']
         indices = data['indices']
         scores = data['scores']
+        quats = data['quats']
 
         if self.augment:
             # TODO fix me
@@ -64,7 +65,7 @@ class VGNDataset(torch.utils.data.Dataset):
             matrix, offset = T_inv.rotation.as_dcm(), T_inv.translation
             tsdf = ndimage.affine_transform(tsdf, matrix, offset, order=2)
 
-        return np.expand_dims(tsdf, 0), indices, scores
+        return np.expand_dims(tsdf, 0), indices, scores, quats
 
     @property
     def cache_dir(self):
@@ -93,14 +94,17 @@ class VGNDataset(torch.utils.data.Dataset):
 
                 indices = np.empty((len(scene['poses']), 3), dtype=np.long)
                 scores = np.asarray(scene['scores'], dtype=np.float32)
+                quats = np.empty((len(scene['poses']), 4), dtype=np.float32)
                 for i, pose in enumerate(scene['poses']):
                     index = voxel_grid.get_voxel(pose.translation)
                     indices[i] = np.clip(index, [0, 0, 0],
                                          [cfg.resolution - 1] * 3)
+                    quats[i] = pose.rotation.as_quat()
 
                 np.savez_compressed(
                     path,
                     tsdf=tsdf,
                     indices=indices,
                     scores=scores,
+                    quats=quats,
                 )
