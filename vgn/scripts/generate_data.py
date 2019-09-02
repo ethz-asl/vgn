@@ -99,7 +99,7 @@ def main():
         '--data',
         type=str,
         required=True,
-        help='path to dataset',
+        help='name of dataset',
     )
     parser.add_argument(
         '--n-scenes',
