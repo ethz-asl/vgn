@@ -25,18 +25,18 @@ def visualize(args):
     index = dataset.scenes.index(os.path.basename(args.scene))
 
     # Draw original sample
-    tsdf, indices, scores = dataset[index]
+    tsdf, indices, scores, _ = dataset[index]
 
     mlab.figure('Original')
     vis.draw_voxels(tsdf)
     vis.draw_candidates(indices, scores)
 
-    # Draw an augmented sample
-    dataset.augment = True
-    tsdf, indices, scores = dataset[index]
-    mlab.figure('Augmented')
-    vis.draw_voxels(tsdf)
-    vis.draw_candidates(indices, scores)
+    # # Draw an augmented sample
+    # dataset.augment = True
+    # tsdf, indices, scores = dataset[index]
+    # mlab.figure('Augmented')
+    # vis.draw_voxels(tsdf)
+    # vis.draw_candidates(indices, scores)
 
     mlab.show()
 
