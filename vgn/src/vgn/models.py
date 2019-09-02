@@ -47,6 +47,11 @@ class ConvNet(nn.Module):
                                     kernel_size=5,
                                     padding=2)
 
+        self.conv_quat = nn.Conv3d(filter_sizes[5],
+                                   4,
+                                   kernel_size=5,
+                                   padding=2)
+
     def forward(self, x):
         # 1 x 40 x 40 x 40
         x = self.conv1(x)
@@ -78,11 +83,14 @@ class ConvNet(nn.Module):
 
         # 16 x 20 x 20 x 20
         x = F.interpolate(x, 40)
-        x = self.conv_score(x)
-        score_out = torch.sigmoid(x)
 
-        # 1 x 40 x 40 x 40
-        return score_out
+        score = self.conv_score(x)
+        score_out = torch.sigmoid(score)
+
+        quat = self.conv_quat(x)
+        quat_out = F.normalize(quat, dim=1)
+
+        return score_out, quat_out
 
 
 if __name__ == '__main__':
@@ -94,10 +102,14 @@ if __name__ == '__main__':
 
     trace = torch.randn(32, 1, 40, 40, 40).to(device)
 
-    out = model(trace)
+    score_out, quat_out = model(trace)
 
-    assert out.shape[0] == trace.shape[0], 'batch size is not the same'
-    assert out.shape[1] == 1, 'number of output channels is wrong'
-    assert out.shape[2:] == trace.shape[2:], 'voxel dimensions are wrong'
+    assert score_out.shape[0] == trace.shape[0], 'batch size is not the same'
+    assert score_out.shape[1] == 1, 'number of output channels is wrong'
+    assert score_out.shape[2:] == trace.shape[2:], 'voxel dimensions are wrong'
+
+    assert quat_out.shape[0] == trace.shape[0], 'batch size is not the same'
+    assert quat_out.shape[1] == 4, 'number of output channels is wrong'
+    assert quat_out.shape[2:] == trace.shape[2:], 'voxel dimensions are wrong'
 
     raw_input('Press any key to continue')
