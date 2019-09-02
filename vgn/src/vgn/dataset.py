@@ -39,7 +39,7 @@ class VGNDataset(torch.utils.data.Dataset):
         tsdf = data['tsdf']
         indices = data['indices']
         scores = data['scores']
-        quats = data['quats']
+        quats = np.swapaxes(data['quats'], 0, 1)
 
         if self.augment:
             # TODO fix me
