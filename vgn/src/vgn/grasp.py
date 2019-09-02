@@ -26,12 +26,14 @@ def sample_uniform(point_cloud):
         point_cloud: The point cloud from which the point is sampled
     """
     gripper_depth = 0.5 * cfg.max_width
+    thresh = 0.2
 
     points = np.asarray(point_cloud.points)
     normals = np.asarray(point_cloud.normals)
     selection = np.random.randint(len(points))
     point, normal = points[selection], normals[selection]
-    z_offset = np.random.uniform(-0.2 * gripper_depth, 1.2 * gripper_depth)
+    z_offset = np.random.uniform((0.0 - thresh) * gripper_depth,
+                                 (1.0 + thresh) * gripper_depth)
     point = point - normal * (z_offset - gripper_depth)
 
     return point, normal
