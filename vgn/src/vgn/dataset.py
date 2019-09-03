@@ -55,7 +55,7 @@ class VGNDataset(torch.utils.data.Dataset):
 
                 T = T_center * T_augment * T_center.inverse()
 
-                indices = [T.apply_to_point(index) for index in indices]
+                indices = [T.transform_point(index) for index in indices]
                 indices = np.round(indices).astype(np.long)
 
                 if np.all(indices >= 0) and np.all(indices < cfg.resolution):

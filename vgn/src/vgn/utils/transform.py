@@ -42,8 +42,11 @@ class Transform(object):
         translation = self.rotation.apply(other.translation) + self.translation
         return self.__class__(rotation, translation)
 
-    def apply_to_point(self, point):
+    def transform_point(self, point):
         return self.rotation.apply(point) + self.translation
+
+    def transform_vector(self, vector):
+        return self.rotation.apply(vector)
 
     def inverse(self):
         """Compute the inverse of this transform."""
