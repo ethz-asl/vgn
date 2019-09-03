@@ -2,6 +2,25 @@ import numpy as np
 from mayavi import mlab
 
 
+def draw_pose(pose, scale=1.0):
+    x, y, z = np.split(np.repeat(pose.translation, 3), 3)
+    u, v, w = np.split(scale * pose.rotation.as_dcm().flatten(), 3)
+    c = [1.0, 0.5, 0.0]
+
+    axes = mlab.quiver3d(x,
+                         y,
+                         z,
+                         u,
+                         v,
+                         w,
+                         scalars=c,
+                         colormap='blue-red',
+                         mode='arrow',
+                         scale_mode='none',
+                         scale_factor=scale)
+    axes.glyph.color_mode = 'color_by_scalar'
+
+
 def draw_voxels(voxels, tol=0.001):
     voxels = voxels.squeeze()
 
