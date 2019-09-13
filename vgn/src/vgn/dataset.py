@@ -14,7 +14,7 @@ from vgn.utils.transform import Rotation, Transform
 
 
 class VGNDataset(torch.utils.data.Dataset):
-    def __init__(self, root_dir, augment=True, rebuild_cache=False):
+    def __init__(self, root_dir, augment=False, rebuild_cache=False):
         """Dataset for the volumetric grasping network.
 
         Args:

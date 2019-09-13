@@ -1,24 +1,7 @@
 import numpy as np
 from mayavi import mlab
 
-
-def draw_pose(pose, scale=1.0):
-    x, y, z = np.split(np.repeat(pose.translation, 3), 3)
-    u, v, w = np.split(scale * pose.rotation.as_dcm().flatten(), 3)
-    c = [1.0, 0.5, 0.0]
-
-    axes = mlab.quiver3d(x,
-                         y,
-                         z,
-                         u,
-                         v,
-                         w,
-                         scalars=c,
-                         colormap='blue-red',
-                         mode='arrow',
-                         scale_mode='none',
-                         scale_factor=scale)
-    axes.glyph.color_mode = 'color_by_scalar'
+from vgn.utils.transform import Rotation
 
 
 def draw_voxels(voxels, tol=0.001):
@@ -53,7 +36,26 @@ def draw_voxels(voxels, tol=0.001):
     mlab.colorbar(nb_labels=6, orientation='vertical')
 
 
-def draw_candidates(indices, scores):
+def draw_frame(index, quat, scale=1.0):
+    x, y, z = np.split(np.repeat(index, 3), 3)
+    u, v, w = np.split(scale * Rotation.from_quat(quat).as_dcm().flatten(), 3)
+    c = [1.0, 0.5, 0.0]
+
+    axes = mlab.quiver3d(x,
+                         y,
+                         z,
+                         u,
+                         v,
+                         w,
+                         scalars=c,
+                         colormap='blue-red',
+                         mode='arrow',
+                         scale_mode='none',
+                         scale_factor=scale)
+    axes.glyph.color_mode = 'color_by_scalar'
+
+
+def draw_candidates(indices, quats, scores, draw_frames=False):
     x, y, z = indices[:, 0], indices[:, 1], indices[:, 2]
     mlab.points3d(
         x,
@@ -65,3 +67,7 @@ def draw_candidates(indices, scores):
         scale_mode='none',
         scale_factor=0.5,
     )
+
+    if draw_frames:
+        for index, quat in zip(indices, quats):
+            draw_frame(index, quat)
