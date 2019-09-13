@@ -1,7 +1,5 @@
 from __future__ import division
 
-import time
-
 import numpy as np
 
 import pybullet
@@ -16,7 +14,7 @@ from vgn.utils.transform import Rotation, Transform
 class Simulation(object):
     """Simulation of a grasping experiment.
 
-    In this simulation, world, task and body frames are identical.
+    In this simulation, world, task and robot base frames are identical.
     """
     def __init__(self, gui, real_time_factor=-1.):
         connection_mode = pybullet.GUI if gui else pybullet.DIRECT
@@ -26,7 +24,7 @@ class Simulation(object):
 
         self.engine = sim_utils.Engine(self.p, real_time_factor)
         self.camera = sim_utils.Camera(self.p, intrinsic, 0.1, 2.0)
-        self.hand = None  # call spawn_hand to create object
+        self.robot = None  # call spawn_hand to create object
 
     def save_state(self):
         self.snapshot_id = self.engine.save_state()
@@ -35,38 +33,52 @@ class Simulation(object):
         assert self.snapshot_id is not None, 'save_state must be called first'
         self.engine.restore_state(self.snapshot_id)
 
-    def spawn_plane(self):
+    def generate_scene(self, name):
+        self.engine.reset()
+        self._spawn_plane()
+
+        scenes = {
+            'debug': self._spawn_cuboid,
+            'cuboid': self._spawn_cuboid,
+            'cuboid_random': self._spawn_cuboid_random,
+            'cuboids': self._spawn_cuboids,
+        }
+
+        scenes[name]()
+        self._spawn_robot()
+
+    def _spawn_plane(self):
         pose = Transform(Rotation.identity(), [0.0, 0.0, 0.0])
         sim_utils.Body(self.p, 'data/urdfs/plane/plane.urdf', pose)
 
-    def spawn_object(self, urdf, pose):
+    def _spawn_robot(self):
+        self.robot = SimulatedRobotArm(self.p, self.engine)
+
+    def _spawn_object(self, urdf, pose):
         sim_utils.Body(self.p, urdf, pose)
         for _ in range(self.engine.hz // 2):
             self.engine.step()
 
-    def spawn_cuboid(self):
+    def _spawn_cuboid(self):
         position = np.r_[0.5 * cfg.size, 0.5 * cfg.size, 0.12]
         orientation = Rotation.from_quat([0., 0., 0., 1.])
         urdf = 'data/urdfs/wooden_blocks/cuboid0.urdf'
-        self.spawn_object(urdf, Transform(orientation, position))
+        self._spawn_object(urdf, Transform(orientation, position))
 
-    def spawn_cuboid_random(self):
+    def _spawn_cuboid_random(self):
         position = np.r_[np.random.uniform(0.06, cfg.size - 0.06, 2), 0.12]
         orientation = Rotation.random()
         urdf = 'data/urdfs/wooden_blocks/cuboid0.urdf'
-        self.spawn_object(urdf, Transform(orientation, position))
+        self._spawn_object(urdf, Transform(orientation, position))
 
-    def spawn_cuboids(self):
+    def _spawn_cuboids(self):
         for _ in range(1 + np.random.randint(4)):
-            self.spawn_cuboid_random()
-
-    def spawn_hand(self):
-        self.hand = Hand(self.p, self.engine)
+            self._spawn_cuboid_random()
 
 
-class Hand(robot.Manipulator):
-    T_tool0_tcp = Transform(Rotation.identity(), [0.0, 0.0, 0.02])
-    T_tcp_tool0 = T_tool0_tcp.inverse()
+class SimulatedRobotArm(robot.RobotArm):
+    T_tool0_tool = Transform(Rotation.identity(), np.r_[0.0, 0.0, 0.02])
+    T_tool_tool0 = T_tool0_tool.inverse()
     max_opening_width = 0.06
 
     def __init__(self, physics_client, engine):
@@ -80,23 +92,23 @@ class Hand(robot.Manipulator):
                                                [0., 0., 0.],
                                                Transform.identity(), pose)
 
-    def get_tcp_pose(self):
-        return self.body.get_pose() * self.T_tool0_tcp
+    def get_tool_pose(self):
+        return self.body.get_pose() * self.T_tool0_tool
 
-    def set_tcp_pose(self, pose, override_dynamics=False):
-        T_world_tool0 = pose * Hand.T_tcp_tool0
+    def set_tool_pose(self, pose, override_dynamics=False):
+        T_world_tool0 = pose * SimulatedRobotArm.T_tool_tool0
         if override_dynamics:
             self.body.set_pose(T_world_tool0)
         self.constraint.change(T_world_tool0, max_force=300)
         self.engine.step()
         return len(self._detect_collision()) == 0
 
-    def move_tcp_xyz(self,
-                     target_pose,
-                     eef_step=0.002,
-                     check_collisions=True,
-                     vel=0.10):
-        pose = self.get_tcp_pose()
+    def move_tool_xyz(self,
+                      target_pose,
+                      eef_step=0.002,
+                      check_collisions=True,
+                      vel=0.10):
+        pose = self.get_tool_pose()
         pos_diff = target_pose.translation - pose.translation
         n_steps = int(np.linalg.norm(pos_diff) / eef_step)
 
@@ -105,7 +117,7 @@ class Hand(robot.Manipulator):
 
         for _ in range(n_steps):
             pose.translation += dist_step
-            self.set_tcp_pose(pose)
+            self.set_tool_pose(pose)
             for _ in range(int(dur_step * self.engine.hz)):
                 self.engine.step()
             if check_collisions and self._detect_collision():
@@ -120,10 +132,10 @@ class Hand(robot.Manipulator):
         """Return the gripper opening width scaled to the range [0., 1.]."""
         pos_l = self.body.joints['finger_l'].get_position()
         pos_r = self.body.joints['finger_r'].get_position()
-        return (pos_l + pos_r) / Hand.max_opening_width
+        return (pos_l + pos_r) / SimulatedRobotArm.max_opening_width
 
     def set_gripper_opening_width(self, pos):
-        pos *= 0.5 * Hand.max_opening_width
+        pos *= 0.5 * SimulatedRobotArm.max_opening_width
         self.body.joints['finger_l'].set_position(pos)
         self.body.joints['finger_r'].set_position(pos)
         for _ in range(self.engine.hz // 2):

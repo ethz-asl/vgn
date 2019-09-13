@@ -1,6 +1,8 @@
 import numpy as np
 import open3d
 
+import vgn.config as cfg
+
 
 class TSDFVolume(object):
     """Integration of multiple depth images using a TSDF."""
@@ -49,3 +51,12 @@ class TSDFVolume(object):
 
     def get_point_cloud(self):
         return self._volume.extract_point_cloud()
+
+
+def reconstruct_scene(intrinsic, extrinsics, depth_imgs):
+    volume = TSDFVolume(cfg.size, cfg.resolution)
+    for extrinsic, depth_img in zip(extrinsics, depth_imgs):
+        volume.integrate(depth_img, intrinsic, extrinsic)
+    point_cloud = volume.get_point_cloud()
+    voxel_grid = volume.get_voxel_grid()
+    return point_cloud, voxel_grid

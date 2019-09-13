@@ -31,15 +31,6 @@ def store_scene(dirname, scene):
     _store_grasps(dirname, scene['poses'], scene['scores'])
 
 
-def reconstruct_volume(scene):
-    volume = integration.TSDFVolume(cfg.size, cfg.resolution)
-    for extrinsic, depth_img in zip(scene['extrinsics'], scene['images']):
-        volume.integrate(depth_img, scene['intrinsic'], extrinsic)
-    point_cloud = volume.get_point_cloud()
-    voxel_grid = volume.get_voxel_grid()
-    return point_cloud, voxel_grid
-
-
 def _load_intrinsic(dirname):
     fname = os.path.join(dirname, 'intrinsic.json')
     return camera.PinholeCameraIntrinsic.from_json(fname)
