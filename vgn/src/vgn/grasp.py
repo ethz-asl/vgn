@@ -7,6 +7,7 @@ from vgn.utils.transform import Rotation, Transform
 
 class Outcome(enum.Enum):
     """Possible outcomes of a grasp attempt."""
+
     SUCCESS = 0
     COLLISION = 1
     EMPTY = 2
@@ -25,7 +26,7 @@ def execute(robot, T_base_grasp):
         T_base_grasp: The pose of the grasp w.r.t. manipulator base frame.
     """
     grasp_detection_threshold = 0.2
-    T_grasp_pregrasp = Transform(Rotation.identity(), [0., 0., -0.05])
+    T_grasp_pregrasp = Transform(Rotation.identity(), [0.0, 0.0, -0.05])
 
     T_base_pregrasp = T_base_grasp * T_grasp_pregrasp
 

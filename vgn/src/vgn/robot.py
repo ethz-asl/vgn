@@ -1,5 +1,6 @@
 class RobotArm(object):
     """Abstract base class for a robot arm."""
+
     def get_tool_pose(self):
         """Return the pose of the tool in base frame."""
         raise NotImplementedError

@@ -7,109 +7,65 @@ import numpy as np
 import open3d
 import torch
 from mayavi import mlab
-from scipy import ndimage
 
-from vgn import data
+from vgn import data, grasp
 from vgn.dataset import VGNDataset
 from vgn.models import get_model
 from vgn.utils import vis
-
-
-def _prepare_batch(batch, device):
-    tsdf, idx, score = batch
-    tsdf = tsdf.to(device)
-    idx = idx.to(device)
-    score = score.squeeze().to(device)
-    return tsdf, idx, score
+from vgn.utils.transform import Rotation, Transform
 
 
 def main(args):
-    if args.rviz:
-        from vgn_ros import rviz_utils
-        rviz = rviz_utils.RViz()
-
-    # Parse description
+    # Parse inputs
     descr = os.path.basename(os.path.dirname(args.weights))
-    strings = descr.split(',')
-    model = strings[1][strings[1].find('=') + 1:]
-    dataset = strings[2][strings[2].find('=') + 1:]
+    strings = descr.split(",")
+    model = strings[1][strings[1].find("=") + 1 :]
+    dataset = strings[2][strings[2].find("=") + 1 :]
 
-    # Load data
-    dataset_path = os.path.join('data', 'datasets', dataset)
-    dataset = VGNDataset(dataset_path, augment=False)
-
-    # Load model
-    device = torch.device('cuda')
+    # Load network
+    device = torch.device("cuda")
     model = get_model(model).to(device)
-    model.load_state_dict(torch.load(args.weights))
 
-    # Visualize a random scene
-    index = np.random.randint(len(dataset))
-    scene = dataset.scenes[index]
-    # scene = '70949ab2913a4f75b26605d92f5b8f85'
-    # index = dataset.scenes.index(scene)
-    print('Plotting scene', scene)
+    # Load dataset
+    dataset_path = os.path.join("data", "datasets", dataset)
+    dataset = VGNDataset(dataset_path)
+    loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False)
 
-    tsdf, indices, scores = dataset[index]
-
+    # Evaluate
     with torch.no_grad():
-        out = model(torch.from_numpy(tsdf).unsqueeze(0).to(device))
+        for tsdf, indices, scores, quats in loader:
 
-    tsdf = tsdf.squeeze()
-    out = out.squeeze().cpu().numpy()
+            if args.vis:
+                mlab.figure("Network output")
+                vis.draw_voxels(score_out)
 
-    if args.rviz:
-        scene = data.load_scene(os.path.join(dataset_path, scene))
-        point_cloud, _ = data.reconstruct_volume(scene)
+                mlab.figure("Grasp map")
 
-        rviz.draw_point_cloud(np.asarray(point_cloud.points))
-        rviz.draw_candidates(scene['poses'], scene['scores'])
+                vis.draw_voxels(grasp_map)
+                vis.draw_candidates(indices, scores)
 
-    # Mask
-    grasp_map = out.copy()
-    grasp_map[tsdf == 0.0] = 0.0
-    grasp_map[grasp_map < 0.8] = 0.0
-
-    # Smooth
-    grasp_map = ndimage.gaussian_filter(grasp_map, sigma=1.)
-
-    # Non-maximum suppression
-    max_map = ndimage.filters.maximum_filter(grasp_map, size=5)
-    grasp_map = np.where(grasp_map == max_map, max_map, 0.)
-
-    # Select candidates
-    nonzero = np.nonzero(grasp_map)
-    scores = grasp_map[nonzero]
-    indices = np.transpose(nonzero)
+    # indices, scores = grasp.select_best_grasps(grasp_mask)
 
     # Draw
-    mlab.figure('TSDF')
+    mlab.figure("Scene")
     vis.draw_voxels(tsdf)
     vis.draw_candidates(indices, scores)
 
-    mlab.figure('Network output')
-    vis.draw_voxels(out, tol=0.6)
+    for index in indices:
+        i, j, k = index
+        quat = quat_out[:, i, j, k]
+        pose = Transform(Rotation.from_quat(quat), index)
+        vis.draw_pose(pose, scale=4.0)
+        print("TSDF at grasp point", tsdf[i, j, k])
 
     mlab.show()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--weights',
-        type=str,
-        required=True,
-        help='path to model',
-    )
-    parser.add_argument(
-        '--rviz',
-        action='store_true',
-        help='publish point clouds and grasp poses to Rviz',
-    )
+    parser.add_argument("--weights", type=str, required=True, help="path to model")
+    parser.add_argument("--data", type=str, required=True, help="name of dataset")
+    parser.add_argument("--vis", action="store_true", help="visualize network output")
     args = parser.parse_args()
-
-    if args.rviz:
-        import rospy
-        rospy.init_node('eval_model')
 
     main(args)

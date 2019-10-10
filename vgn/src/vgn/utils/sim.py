@@ -7,7 +7,7 @@ import numpy as np
 import pybullet
 from vgn.utils.transform import Rotation, Transform
 
-assert pybullet.isNumpyEnabled(), 'Pybullet needs to be built with NumPy'
+assert pybullet.isNumpyEnabled(), "Pybullet needs to be built with NumPy"
 
 
 class Engine(object):
@@ -21,9 +21,10 @@ class Engine(object):
         sim_time
         gravity
     """
-    def __init__(self, physics_client, rtf=-1.):
+
+    def __init__(self, physics_client, rtf=-1.0):
         self.p = physics_client
-        self.gravity = np.r_[0., 0., -9.81]
+        self.gravity = np.r_[0.0, 0.0, -9.81]
 
         self.hz = 240
         self.dt = 1.0 / self.hz
@@ -36,12 +37,11 @@ class Engine(object):
     def reset(self):
         self.p.resetSimulation()
         self.p.setPhysicsEngineParameter(
-            fixedTimeStep=self.dt,
-            numSolverIterations=self.solver_iterations,
+            fixedTimeStep=self.dt, numSolverIterations=self.solver_iterations
         )
         self.p.setGravity(*self.gravity)
 
-        self.sim_time = 0.
+        self.sim_time = 0.0
         self.tic = time.time()  # use to measure elapsed time since last reset
 
     def step(self):
@@ -49,7 +49,7 @@ class Engine(object):
         self.sim_time += self.dt
         if self.rtf > 0.0:
             toc = time.time() - self.tic
-            time.sleep(max(0., self.sim_time - self.rtf * toc))
+            time.sleep(max(0.0, self.sim_time - self.rtf * toc))
 
     def sleep(self, duration):
         time.sleep(duration)
@@ -65,10 +65,9 @@ class Engine(object):
         points = self.p.getContactPoints(bodyA.body_uid)
         contacts = []
         for point in points:
-            contact = Contact(position=point[5],
-                              normal=point[7],
-                              depth=point[8],
-                              force=point[9])
+            contact = Contact(
+                position=point[5], normal=point[7], depth=point[8], force=point[9]
+            )
             contacts.append(contact)
         return contacts
 
@@ -85,20 +84,22 @@ class Body(object):
         joints: A dict mapping joint names to Joint objects.
         links: A dict mapping link names to Link objects.
     """
+
     def __init__(self, physics_client, fname, pose):
         """Load a physics model from a URDF file."""
         self.p = physics_client
 
-        self.body_uid = self.p.loadURDF(fname, pose.translation,
-                                        pose.rotation.as_quat())
-        self.name = self.p.getBodyInfo(self.body_uid)[1].decode('utf-8')
+        self.body_uid = self.p.loadURDF(
+            fname, pose.translation, pose.rotation.as_quat()
+        )
+        self.name = self.p.getBodyInfo(self.body_uid)[1].decode("utf-8")
 
         self.joints, self.links = {}, {}
         for i in range(self.p.getNumJoints(self.body_uid)):
             joint_info = self.p.getJointInfo(self.body_uid, i)
-            joint_name = joint_info[1].decode('utf8')
+            joint_name = joint_info[1].decode("utf8")
             self.joints[joint_name] = Joint(self.p, self.body_uid, i)
-            link_name = joint_info[12].decode('utf8')
+            link_name = joint_info[12].decode("utf8")
             self.links[link_name] = Link(self.p, self.body_uid, i)
 
     def get_pose(self):
@@ -108,8 +109,9 @@ class Body(object):
 
     def set_pose(self, pose):
         """Set the pose of the body's base."""
-        self.p.resetBasePositionAndOrientation(self.body_uid, pose.translation,
-                                               pose.rotation.as_quat())
+        self.p.resetBasePositionAndOrientation(
+            self.body_uid, pose.translation, pose.rotation.as_quat()
+        )
 
 
 class Link(object):
@@ -118,6 +120,7 @@ class Link(object):
     Attributes:
         link_index
     """
+
     def __init__(self, physics_client, body_uid, link_index):
         self.p = physics_client
         self.body_uid = body_uid
@@ -138,6 +141,7 @@ class Joint(object):
         upper_limit: Upper position limit of the joint.
         effort: The maximum joint effort.
     """
+
     def __init__(self, physics_client, body_uid, joint_index):
         self.p = physics_client
         self.body_uid = body_uid
@@ -153,11 +157,13 @@ class Joint(object):
         return joint_state[0]
 
     def set_position(self, position):
-        self.p.setJointMotorControl2(self.body_uid,
-                                     self.joint_index,
-                                     pybullet.POSITION_CONTROL,
-                                     targetPosition=position,
-                                     force=self.effort)
+        self.p.setJointMotorControl2(
+            self.body_uid,
+            self.joint_index,
+            pybullet.POSITION_CONTROL,
+            targetPosition=position,
+            force=self.effort,
+        )
 
 
 class Constraint(object):
@@ -166,8 +172,19 @@ class Constraint(object):
     Attributes:
         constraint_uid: The unique id of the constraint within the physics server.
     """
-    def __init__(self, physics_client, parent, parent_link, child, child_link,
-                 joint_type, joint_axis, parent_frame, child_frame):
+
+    def __init__(
+        self,
+        physics_client,
+        parent,
+        parent_link,
+        child,
+        child_link,
+        joint_type,
+        joint_axis,
+        parent_frame,
+        child_frame,
+    ):
         """
         Create a new constraint between links of bodies.
 
@@ -194,14 +211,16 @@ class Constraint(object):
             parentFramePosition=parent_frame.translation,
             parentFrameOrientation=parent_frame.rotation.as_quat(),
             childFramePosition=child_frame.translation,
-            childFrameOrientation=child_frame.rotation.as_quat())
+            childFrameOrientation=child_frame.rotation.as_quat(),
+        )
 
     def change(self, child_pose, max_force):
         self.p.changeConstraint(
             self.constraint_uid,
             jointChildPivot=child_pose.translation,
             jointChildFrameOrientation=child_pose.rotation.as_quat(),
-            maxForce=max_force)
+            maxForce=max_force,
+        )
 
 
 class Contact(object):
@@ -220,6 +239,7 @@ class Camera(object):
         near (float): The near plane of the virtual camera.
         far (float): The far plane of the virtual camera.
     """
+
     def __init__(self, physics_client, intrinsic, near, far):
         self.intrinsic = intrinsic
         self.near = near
@@ -236,33 +256,41 @@ class Camera(object):
         # Construct OpenGL compatible view and projection matrices.
         gl_view_matrix = extrinsic.as_matrix()
         gl_view_matrix[2, :] *= -1  # flip the Z axis
-        gl_view_matrix = gl_view_matrix.flatten(order='F')
-        gl_proj_matrix = self.proj_matrix.flatten(order='F')
+        gl_view_matrix = gl_view_matrix.flatten(order="F")
+        gl_proj_matrix = self.proj_matrix.flatten(order="F")
 
-        result = self.p.getCameraImage(width=self.intrinsic.width,
-                                       height=self.intrinsic.height,
-                                       viewMatrix=gl_view_matrix,
-                                       projectionMatrix=gl_proj_matrix,
-                                       renderer=pybullet.ER_TINY_RENDERER)
+        result = self.p.getCameraImage(
+            width=self.intrinsic.width,
+            height=self.intrinsic.height,
+            viewMatrix=gl_view_matrix,
+            projectionMatrix=gl_proj_matrix,
+            renderer=pybullet.ER_TINY_RENDERER,
+        )
 
         rgb, z_buffer = result[2][:, :, :3], result[3]
-        depth = (1.0 * self.far * self.near /
-                 (self.far - (self.far - self.near) * z_buffer))
+        depth = (
+            1.0 * self.far * self.near / (self.far - (self.far - self.near) * z_buffer)
+        )
         return rgb, depth
 
 
 def _build_projection_matrix(intrinsic, near, far):
-    perspective = np.array([[intrinsic.fx, 0.0, -intrinsic.cx, 0.0],
-                            [0.0, intrinsic.fy, -intrinsic.cy, 0.0],
-                            [0.0, 0.0, near + far, near * far],
-                            [0.0, 0.0, -1.0, 0.0]])
+    perspective = np.array(
+        [
+            [intrinsic.fx, 0.0, -intrinsic.cx, 0.0],
+            [0.0, intrinsic.fy, -intrinsic.cy, 0.0],
+            [0.0, 0.0, near + far, near * far],
+            [0.0, 0.0, -1.0, 0.0],
+        ]
+    )
     ortho = _gl_ortho(0.0, intrinsic.width, intrinsic.height, 0.0, near, far)
     return np.matmul(ortho, perspective)
 
 
 def _gl_ortho(left, right, bottom, top, near, far):
     ortho = np.diag(
-        [2.0 / (right - left), 2.0 / (top - bottom), -2.0 / (far - near), 1.0])
+        [2.0 / (right - left), 2.0 / (top - bottom), -2.0 / (far - near), 1.0]
+    )
     ortho[0, 3] = -(right + left) / (right - left)
     ortho[1, 3] = -(top + bottom) / (top - bottom)
     ortho[2, 3] = -(far + near) / (far - near)

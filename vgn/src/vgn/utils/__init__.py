@@ -2,11 +2,12 @@ import os
 
 import cv2
 import numpy as np
+import torch
 
 
 def save_image(fname, img):
     """Save image as a PNG file."""
-    img = (1000. * img).astype(np.uint16)
+    img = (1000.0 * img).astype(np.uint16)
     cv2.imwrite(fname, img)
 
 

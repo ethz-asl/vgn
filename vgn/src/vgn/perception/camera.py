@@ -11,10 +11,11 @@ class PinholeCameraIntrinsic(object):
         height(int): The height in pixels of the camera.
         K: The intrinsic camera matrix.
     """
+
     def __init__(self, width, height, fx, fy, cx, cy):
         self.width = width
         self.height = height
-        self.K = np.array([[fx, 0., cx], [0., fy, cy], [0., 0., 1.]])
+        self.K = np.array([[fx, 0.0, cx], [0.0, fy, cy], [0.0, 0.0, 1.0]])
 
     @property
     def fx(self):
@@ -35,26 +36,26 @@ class PinholeCameraIntrinsic(object):
     def to_json(self, fname):
         """Save intrinsic parameters to a JSON file."""
         data = {
-            'width': self.width,
-            'height': self.height,
-            'fx': self.fx,
-            'fy': self.fy,
-            'cx': self.cx,
-            'cy': self.cy,
+            "width": self.width,
+            "height": self.height,
+            "fx": self.fx,
+            "fy": self.fy,
+            "cx": self.cx,
+            "cy": self.cy,
         }
-        with open(fname, 'wb') as f:
+        with open(fname, "wb") as f:
             json.dump(data, f, indent=2)
 
     @classmethod
     def from_json(cls, fname):
         """Load intrinsic parameters from a JSON file."""
-        with open(fname, 'rb') as f:
+        with open(fname, "rb") as f:
             data = json.load(f)
         return cls(
-            data['width'],
-            data['height'],
-            data['fx'],
-            data['fy'],
-            data['cx'],
-            data['cy'],
+            data["width"],
+            data["height"],
+            data["fx"],
+            data["fy"],
+            data["cx"],
+            data["cy"],
         )

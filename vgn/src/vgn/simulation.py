@@ -16,11 +16,12 @@ class Simulation(object):
 
     In this simulation, world, task and robot base frames are identical.
     """
-    def __init__(self, gui, real_time_factor=-1.):
+
+    def __init__(self, gui, real_time_factor=-1.0):
         connection_mode = pybullet.GUI if gui else pybullet.DIRECT
         self.p = bullet_client.BulletClient(connection_mode)
 
-        intrinsic = PinholeCameraIntrinsic(640, 480, 540., 540., 320., 240.)
+        intrinsic = PinholeCameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)
 
         self.engine = sim_utils.Engine(self.p, real_time_factor)
         self.camera = sim_utils.Camera(self.p, intrinsic, 0.1, 2.0)
@@ -30,7 +31,7 @@ class Simulation(object):
         self.snapshot_id = self.engine.save_state()
 
     def restore_state(self):
-        assert self.snapshot_id is not None, 'save_state must be called first'
+        assert self.snapshot_id is not None, "save_state must be called first"
         self.engine.restore_state(self.snapshot_id)
 
     def generate_scene(self, name):
@@ -38,10 +39,10 @@ class Simulation(object):
         self._spawn_plane()
 
         scenes = {
-            'debug': self._spawn_cuboid,
-            'cuboid': self._spawn_cuboid,
-            'cuboid_random': self._spawn_cuboid_random,
-            'cuboids': self._spawn_cuboids,
+            "debug": self._spawn_cuboid,
+            "cuboid": self._spawn_cuboid,
+            "cuboid_random": self._spawn_cuboid_random,
+            "cuboids": self._spawn_cuboids,
         }
 
         scenes[name]()
@@ -49,7 +50,7 @@ class Simulation(object):
 
     def _spawn_plane(self):
         pose = Transform(Rotation.identity(), [0.0, 0.0, 0.0])
-        sim_utils.Body(self.p, 'data/urdfs/plane/plane.urdf', pose)
+        sim_utils.Body(self.p, "data/urdfs/plane/plane.urdf", pose)
 
     def _spawn_robot(self):
         self.robot = SimulatedRobotArm(self.p, self.engine)
@@ -61,14 +62,14 @@ class Simulation(object):
 
     def _spawn_cuboid(self):
         position = np.r_[0.5 * cfg.size, 0.5 * cfg.size, 0.12]
-        orientation = Rotation.from_quat([0., 0., 0., 1.])
-        urdf = 'data/urdfs/wooden_blocks/cuboid0.urdf'
+        orientation = Rotation.from_quat([0.0, 0.0, 0.0, 1.0])
+        urdf = "data/urdfs/wooden_blocks/cuboid0.urdf"
         self._spawn_object(urdf, Transform(orientation, position))
 
     def _spawn_cuboid_random(self):
         position = np.r_[np.random.uniform(0.06, cfg.size - 0.06, 2), 0.12]
         orientation = Rotation.random()
-        urdf = 'data/urdfs/wooden_blocks/cuboid0.urdf'
+        urdf = "data/urdfs/wooden_blocks/cuboid0.urdf"
         self._spawn_object(urdf, Transform(orientation, position))
 
     def _spawn_cuboids(self):
@@ -85,12 +86,19 @@ class SimulatedRobotArm(robot.RobotArm):
         self.p = physics_client
         self.engine = engine
 
-        pose = Transform(Rotation.identity(), np.r_[0., 0., 1.])
-        self.body = sim_utils.Body(self.p, 'data/urdfs/hand/hand.urdf', pose)
-        self.constraint = sim_utils.Constraint(self.p, self.body, None, None,
-                                               None, pybullet.JOINT_FIXED,
-                                               [0., 0., 0.],
-                                               Transform.identity(), pose)
+        pose = Transform(Rotation.identity(), np.r_[0.0, 0.0, 1.0])
+        self.body = sim_utils.Body(self.p, "data/urdfs/hand/hand.urdf", pose)
+        self.constraint = sim_utils.Constraint(
+            self.p,
+            self.body,
+            None,
+            None,
+            None,
+            pybullet.JOINT_FIXED,
+            [0.0, 0.0, 0.0],
+            Transform.identity(),
+            pose,
+        )
 
     def get_tool_pose(self):
         return self.body.get_pose() * self.T_tool0_tool
@@ -103,11 +111,9 @@ class SimulatedRobotArm(robot.RobotArm):
         self.engine.step()
         return len(self._detect_collision()) == 0
 
-    def move_tool_xyz(self,
-                      target_pose,
-                      eef_step=0.002,
-                      check_collisions=True,
-                      vel=0.10):
+    def move_tool_xyz(
+        self, target_pose, eef_step=0.002, check_collisions=True, vel=0.10
+    ):
         pose = self.get_tool_pose()
         pos_diff = target_pose.translation - pose.translation
         n_steps = int(np.linalg.norm(pos_diff) / eef_step)
@@ -130,14 +136,14 @@ class SimulatedRobotArm(robot.RobotArm):
 
     def get_gripper_opening_width(self):
         """Return the gripper opening width scaled to the range [0., 1.]."""
-        pos_l = self.body.joints['finger_l'].get_position()
-        pos_r = self.body.joints['finger_r'].get_position()
+        pos_l = self.body.joints["finger_l"].get_position()
+        pos_r = self.body.joints["finger_r"].get_position()
         return (pos_l + pos_r) / SimulatedRobotArm.max_opening_width
 
     def set_gripper_opening_width(self, pos):
         pos *= 0.5 * SimulatedRobotArm.max_opening_width
-        self.body.joints['finger_l'].set_position(pos)
-        self.body.joints['finger_r'].set_position(pos)
+        self.body.joints["finger_l"].set_position(pos)
+        self.body.joints["finger_r"].set_position(pos)
         for _ in range(self.engine.hz // 2):
             self.engine.step()
 

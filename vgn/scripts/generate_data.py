@@ -45,7 +45,7 @@ def generate_dataset(data, n_scenes, n_grasps_per_scene, sim_gui, rank):
     s = simulation.Simulation(sim_gui, rtf)
 
     # Create the root directory if it does not exist
-    root_dir = os.path.join('data', 'datasets', data)
+    root_dir = os.path.join("data", "datasets", data)
     if not os.path.exists(root_dir):
         os.makedirs(root_dir)
 
@@ -60,26 +60,27 @@ def generate_dataset(data, n_scenes, n_grasps_per_scene, sim_gui, rank):
         intrinsic = s.camera.intrinsic
         extrinsics = viewpoint.sample_hemisphere(n_views_per_scene)
         depth_imgs = [s.camera.get_rgb_depth(e)[1] for e in extrinsics]
-        point_cloud, _ = integration.reconstruct_scene(intrinsic, extrinsics,
-                                                       depth_imgs)
+        point_cloud, _ = integration.reconstruct_scene(
+            intrinsic, extrinsics, depth_imgs
+        )
 
-        scene_data['intrinsic'] = s.camera.intrinsic
-        scene_data['extrinsics'] = extrinsics
-        scene_data['depth_imgs'] = depth_imgs
+        scene_data["intrinsic"] = s.camera.intrinsic
+        scene_data["extrinsics"] = extrinsics
+        scene_data["depth_imgs"] = depth_imgs
 
         # Sample and evaluate grasps candidates
-        scene_data['poses'] = []
-        scene_data['scores'] = []
+        scene_data["poses"] = []
+        scene_data["scores"] = []
 
-        is_positive = lambda score: np.isclose(score, 1.)
+        is_positive = lambda score: np.isclose(score, 1.0)
         n_negatives = 0
 
-        while len(scene_data['poses']) < n_grasps_per_scene:
+        while len(scene_data["poses"]) < n_grasps_per_scene:
             point, normal = sample_point(point_cloud)
             pose, score = evaluate_point(s, point, normal)
             if is_positive(score) or n_negatives < n_grasps_per_scene // 2:
-                scene_data['poses'].append(pose)
-                scene_data['scores'].append(score)
+                scene_data["poses"].append(pose)
+                scene_data["scores"].append(score)
                 n_negatives += not is_positive(score)
 
         dirname = os.path.join(root_dir, str(uuid.uuid4().hex))
@@ -97,8 +98,9 @@ def sample_point(point_cloud):
     normals = np.asarray(point_cloud.normals)
     selection = np.random.randint(len(points))
     point, normal = points[selection], normals[selection]
-    z_offset = np.random.uniform((0.0 - thresh) * gripper_depth,
-                                 (1.0 + thresh) * gripper_depth)
+    z_offset = np.random.uniform(
+        (0.0 - thresh) * gripper_depth, (1.0 + thresh) * gripper_depth
+    )
     point = point - normal * (z_offset - gripper_depth)
 
     return point, normal
@@ -118,19 +120,17 @@ def evaluate_point(sim, pos, normal, n_rotations=9):
     scores = []
 
     for yaw in yaws:
-        ori = R * Rotation.from_euler('z', yaw)
+        ori = R * Rotation.from_euler("z", yaw)
         sim.restore_state()
         outcome = grasp.execute(sim.robot, Transform(ori, pos))
         scores.append(outcome == grasp.Outcome.SUCCESS)
 
     if np.sum(scores):
         # Detect the peak over yaw orientations
-        peaks, properties = signal.find_peaks(x=np.r_[0, scores, 0],
-                                              height=1,
-                                              width=1)
-        idx_of_widest_peak = peaks[np.argmax(properties['widths'])] - 1
+        peaks, properties = signal.find_peaks(x=np.r_[0, scores, 0], height=1, width=1)
+        idx_of_widest_peak = peaks[np.argmax(properties["widths"])] - 1
         yaw = yaws[idx_of_widest_peak]
-        ori, score = R * Rotation.from_euler('z', yaw), 1.0
+        ori, score = R * Rotation.from_euler("z", yaw), 1.0
     else:
         ori, score = R, 0.0
 
@@ -138,36 +138,27 @@ def evaluate_point(sim, pos, normal, n_rotations=9):
     # the y-axis always points upwards.
     y_axis = ori.as_dcm()[:, 1]
     if np.dot(y_axis, np.r_[0.0, 0.0, 1.0]) < 0.0:
-        ori *= Rotation.from_euler('z', np.pi)
+        ori *= Rotation.from_euler("z", np.pi)
 
     return Transform(ori, pos), score
 
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--data", type=str, required=True, help="name of dataset")
     parser.add_argument(
-        '--data',
-        type=str,
-        required=True,
-        help='name of dataset',
-    )
-    parser.add_argument(
-        '--n-scenes',
+        "--n-scenes",
         type=int,
         default=1000,
-        help='number of generated virtual scenes (default: 1000)',
+        help="number of generated virtual scenes (default: 1000)",
     )
     parser.add_argument(
-        '--n-grasps-per-scene',
+        "--n-grasps-per-scene",
         type=int,
         default=40,
-        help='number of grasp candidates per scene (default: 40)',
+        help="number of grasp candidates per scene (default: 40)",
     )
-    parser.add_argument(
-        '--sim-gui',
-        action='store_true',
-        help='disable headless mode',
-    )
+    parser.add_argument("--sim-gui", action="store_true", help="disable headless mode")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO)
@@ -176,7 +167,7 @@ def main():
     rank = MPI.COMM_WORLD.Get_rank()
 
     if rank == 0:
-        logging.info('Generating data using %d processes.', n_workers)
+        logging.info("Generating data using %d processes.", n_workers)
 
     generate_dataset(
         data=args.data,
@@ -187,5 +178,5 @@ def main():
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

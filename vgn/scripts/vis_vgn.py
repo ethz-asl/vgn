@@ -29,6 +29,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--weights", type=str, required=True, help="weights of model")
     parser.add_argument("--scene", type=str, required=True, help="path to scene")
     args = parser.parse_args()
 

@@ -17,23 +17,19 @@ def draw_voxels(voxels, tol=0.001):
         scalars,
         vmin=0.0,
         vmax=1.0,
-        mode='cube',
-        scale_mode='none',
+        mode="cube",
+        scale_mode="none",
         scale_factor=1.0,
         opacity=0.05,
     )
     mlab.volume_slice(
-        voxels,
-        vmin=0.0,
-        vmax=1.0,
-        plane_orientation='x_axes',
-        transparent=True,
+        voxels, vmin=0.0, vmax=1.0, plane_orientation="x_axes", transparent=True
     )
 
-    mlab.xlabel('x')
-    mlab.ylabel('y')
-    mlab.zlabel('z')
-    mlab.colorbar(nb_labels=6, orientation='vertical')
+    mlab.xlabel("x")
+    mlab.ylabel("y")
+    mlab.zlabel("z")
+    mlab.colorbar(nb_labels=6, orientation="vertical")
 
 
 def draw_frame(index, quat, scale=1.0):
@@ -41,31 +37,26 @@ def draw_frame(index, quat, scale=1.0):
     u, v, w = np.split(scale * Rotation.from_quat(quat).as_dcm().flatten(), 3)
     c = [1.0, 0.5, 0.0]
 
-    axes = mlab.quiver3d(x,
-                         y,
-                         z,
-                         u,
-                         v,
-                         w,
-                         scalars=c,
-                         colormap='blue-red',
-                         mode='arrow',
-                         scale_mode='none',
-                         scale_factor=scale)
-    axes.glyph.color_mode = 'color_by_scalar'
+    axes = mlab.quiver3d(
+        x,
+        y,
+        z,
+        u,
+        v,
+        w,
+        scalars=c,
+        colormap="blue-red",
+        mode="arrow",
+        scale_mode="none",
+        scale_factor=scale,
+    )
+    axes.glyph.color_mode = "color_by_scalar"
 
 
 def draw_candidates(indices, quats, scores, draw_frames=False):
     x, y, z = indices[:, 0], indices[:, 1], indices[:, 2]
     mlab.points3d(
-        x,
-        y,
-        z,
-        scores,
-        vmin=0.0,
-        vmax=1.0,
-        scale_mode='none',
-        scale_factor=0.5,
+        x, y, z, scores, vmin=0.0, vmax=1.0, scale_mode="none", scale_factor=0.5
     )
 
     if draw_frames:

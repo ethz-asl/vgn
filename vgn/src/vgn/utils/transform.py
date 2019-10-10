@@ -5,7 +5,7 @@ import scipy.spatial.transform
 class Rotation(scipy.spatial.transform.Rotation):
     @classmethod
     def identity(cls):
-        return cls.from_quat([0., 0., 0., 1.])
+        return cls.from_quat([0.0, 0.0, 0.0, 1.0])
 
 
 class Transform(object):
@@ -15,6 +15,7 @@ class Transform(object):
         rotation (scipy.spatial.transform.Rotation)
         translation (np.ndarray)
     """
+
     def __init__(self, rotation, translation):
         assert isinstance(rotation, scipy.spatial.transform.Rotation)
         assert isinstance(translation, (np.ndarray, list))
@@ -24,16 +25,15 @@ class Transform(object):
 
     def as_matrix(self):
         """Represent as a 4x4 matrix."""
-        return np.vstack((
-            np.c_[self.rotation.as_dcm(), self.translation],
-            [0., 0., 0., 1.],
-        ))
+        return np.vstack(
+            (np.c_[self.rotation.as_dcm(), self.translation], [0.0, 0.0, 0.0, 1.0])
+        )
 
     def to_dict(self):
         """Serialize Transform object into a dictionary."""
         return {
-            'rotation': self.rotation.as_quat().tolist(),
-            'translation': self.translation.tolist()
+            "rotation": self.rotation.as_quat().tolist(),
+            "translation": self.translation.tolist(),
         }
 
     def __mul__(self, other):
@@ -63,15 +63,15 @@ class Transform(object):
 
     @classmethod
     def from_dict(cls, dictionary):
-        rotation = Rotation.from_quat(dictionary['rotation'])
-        translation = np.asarray(dictionary['translation'])
+        rotation = Rotation.from_quat(dictionary["rotation"])
+        translation = np.asarray(dictionary["translation"])
         return cls(rotation, translation)
 
     @classmethod
     def identity(cls):
         """Initialize with the identity transformation."""
-        rotation = Rotation.from_quat([0., 0., 0., 1.])
-        translation = np.array([0., 0., 0.])
+        rotation = Rotation.from_quat([0.0, 0.0, 0.0, 1.0])
+        translation = np.array([0.0, 0.0, 0.0])
         return cls(rotation, translation)
 
     @classmethod
@@ -85,7 +85,7 @@ class Transform(object):
         eye = np.asarray(eye)
         center = np.asarray(center)
 
-        forward = (center - eye)
+        forward = center - eye
         forward /= np.linalg.norm(forward)
 
         right = np.cross(forward, up)

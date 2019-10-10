@@ -48,7 +48,7 @@ def to_color_msg(color):
     msg.r = color[0]
     msg.g = color[1]
     msg.b = color[2]
-    msg.a = color[3] if len(color) == 4 else 1.
+    msg.a = color[3] if len(color) == 4 else 1.0
     return msg
 
 
@@ -71,15 +71,15 @@ def to_point_cloud_msg(points, intensities=None, frame=None, stamp=None):
     msg.is_dense = False
 
     msg.fields = [
-        PointField('x', 0, PointField.FLOAT32, 1),
-        PointField('y', 4, PointField.FLOAT32, 1),
-        PointField('z', 8, PointField.FLOAT32, 1),
+        PointField("x", 0, PointField.FLOAT32, 1),
+        PointField("y", 4, PointField.FLOAT32, 1),
+        PointField("z", 8, PointField.FLOAT32, 1),
     ]
     msg.point_step = 12
     data = points
 
     if intensities is not None:
-        msg.fields.append(PointField('intensity', 12, PointField.FLOAT32, 1))
+        msg.fields.append(PointField("intensity", 12, PointField.FLOAT32, 1))
         msg.point_step += 4
         data = np.hstack([points, intensities])
 

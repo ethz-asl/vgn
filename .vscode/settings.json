@@ -1,13 +1,11 @@
 {
     "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": {
-        "source.organizeImports": true
-    },
     "files.exclude": {
         "**/*.pyc": true,
     },
     "python.pythonPath": "venv/bin/python",
-    "python.formatting.provider": "yapf",
+    "python.formatting.provider": "black",
+    "python.formatting.blackPath": "/usr/local/bin/black",
     "python.autoComplete.extraPaths": [
         "vgn/src",
         "vgn_ros/src"

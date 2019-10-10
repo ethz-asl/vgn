@@ -34,42 +34,18 @@ class VGNDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         scene = self.scenes[idx]
-        data = np.load(os.path.join(self.cache_dir, scene) + '.npz')
+        data = np.load(os.path.join(self.cache_dir, scene) + ".npz")
 
-        tsdf = data['tsdf']
-        indices = data['indices']
-        scores = data['scores']
-        quats = np.swapaxes(data['quats'], 0, 1)
-
-        if self.augment:
-            # TODO fix me
-            center = np.mean(indices, 0)
-            spread = np.max(indices, 0) - np.min(indices, 0)
-            T_center = Transform(Rotation.identity(), center)
-
-            while True:
-                rotation = Rotation.random()
-                translation = cfg.resolution / 2. - center
-                translation += np.random.uniform(-spread / 2., spread / 2.)
-                T_augment = Transform(rotation, translation)
-
-                T = T_center * T_augment * T_center.inverse()
-
-                indices = [T.transform_point(index) for index in indices]
-                indices = np.round(indices).astype(np.long)
-
-                if np.all(indices >= 0) and np.all(indices < cfg.resolution):
-                    break
-
-            T_inv = T.inverse()
-            matrix, offset = T_inv.rotation.as_dcm(), T_inv.translation
-            tsdf = ndimage.affine_transform(tsdf, matrix, offset, order=2)
+        tsdf = data["tsdf"]
+        indices = data["indices"]
+        scores = data["scores"]
+        quats = np.swapaxes(data["quats"], 0, 1)
 
         return np.expand_dims(tsdf, 0), indices, scores, quats
 
     @property
     def cache_dir(self):
-        return os.path.join(self.root_dir, 'cache')
+        return os.path.join(self.root_dir, "cache")
 
     def detect_scenes(self):
         self.scenes = []
@@ -79,32 +55,27 @@ class VGNDataset(torch.utils.data.Dataset):
                 self.scenes.append(d)
 
     def build_cache(self):
-        print('Verifying cache:')
+        print("Verifying cache:")
 
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
 
         for dirname in tqdm(self.scenes):
 
-            path = os.path.join(self.cache_dir, dirname) + '.npz'
+            path = os.path.join(self.cache_dir, dirname) + ".npz"
             if not os.path.exists(path) or self.rebuild_cache:
                 scene = data.load_scene(os.path.join(self.root_dir, dirname))
                 _, voxel_grid = data.reconstruct_volume(scene)
                 tsdf = utils.voxel_grid_to_array(voxel_grid, cfg.resolution)
 
-                indices = np.empty((len(scene['poses']), 3), dtype=np.long)
-                scores = np.asarray(scene['scores'], dtype=np.float32)
-                quats = np.empty((len(scene['poses']), 4), dtype=np.float32)
-                for i, pose in enumerate(scene['poses']):
+                indices = np.empty((len(scene["poses"]), 3), dtype=np.long)
+                scores = np.asarray(scene["scores"], dtype=np.float32)
+                quats = np.empty((len(scene["poses"]), 4), dtype=np.float32)
+                for i, pose in enumerate(scene["poses"]):
                     index = voxel_grid.get_voxel(pose.translation)
-                    indices[i] = np.clip(index, [0, 0, 0],
-                                         [cfg.resolution - 1] * 3)
+                    indices[i] = np.clip(index, [0, 0, 0], [cfg.resolution - 1] * 3)
                     quats[i] = pose.rotation.as_quat()
 
                 np.savez_compressed(
-                    path,
-                    tsdf=tsdf,
-                    indices=indices,
-                    scores=scores,
-                    quats=quats,
+                    path, tsdf=tsdf, indices=indices, scores=scores, quats=quats
                 )
