@@ -1,95 +1,136 @@
 from __future__ import division
 
 import numpy as np
-
 import pybullet
+
 import vgn.config as cfg
-from pybullet_utils import bullet_client
-from vgn import robot
-from vgn.perception.camera import PinholeCameraIntrinsic
-from vgn.utils import sim_utils
+from vgn import grasp
+from vgn.perception import camera
+from vgn.utils import sim
 from vgn.utils.transform import Rotation, Transform
 
 
-class Simulation(object):
+class GraspingExperiment(object):
     """Simulation of a grasping experiment.
 
     In this simulation, world, task and robot base frames are identical.
+
+    Attributes:
+        world: Reference to the simulated world.
     """
 
     def __init__(self, gui, real_time_factor=-1.0):
-        connection_mode = pybullet.GUI if gui else pybullet.DIRECT
-        self.p = bullet_client.BulletClient(connection_mode)
+        self.world = sim.BtWorld(gui, real_time_factor)
 
-        intrinsic = PinholeCameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)
+    def setup(self, object_set):
+        """Setup a grasping experiment.
 
-        self.engine = sim_utils.Engine(self.p, real_time_factor)
-        self.camera = sim_utils.Camera(self.p, intrinsic, 0.1, 2.0)
-        self.robot = None  # call spawn_hand to create object
+        Args:
+            object_set: The grasping object set. Available options are
+                * debug : a single cuboid at a fixed pose
+                * cuboid: a single cuboid
+                * cuboids: multiple cuboids
+        """
+        self.world.reset()
+        self.world.set_gravity([0.0, 0.0, -9.81])
+
+        # Load support surface
+        plane = self.world.load_urdf("data/urdfs/plane/plane.urdf")
+        plane.set_pose(Transform(Rotation.identity(), [0.0, 0.0, 0.0]))
+
+        # Load robot
+        self.robot = RobotArm(self.world)
+
+        # Load camera
+        intrinsic = camera.PinholeCameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)
+        self.camera = self.world.add_camera(intrinsic, 0.1, 2.0)
+
+        # Load objects
+        if object_set == "debug":
+            self.spawn_debug_cuboid()
+        if object_set == "cuboid":
+            self.spawn_cuboid()
+        elif object_set == "cuboids":
+            self.spawn_cuboids()
 
     def save_state(self):
-        self.snapshot_id = self.engine.save_state()
+        self.snapshot_id = self.world.save_state()
 
     def restore_state(self):
-        assert self.snapshot_id is not None, "save_state must be called first"
-        self.engine.restore_state(self.snapshot_id)
+        self.world.restore_state(self.snapshot_id)
 
-    def generate_scene(self, name):
-        self.engine.reset()
-        self._spawn_plane()
+    def test_grasp(self, T_base_grasp):
+        """Open-loop grasp execution.
+        
+        Args:
+            T_base_grasp: The grasp pose w.r.t. to the robot base frame.
+        """
+        epsilon = 0.2  # threshold for detecting grasps
 
-        scenes = {
-            "debug": self._spawn_cuboid,
-            "cuboid": self._spawn_cuboid,
-            "cuboid_random": self._spawn_cuboid_random,
-            "cuboids": self._spawn_cuboids,
-        }
+        # Place the gripper at the pre-grasp pose
+        T_grasp_pregrasp = Transform(Rotation.identity(), [0.0, 0.0, -0.05])
+        T_base_pregrasp = T_base_grasp * T_grasp_pregrasp
+        self.robot.set_tcp(T_base_pregrasp, override_dynamics=True)
+        if self.robot.detect_collision():
+            return grasp.Outcome.COLLISION
 
-        scenes[name]()
-        self._spawn_robot()
+        # Open the gripper
+        self.robot.move_gripper(1.0)
 
-    def _spawn_plane(self):
-        pose = Transform(Rotation.identity(), [0.0, 0.0, 0.0])
-        sim_utils.Body(self.p, "data/urdfs/plane/plane.urdf", pose)
+        # Approach the grasp pose
+        if not self.robot.move_tcp_xyz(T_base_grasp):
+            return grasp.Outcome.COLLISION
 
-    def _spawn_robot(self):
-        self.robot = SimulatedRobotArm(self.p, self.engine)
+        # Close the gripper
+        if not self.robot.grasp(0.0, epsilon):
+            return grasp.Outcome.EMPTY
 
-    def _spawn_object(self, urdf, pose):
-        sim_utils.Body(self.p, urdf, pose)
-        for _ in range(self.engine.hz // 2):
-            self.engine.step()
+        # Retrieve the object
+        self.robot.move_tcp_xyz(T_base_pregrasp, check_collisions=False)
 
-    def _spawn_cuboid(self):
+        if not self.robot.grasp(0.0, epsilon):
+            return grasp.Outcome.SLIPPED
+
+        # TODO shake test
+
+        return grasp.Outcome.SUCCESS
+
+    def spawn_object(self, urdf, pose):
+        obj = self.world.load_urdf(urdf)
+        obj.set_pose(pose)
+        for _ in range(240):
+            self.world.step()
+
+    def spawn_debug_cuboid(self):
+        urdf = "data/urdfs/wooden_blocks/cuboid0.urdf"
         position = np.r_[0.5 * cfg.size, 0.5 * cfg.size, 0.12]
         orientation = Rotation.from_quat([0.0, 0.0, 0.0, 1.0])
-        urdf = "data/urdfs/wooden_blocks/cuboid0.urdf"
-        self._spawn_object(urdf, Transform(orientation, position))
+        self.spawn_object(urdf, Transform(orientation, position))
 
-    def _spawn_cuboid_random(self):
+    def spawn_cuboid(self):
+        urdf = "data/urdfs/wooden_blocks/cuboid0.urdf"
         position = np.r_[np.random.uniform(0.06, cfg.size - 0.06, 2), 0.12]
         orientation = Rotation.random()
-        urdf = "data/urdfs/wooden_blocks/cuboid0.urdf"
-        self._spawn_object(urdf, Transform(orientation, position))
+        self.spawn_object(urdf, Transform(orientation, position))
 
-    def _spawn_cuboids(self):
+    def spawn_cuboids(self):
         for _ in range(1 + np.random.randint(4)):
-            self._spawn_cuboid_random()
+            self.spawn_cuboid_random()
 
 
-class SimulatedRobotArm(robot.RobotArm):
-    T_tool0_tool = Transform(Rotation.identity(), np.r_[0.0, 0.0, 0.02])
-    T_tool_tool0 = T_tool0_tool.inverse()
+class RobotArm(object):
+    """Simulated robot arm with a simple parallel-jaw gripper."""
+
+    T_tool0_tcp = Transform(Rotation.identity(), np.r_[0.0, 0.0, 0.02])
+    T_tcp_tool0 = T_tool0_tcp.inverse()
     max_opening_width = 0.06
 
-    def __init__(self, physics_client, engine):
-        self.p = physics_client
-        self.engine = engine
-
+    def __init__(self, world):
+        self.world = world
+        self.body = world.load_urdf("data/urdfs/hand/hand.urdf")
         pose = Transform(Rotation.identity(), np.r_[0.0, 0.0, 1.0])
-        self.body = sim_utils.Body(self.p, "data/urdfs/hand/hand.urdf", pose)
-        self.constraint = sim_utils.Constraint(
-            self.p,
+        self.body.set_pose(pose)
+        self.constraint = self.world.add_constraint(
             self.body,
             None,
             None,
@@ -100,21 +141,24 @@ class SimulatedRobotArm(robot.RobotArm):
             pose,
         )
 
-    def get_tool_pose(self):
-        return self.body.get_pose() * self.T_tool0_tool
+    def get_tcp(self):
+        """get the pose of TCP w.r.t. world frame."""
+        return self.body.get_pose() * self.T_tool0_tcp
 
-    def set_tool_pose(self, pose, override_dynamics=False):
-        T_world_tool0 = pose * SimulatedRobotArm.T_tool_tool0
+    def set_tcp(self, pose, override_dynamics=False):
+        """Set pose of TCP w.r.t. to world frame."""
+        T_world_tool0 = pose * RobotArm.T_tcp_tool0
         if override_dynamics:
             self.body.set_pose(T_world_tool0)
         self.constraint.change(T_world_tool0, max_force=300)
-        self.engine.step()
-        return len(self._detect_collision()) == 0
+        self.world.step()
+        return self.detect_collision()
 
-    def move_tool_xyz(
+    def move_tcp_xyz(
         self, target_pose, eef_step=0.002, check_collisions=True, vel=0.10
     ):
-        pose = self.get_tool_pose()
+        """Move the TCP linearly between two poses."""
+        pose = self.get_tcp()
         pos_diff = target_pose.translation - pose.translation
         n_steps = int(np.linalg.norm(pos_diff) / eef_step)
 
@@ -123,32 +167,32 @@ class SimulatedRobotArm(robot.RobotArm):
 
         for _ in range(n_steps):
             pose.translation += dist_step
-            self.set_tool_pose(pose)
-            for _ in range(int(dur_step * self.engine.hz)):
-                self.engine.step()
-            if check_collisions and self._detect_collision():
+            self.set_tcp(pose)
+            for _ in range(int(dur_step / self.world.dt)):
+                self.world.step()
+            if check_collisions and self.detect_collision():
                 return False
 
         return True
 
-    def _detect_collision(self):
-        return self.engine.get_contacts(self.body)
-
-    def get_gripper_opening_width(self):
-        """Return the gripper opening width scaled to the range [0., 1.]."""
+    def read_gripper(self):
+        """Return current opening width of the gripper."""
         pos_l = self.body.joints["finger_l"].get_position()
         pos_r = self.body.joints["finger_r"].get_position()
-        return (pos_l + pos_r) / SimulatedRobotArm.max_opening_width
+        width = pos_l + pos_r
+        return width / RobotArm.max_opening_width
 
-    def set_gripper_opening_width(self, pos):
-        pos *= 0.5 * SimulatedRobotArm.max_opening_width
-        self.body.joints["finger_l"].set_position(pos)
-        self.body.joints["finger_r"].set_position(pos)
-        for _ in range(self.engine.hz // 2):
-            self.engine.step()
+    def move_gripper(self, width):
+        """Move gripper to desired opening width."""
+        width *= 0.5 * RobotArm.max_opening_width
+        self.body.joints["finger_l"].set_position(width)
+        self.body.joints["finger_r"].set_position(width)
+        for _ in range(int(0.5 / self.world.dt)):
+            self.world.step()
 
-    def open_gripper(self):
-        self.set_gripper_opening_width(1.0)
+    def grasp(self, width, epsilon):
+        self.move_gripper(width)
+        return self.read_gripper() > epsilon
 
-    def close_gripper(self):
-        self.set_gripper_opening_width(0.0)
+    def detect_collision(self):
+        return self.world.check_collisions(self.body)

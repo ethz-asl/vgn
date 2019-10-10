@@ -3,46 +3,67 @@ from __future__ import division
 import time
 
 import numpy as np
-
 import pybullet
+from pybullet_utils import bullet_client
+
+
 from vgn.utils.transform import Rotation, Transform
 
 assert pybullet.isNumpyEnabled(), "Pybullet needs to be built with NumPy"
 
 
-class Engine(object):
-    """Interface to a PyBullet physics engine.
+class BtWorld(object):
+    """Interface to a PyBullet physics server.
 
     Attributes:
-        hz
-        dt
-        solver_iterations
-        rtf
-        sim_time
-        gravity
+        dt: Time step of the physics simulation.
+        rtf: Real time factor. If negative, the simulation is run as fast as possible.
+        sim_time: Virtual time elpased since the last simulation reset.
     """
 
-    def __init__(self, physics_client, rtf=-1.0):
-        self.p = physics_client
-        self.gravity = np.r_[0.0, 0.0, -9.81]
+    def __init__(self, gui=True, rtf=-1.0):
+        connection_mode = pybullet.GUI if gui else pybullet.DIRECT
+        self.p = bullet_client.BulletClient(connection_mode)
 
-        self.hz = 240
-        self.dt = 1.0 / self.hz
+        self.dt = 1.0 / 240.0
         self.solver_iterations = 150
         self.rtf = rtf
-        self.sim_time = 0.0
 
-        self.tic = None
+        self.reset()
+
+    def set_gravity(self, gravity):
+        self.p.setGravity(*gravity)
+
+    def load_urdf(self, fname):
+        body = Body.from_urdf(self.p, fname)
+        return body
+
+    def add_constraint(self, *argv, **kwargs):
+        """See `Constraint` below."""
+        constraint = Constraint(self.p, *argv, **kwargs)
+        return constraint
+
+    def add_camera(self, intrinsic, near, far):
+        camera = Camera(self.p, intrinsic, near, far)
+        return camera
+
+    def check_collisions(self, bodyA):
+        points = self.p.getContactPoints(bodyA.body_uid)
+        contacts = []
+        for point in points:
+            contact = Contact(
+                point=point[5], normal=point[7], depth=point[8], force=point[9]
+            )
+            contacts.append(contact)
+        return contacts
 
     def reset(self):
         self.p.resetSimulation()
         self.p.setPhysicsEngineParameter(
             fixedTimeStep=self.dt, numSolverIterations=self.solver_iterations
         )
-        self.p.setGravity(*self.gravity)
-
         self.sim_time = 0.0
-        self.tic = time.time()  # use to measure elapsed time since last reset
+        self.tic = time.time()  # used to measure elapsed time since last reset
 
     def step(self):
         self.p.stepSimulation()
@@ -51,25 +72,11 @@ class Engine(object):
             toc = time.time() - self.tic
             time.sleep(max(0.0, self.sim_time - self.rtf * toc))
 
-    def sleep(self, duration):
-        time.sleep(duration)
-        self.tic += duration
-
     def save_state(self):
         return self.p.saveState()
 
     def restore_state(self, state_uid):
         self.p.restoreState(stateId=state_uid)
-
-    def get_contacts(self, bodyA):
-        points = self.p.getContactPoints(bodyA.body_uid)
-        contacts = []
-        for point in points:
-            contact = Contact(
-                position=point[5], normal=point[7], depth=point[8], force=point[9]
-            )
-            contacts.append(contact)
-        return contacts
 
     def close(self):
         self.p.disconnect()
@@ -85,15 +92,10 @@ class Body(object):
         links: A dict mapping link names to Link objects.
     """
 
-    def __init__(self, physics_client, fname, pose):
-        """Load a physics model from a URDF file."""
+    def __init__(self, physics_client, body_uid):
         self.p = physics_client
-
-        self.body_uid = self.p.loadURDF(
-            fname, pose.translation, pose.rotation.as_quat()
-        )
+        self.body_uid = body_uid
         self.name = self.p.getBodyInfo(self.body_uid)[1].decode("utf-8")
-
         self.joints, self.links = {}, {}
         for i in range(self.p.getNumJoints(self.body_uid)):
             joint_info = self.p.getJointInfo(self.body_uid, i)
@@ -102,13 +104,16 @@ class Body(object):
             link_name = joint_info[12].decode("utf8")
             self.links[link_name] = Link(self.p, self.body_uid, i)
 
+    @classmethod
+    def from_urdf(cls, physics_client, fname):
+        body_uid = physics_client.loadURDF(fname)
+        return cls(physics_client, body_uid)
+
     def get_pose(self):
-        """Return the pose of the body's base in world frame."""
         pos, ori = self.p.getBasePositionAndOrientation(self.body_uid)
         return Transform(Rotation.from_quat(ori), np.asarray(pos))
 
     def set_pose(self, pose):
-        """Set the pose of the body's base."""
         self.p.resetBasePositionAndOrientation(
             self.body_uid, pose.translation, pose.rotation.as_quat()
         )
@@ -118,7 +123,7 @@ class Link(object):
     """Interface to a link simulated in Pybullet.
 
     Attributes:
-        link_index
+        link_index: The index of the joint.
     """
 
     def __init__(self, physics_client, body_uid, link_index):
@@ -136,7 +141,7 @@ class Joint(object):
     """Interface to a joint simulated in PyBullet.
 
     Attributes:
-        joint_index
+        joint_index: The index of the joint.
         lower_limit: Lower position limit of the joint.
         upper_limit: Upper position limit of the joint.
         effort: The maximum joint effort.
@@ -195,7 +200,6 @@ class Constraint(object):
 
         """
         self.p = physics_client
-
         parent_body_uid = parent.body_uid
         parent_link_index = parent_link.link_index if parent_link else -1
         child_body_uid = child.body_uid if child else -1
@@ -224,8 +228,17 @@ class Constraint(object):
 
 
 class Contact(object):
-    def __init__(self, position, normal, depth, force):
-        self.position = position
+    """Contact point between two multibodies.
+
+    Attributes:
+        point: Contact point.
+        normal: Normal vector from ... to ...
+        depth: Penetration depth
+        force: Contact force acting on body ...
+    """
+
+    def __init__(self, point, normal, depth, force):
+        self.point = point
         self.normal = normal
         self.depth = depth
         self.force = force
@@ -236,8 +249,6 @@ class Camera(object):
 
     Attributes:
         intrinsic (PinholeCameraIntrinsic): The camera intrinsic parameters.
-        near (float): The near plane of the virtual camera.
-        far (float): The far plane of the virtual camera.
     """
 
     def __init__(self, physics_client, intrinsic, near, far):
@@ -247,7 +258,7 @@ class Camera(object):
         self.proj_matrix = _build_projection_matrix(intrinsic, near, far)
         self.p = physics_client
 
-    def get_rgb_depth(self, extrinsic):
+    def render(self, extrinsic):
         """Render synthetic RGB and depth images.
 
         Args:

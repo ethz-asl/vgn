@@ -1,8 +1,7 @@
 """Script to generate a synthetic grasp dataset using physical simulation."""
-from __future__ import division
+from __future__ import print_function, division
 
 import argparse
-import logging
 import os
 import uuid
 
@@ -10,14 +9,16 @@ import numpy as np
 import scipy.signal as signal
 import tqdm
 from mpi4py import MPI
+import open3d
 
 import vgn.config as cfg
-from vgn import data_utils, grasp, simulation
-from vgn.perception import integration, viewpoint
+from vgn import grasp, simulation
+import vgn.utils.data
+from vgn.perception import integration, exploration
 from vgn.utils.transform import Rotation, Transform
 
 
-def generate_dataset(data, n_scenes, n_grasps_per_scene, sim_gui, rank):
+def collect_dataset(data, n_scenes, n_grasps_per_scene, sim_gui, rtf, rank):
     """Generate a dataset of synthetic grasps.
 
     This script will generate multiple virtual scenes, and for each scene
@@ -30,19 +31,17 @@ def generate_dataset(data, n_scenes, n_grasps_per_scene, sim_gui, rank):
         * the rendered depth images as PNGs,
         * the camera intrinsic parameters,
         * the extrinsic parameters corresponding to each image,
-        * pose and score for each sampled grasp.
+        * pose and outcome for each sampled grasp.
 
     Args:
         data: Name of the dataset.
         n_scenes: Number of generated virtual scenes.
         n_grasps_per_scene: Number of grasp candidates sampled per scene.
         sim_gui: Run the simulation in a GUI or in headless mode.
+        rtf: Real time factor of the simulation.
         rank: MPI rank.
     """
-    n_views_per_scene = 16
-    rtf = -1.0
-
-    s = simulation.Simulation(sim_gui, rtf)
+    s = simulation.GraspingExperiment(sim_gui, rtf)
 
     # Create the root directory if it does not exist
     root_dir = os.path.join("data", "datasets", data)
@@ -52,16 +51,16 @@ def generate_dataset(data, n_scenes, n_grasps_per_scene, sim_gui, rank):
     for _ in tqdm.tqdm(range(n_scenes), disable=rank is not 0):
         scene_data = {}
 
-        # Generate scene
-        s.generate_scene(data)
+        # Setup experiment
+        s.setup(data)
         s.save_state()
 
         # Reconstruct scene
-        intrinsic = s.camera.intrinsic
-        extrinsics = viewpoint.sample_hemisphere(n_views_per_scene)
-        depth_imgs = [s.camera.get_rgb_depth(e)[1] for e in extrinsics]
+        n_views_per_scene = 16
+        extrinsics = exploration.sample_hemisphere(n_views_per_scene)
+        depth_imgs = [s.camera.render(e)[1] for e in extrinsics]
         point_cloud, _ = integration.reconstruct_scene(
-            intrinsic, extrinsics, depth_imgs
+            s.camera.intrinsic, extrinsics, depth_imgs
         )
 
         scene_data["intrinsic"] = s.camera.intrinsic
@@ -70,21 +69,21 @@ def generate_dataset(data, n_scenes, n_grasps_per_scene, sim_gui, rank):
 
         # Sample and evaluate grasps candidates
         scene_data["poses"] = []
-        scene_data["scores"] = []
+        scene_data["outcomes"] = []
 
-        is_positive = lambda score: np.isclose(score, 1.0)
+        is_positive = lambda outcome: outcome == grasp.Outcome.SUCCESS.value
         n_negatives = 0
 
         while len(scene_data["poses"]) < n_grasps_per_scene:
             point, normal = sample_point(point_cloud)
-            pose, score = evaluate_point(s, point, normal)
-            if is_positive(score) or n_negatives < n_grasps_per_scene // 2:
+            pose, outcome = evaluate_point(s, point, normal)
+            if is_positive(outcome) or n_negatives < n_grasps_per_scene // 2:
                 scene_data["poses"].append(pose)
-                scene_data["scores"].append(score)
-                n_negatives += not is_positive(score)
+                scene_data["outcomes"].append(outcome)
+                n_negatives += not is_positive(outcome)
 
         dirname = os.path.join(root_dir, str(uuid.uuid4().hex))
-        data_utils.store_scene(dirname, scene_data)
+        vgn.utils.data.store_scene(dirname, scene_data)
 
 
 def sample_point(point_cloud):
@@ -92,14 +91,14 @@ def sample_point(point_cloud):
     along the negative surface normal.
     """
     gripper_depth = 0.5 * cfg.max_width
-    thresh = 0.2
+    epsilon = 0.2
 
     points = np.asarray(point_cloud.points)
     normals = np.asarray(point_cloud.normals)
     selection = np.random.randint(len(points))
     point, normal = points[selection], normals[selection]
     z_offset = np.random.uniform(
-        (0.0 - thresh) * gripper_depth, (1.0 + thresh) * gripper_depth
+        (0.0 - epsilon) * gripper_depth, (1.0 + epsilon) * gripper_depth
     )
     point = point - normal * (z_offset - gripper_depth)
 
@@ -107,6 +106,7 @@ def sample_point(point_cloud):
 
 
 def evaluate_point(sim, pos, normal, n_rotations=9):
+    """Try to grasp the point using different yaws."""
     # Define initial grasp frame on object surface
     z_axis = -normal
     x_axis = np.r_[1.0, 0.0, 0.0]
@@ -117,22 +117,25 @@ def evaluate_point(sim, pos, normal, n_rotations=9):
     R = Rotation.from_dcm(np.vstack((x_axis, y_axis, z_axis)).T)
 
     yaws = np.linspace(-0.5 * np.pi, 0.5 * np.pi, n_rotations)
-    scores = []
+    outcomes = []
 
     for yaw in yaws:
         ori = R * Rotation.from_euler("z", yaw)
         sim.restore_state()
-        outcome = grasp.execute(sim.robot, Transform(ori, pos))
-        scores.append(outcome == grasp.Outcome.SUCCESS)
+        outcome = sim.test_grasp(Transform(ori, pos))
+        outcomes.append(outcome.value)
 
-    if np.sum(scores):
-        # Detect the peak over yaw orientations
-        peaks, properties = signal.find_peaks(x=np.r_[0, scores, 0], height=1, width=1)
+    # Detect mid-point of widest peak of successful yaw angles
+    successes = (np.asarray(outcomes) == grasp.Outcome.SUCCESS.value).astype(float)
+    ori = Rotation.identity()
+
+    if np.sum(successes):
+        peaks, properties = signal.find_peaks(
+            x=np.r_[0, successes, 0], height=1, width=1
+        )
         idx_of_widest_peak = peaks[np.argmax(properties["widths"])] - 1
         yaw = yaws[idx_of_widest_peak]
-        ori, score = R * Rotation.from_euler("z", yaw), 1.0
-    else:
-        ori, score = R, 0.0
+        ori = R * Rotation.from_euler("z", yaw)
 
     # Due to the symmetric geometry of a parallel-jaw gripper, make sure
     # the y-axis always points upwards.
@@ -140,7 +143,7 @@ def evaluate_point(sim, pos, normal, n_rotations=9):
     if np.dot(y_axis, np.r_[0.0, 0.0, 1.0]) < 0.0:
         ori *= Rotation.from_euler("z", np.pi)
 
-    return Transform(ori, pos), score
+    return Transform(ori, pos), np.max(outcomes)
 
 
 def main():
@@ -159,21 +162,21 @@ def main():
         help="number of grasp candidates per scene (default: 40)",
     )
     parser.add_argument("--sim-gui", action="store_true", help="disable headless mode")
+    parser.add_argument("--rtf", type=float, default=-1.0, help="real time factor")
     args = parser.parse_args()
-
-    logging.basicConfig(level=logging.INFO)
 
     n_workers = MPI.COMM_WORLD.Get_size()
     rank = MPI.COMM_WORLD.Get_rank()
 
     if rank == 0:
-        logging.info("Generating data using %d processes.", n_workers)
+        print("Generating data using {} processes.".format(n_workers))
 
-    generate_dataset(
+    collect_dataset(
         data=args.data,
         n_scenes=args.n_scenes // n_workers,
         n_grasps_per_scene=args.n_grasps_per_scene,
         sim_gui=args.sim_gui,
+        rtf=args.rtf,
         rank=rank,
     )
 

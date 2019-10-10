@@ -12,13 +12,13 @@ from vgn.utils.transform import Transform
 def load_scene(dirname):
     intrinsic = _load_intrinsic(dirname)
     extrinsics, images = _load_images(dirname)
-    poses, scores = _load_grasps(dirname)
+    poses, outcomes = _load_grasps(dirname)
     scene = {
         "intrinsic": intrinsic,
         "extrinsics": extrinsics,
         "images": images,
         "poses": poses,
-        "scores": scores,
+        "outcomes": outcomes,
     }
     return scene
 
@@ -28,7 +28,7 @@ def store_scene(dirname, scene):
         os.makedirs(dirname)
     _store_intrinsic(dirname, scene["intrinsic"])
     _store_images(dirname, scene["extrinsics"], scene["depth_imgs"])
-    _store_grasps(dirname, scene["poses"], scene["scores"])
+    _store_grasps(dirname, scene["poses"], scene["outcomes"])
 
 
 def _load_intrinsic(dirname):
@@ -65,16 +65,16 @@ def _store_images(dirname, extrinsics, depth_imgs):
 def _load_grasps(dirname):
     with open(os.path.join(dirname, "grasps.json"), "rb") as fp:
         grasps = json.load(fp)
-    poses, scores = [], np.empty((len(grasps),))
+    poses, outcomes = [], np.empty((len(grasps),))
     for i, grasp in enumerate(grasps):
         poses.append(Transform.from_dict(grasp["pose"]))
-        scores[i] = grasp["score"]
-    return poses, scores
+        outcome[i] = grasp["outcome"]
+    return poses, outcomes
 
 
-def _store_grasps(dirname, poses, scores):
+def _store_grasps(dirname, poses, outcomes):
     grasps = []
     for i in range(len(poses)):
-        grasps.append({"pose": poses[i].to_dict(), "score": scores[i]})
+        grasps.append({"pose": poses[i].to_dict(), "outcome": outcomes[i]})
     with open(os.path.join(dirname, "grasps.json"), "wb") as fp:
         json.dump(grasps, fp, indent=4)

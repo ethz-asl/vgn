@@ -11,4 +11,3 @@ scipy
 tensorboard
 torch
 tqdm
-yapf

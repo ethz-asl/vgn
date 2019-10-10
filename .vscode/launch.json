@@ -13,10 +13,10 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "generate_data",
+            "name": "collect_data",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/vgn/scripts/generate_data.py",
+            "program": "${workspaceFolder}/vgn/scripts/collect_data.py",
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
@@ -24,42 +24,6 @@
                 "--n-scenes=10",
                 "--n-grasps-per-scene=10",
                 "--sim-gui",
-            ]
-        },
-        {
-            "name": "vis_data",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/vgn/scripts/vis_data.py",
-            "cwd": "${workspaceFolder}/vgn",
-            "console": "integratedTerminal",
-            "args": [
-                "--scene=",
-                // "--rviz",
-            ]
-        },
-        {
-            "name": "train_vgn",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/vgn/scripts/train_vgn.py",
-            "cwd": "${workspaceFolder}/vgn",
-            "console": "integratedTerminal",
-            "args": [
-                "--model=conv",
-                "--data=cuboid",
-                // "--rebuild-cache",
-            ]
-        },
-        {
-            "name": "eval_vgn",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/vgn/scripts/eval_vgn.py",
-            "cwd": "${workspaceFolder}/vgn",
-            "console": "integratedTerminal",
-            "args": [
-                "--weights=",
             ]
         },
     ]
