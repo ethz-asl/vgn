@@ -6,6 +6,7 @@ import vgn.config as cfg
 
 class TSDFVolume(object):
     """Integration of multiple depth images using a TSDF."""
+
     def __init__(self, size, resolution):
         self.resolution = resolution
         self.voxel_size = size / self.resolution
@@ -15,7 +16,7 @@ class TSDFVolume(object):
             length=size,
             resolution=self.resolution,
             sdf_trunc=self.sdf_trunc,
-            color_type=open3d.integration.TSDFVolumeColorType.None,
+            color_type=getattr(open3d.integration.TSDFVolumeColorType, "None"),
         )
 
     def integrate(self, depth, intrinsic, extrinsic):
