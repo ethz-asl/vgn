@@ -68,7 +68,7 @@ def _load_grasps(dirname):
     poses, outcomes = [], np.empty((len(grasps),))
     for i, grasp in enumerate(grasps):
         poses.append(Transform.from_dict(grasp["pose"]))
-        outcome[i] = grasp["outcome"]
+        outcomes[i] = grasp["outcome"]
     return poses, outcomes
 
 

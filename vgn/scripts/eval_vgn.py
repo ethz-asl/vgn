@@ -33,23 +33,23 @@ def main(args):
 
     # Evaluate
     with torch.no_grad():
-        for tsdf, indices, scores, quats in loader:
+        for tsdf, indices, qualities, quats in loader:
 
             if args.vis:
                 mlab.figure("Network output")
-                vis.draw_voxels(score_out)
+                vis.draw_voxels(quality_out)
 
                 mlab.figure("Grasp map")
 
                 vis.draw_voxels(grasp_map)
-                vis.draw_candidates(indices, scores)
+                vis.draw_candidates(indices, qualities)
 
-    # indices, scores = grasp.select_best_grasps(grasp_mask)
+    # indices, qualities = grasp.select_best_grasps(grasp_mask)
 
     # Draw
     mlab.figure("Scene")
     vis.draw_voxels(tsdf)
-    vis.draw_candidates(indices, scores)
+    vis.draw_candidates(indices, qualities)
 
     for index in indices:
         i, j, k = index

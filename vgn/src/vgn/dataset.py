@@ -9,22 +9,22 @@ from scipy import ndimage
 from tqdm import tqdm
 
 import vgn.config as cfg
-from vgn import data, utils
+from vgn import utils, grasp
+from vgn.utils import data
 from vgn.utils.transform import Rotation, Transform
 
 
 class VGNDataset(torch.utils.data.Dataset):
-    def __init__(self, root_dir, augment=False, rebuild_cache=False):
+    def __init__(self, root_dir, rebuild_cache=False):
         """Dataset for the volumetric grasping network.
 
         Args:
             root_dir: Path to the synthetic grasp dataset.
-            augment: Augment data by translations, rotations, and flipping.
             rebuild_cache: Discard cached volumes.
         """
         self.root_dir = root_dir
-        self.augment = augment
         self.rebuild_cache = rebuild_cache
+        self.cache_dir = os.path.join(self.root_dir, "cache")
 
         self.detect_scenes()
         self.build_cache()
@@ -38,14 +38,10 @@ class VGNDataset(torch.utils.data.Dataset):
 
         tsdf = data["tsdf"]
         indices = data["indices"]
-        scores = data["scores"]
+        outcomes = data["outcomes"]
         quats = np.swapaxes(data["quats"], 0, 1)
 
-        return np.expand_dims(tsdf, 0), indices, scores, quats
-
-    @property
-    def cache_dir(self):
-        return os.path.join(self.root_dir, "cache")
+        return np.expand_dims(tsdf, 0), indices, quats, outcomes
 
     def detect_scenes(self):
         self.scenes = []
@@ -61,7 +57,6 @@ class VGNDataset(torch.utils.data.Dataset):
             os.makedirs(self.cache_dir)
 
         for dirname in tqdm(self.scenes):
-
             path = os.path.join(self.cache_dir, dirname) + ".npz"
             if not os.path.exists(path) or self.rebuild_cache:
                 scene = data.load_scene(os.path.join(self.root_dir, dirname))
@@ -69,13 +64,17 @@ class VGNDataset(torch.utils.data.Dataset):
                 tsdf = utils.voxel_grid_to_array(voxel_grid, cfg.resolution)
 
                 indices = np.empty((len(scene["poses"]), 3), dtype=np.long)
-                scores = np.asarray(scene["scores"], dtype=np.float32)
                 quats = np.empty((len(scene["poses"]), 4), dtype=np.float32)
                 for i, pose in enumerate(scene["poses"]):
                     index = voxel_grid.get_voxel(pose.translation)
                     indices[i] = np.clip(index, [0, 0, 0], [cfg.resolution - 1] * 3)
                     quats[i] = pose.rotation.as_quat()
+                outcomes = np.asarray(scene["outcomes"], dtype=np.int32)
 
                 np.savez_compressed(
-                    path, tsdf=tsdf, indices=indices, scores=scores, quats=quats
+                    path,
+                    tsdf=tsdf,
+                    indices=indices,
+                    quats=quats,
+                    outcomes=scene["outcomes"],
                 )

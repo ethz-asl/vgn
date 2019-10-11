@@ -53,10 +53,10 @@ def draw_frame(index, quat, scale=1.0):
     axes.glyph.color_mode = "color_by_scalar"
 
 
-def draw_candidates(indices, quats, scores, draw_frames=False):
+def draw_candidates(indices, quats, qualities, draw_frames=False):
     x, y, z = indices[:, 0], indices[:, 1], indices[:, 2]
     mlab.points3d(
-        x, y, z, scores, vmin=0.0, vmax=1.0, scale_mode="none", scale_factor=0.5
+        x, y, z, qualities, vmin=0.0, vmax=1.0, scale_mode="none", scale_factor=0.5
     )
 
     if draw_frames:

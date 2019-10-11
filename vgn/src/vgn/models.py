@@ -8,27 +8,6 @@ def get_network(name):
     models = {"conv": ConvNet()}
     return models[name.lower()]
 
-    # def predict(self, tsdf):
-    #     tsdf_in = torch.from_numpy(tsdf).unsqueeze(0).to(self.device)
-    #     with torch.no_grad():
-    #         score_out, quat_out = self.model(tsdf_in)
-    #     score_out = score_out.squeeze().cpu().numpy()
-    #     quat_out = quat_out.squeeze().cpu().numpy()
-    #     quat_out = np.swapaxes(quat_out, 0, 1)
-    #     return score_out, quat_out
-
-
-#  process_input()
-
-# def process_output(score_out, quat_out):
-#     grasp_map = out.copy()
-#     print(out.shape)
-#     print(tsdf.shape)
-#     grasp_map[tsdf == 0.0] = 0.0
-#     grasp_map = ndimage.gaussian_filter(grasp_map, sigma=4.0)
-#     grasp_map[grasp_map < threshold] = 0.0
-#     return grasp_map
-
 
 class ConvNet(nn.Module):
     def __init__(self):
@@ -56,7 +35,7 @@ class ConvNet(nn.Module):
             filter_sizes[4], filter_sizes[5], kernel_size=3, padding=1
         )
 
-        self.conv_score = nn.Conv3d(filter_sizes[5], 1, kernel_size=5, padding=2)
+        self.conv_quality = nn.Conv3d(filter_sizes[5], 1, kernel_size=5, padding=2)
 
         self.conv_quat = nn.Conv3d(filter_sizes[5], 4, kernel_size=5, padding=2)
 
@@ -92,10 +71,10 @@ class ConvNet(nn.Module):
         # 16 x 20 x 20 x 20
         x = F.interpolate(x, 40)
 
-        score = self.conv_score(x)
-        score_out = torch.sigmoid(score)
+        quality = self.conv_quality(x)
+        quality_out = torch.sigmoid(quality)
 
         quat = self.conv_quat(x)
         quat_out = F.normalize(quat, dim=1)
 
-        return score_out, quat_out
+        return quality_out, quat_out
