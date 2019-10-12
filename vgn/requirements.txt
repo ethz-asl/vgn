@@ -1,4 +1,5 @@
 catkin_pkg
+jupyter
 matplotlib
 mayavi
 mpi4py
