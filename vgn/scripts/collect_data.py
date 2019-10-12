@@ -1,4 +1,3 @@
-"""Script to generate a synthetic grasp dataset using physical simulation."""
 from __future__ import print_function, division
 
 import argparse
@@ -18,7 +17,7 @@ from vgn.perception import integration, exploration
 from vgn.utils.transform import Rotation, Transform
 
 
-def collect_dataset(data, n_scenes, n_grasps_per_scene, sim_gui, rtf, rank):
+def collect_dataset(object_set, n_scenes, n_grasps_per_scene, sim_gui, rtf, rank):
     """Generate a dataset of synthetic grasps.
 
     This script will generate multiple virtual scenes, and for each scene
@@ -26,7 +25,8 @@ def collect_dataset(data, n_scenes, n_grasps_per_scene, sim_gui, rtf, rank):
     of grasps. It also ensures that the number of positive and  negative
     samples are balanced.
 
-    For each scene, it will create a unique folder within root_dir, and store
+    For each scene, a unique folder will created within
+    `data/datasets/<object_set` containing
 
         * the rendered depth images as PNGs,
         * the camera intrinsic parameters,
@@ -34,7 +34,7 @@ def collect_dataset(data, n_scenes, n_grasps_per_scene, sim_gui, rtf, rank):
         * pose and outcome for each sampled grasp.
 
     Args:
-        data: Name of the dataset.
+        object_set: Object set to be used.
         n_scenes: Number of generated virtual scenes.
         n_grasps_per_scene: Number of grasp candidates sampled per scene.
         sim_gui: Run the simulation in a GUI or in headless mode.
@@ -43,16 +43,16 @@ def collect_dataset(data, n_scenes, n_grasps_per_scene, sim_gui, rtf, rank):
     """
     s = simulation.GraspingExperiment(sim_gui, rtf)
 
-    # Create the root directory if it does not exist
-    root_dir = os.path.join("data", "datasets", data)
+    # Create the root directory if it does not exist yet
+    root_dir = os.path.join("data", "datasets", object_set)
     if not os.path.exists(root_dir):
         os.makedirs(root_dir)
 
     for _ in tqdm.tqdm(range(n_scenes), disable=rank is not 0):
-        scene_data = {}
+        scene_data = {}  # placeholder for the generated sample
 
         # Setup experiment
-        s.setup(data)
+        s.setup(object_set)
         s.save_state()
 
         # Reconstruct scene
@@ -67,14 +67,14 @@ def collect_dataset(data, n_scenes, n_grasps_per_scene, sim_gui, rtf, rank):
         scene_data["extrinsics"] = extrinsics
         scene_data["depth_imgs"] = depth_imgs
 
-        # Sample and evaluate grasps candidates
+        # Sample and evaluate grasp candidates
         scene_data["poses"] = []
         scene_data["outcomes"] = []
 
-        is_positive = lambda outcome: outcome == grasp.Outcome.SUCCESS.value
+        is_positive = lambda o: o == grasp.Outcome.SUCCESS
         n_negatives = 0
 
-        while len(scene_data["poses"]) < n_grasps_per_scene:
+        while len(scene_data["outcomes"]) < n_grasps_per_scene:
             point, normal = sample_point(point_cloud)
             pose, outcome = evaluate_point(s, point, normal)
             if is_positive(outcome) or n_negatives < n_grasps_per_scene // 2:
@@ -87,16 +87,18 @@ def collect_dataset(data, n_scenes, n_grasps_per_scene, sim_gui, rtf, rank):
 
 
 def sample_point(point_cloud):
-    """Uniformly sample a grasp point from a point cloud with a random offset
-    along the negative surface normal.
+    """Uniformly sample a grasp point from a point cloud. 
+    
+    A random offset is applied along the negative surface normal.
     """
     gripper_depth = 0.5 * cfg.max_width
     epsilon = 0.2
 
     points = np.asarray(point_cloud.points)
     normals = np.asarray(point_cloud.normals)
-    selection = np.random.randint(len(points))
-    point, normal = points[selection], normals[selection]
+
+    idx = np.random.randint(len(points))
+    point, normal = points[idx], normals[idx]
     z_offset = np.random.uniform(
         (0.0 - epsilon) * gripper_depth, (1.0 + epsilon) * gripper_depth
     )
@@ -106,7 +108,6 @@ def sample_point(point_cloud):
 
 
 def evaluate_point(sim, pos, normal, n_rotations=9):
-    """Try to grasp the point using different yaws."""
     # Define initial grasp frame on object surface
     z_axis = -normal
     x_axis = np.r_[1.0, 0.0, 0.0]
@@ -116,55 +117,34 @@ def evaluate_point(sim, pos, normal, n_rotations=9):
     x_axis = np.cross(y_axis, z_axis)
     R = Rotation.from_dcm(np.vstack((x_axis, y_axis, z_axis)).T)
 
+    # Try to grasp with different yaw angles
     yaws = np.linspace(-0.5 * np.pi, 0.5 * np.pi, n_rotations)
     outcomes = []
-
     for yaw in yaws:
         ori = R * Rotation.from_euler("z", yaw)
         sim.restore_state()
-        outcome = sim.test_grasp(Transform(ori, pos))
-        outcomes.append(outcome.value)
+        outcomes.append(sim.test_grasp(Transform(ori, pos)))
 
     # Detect mid-point of widest peak of successful yaw angles
-    successes = (np.asarray(outcomes) == grasp.Outcome.SUCCESS.value).astype(float)
-    ori = Rotation.identity()
-
+    successes = (np.asarray(outcomes) == grasp.Outcome.SUCCESS).astype(float)
     if np.sum(successes):
         peaks, properties = signal.find_peaks(
             x=np.r_[0, successes, 0], height=1, width=1
         )
         idx_of_widest_peak = peaks[np.argmax(properties["widths"])] - 1
-        yaw = yaws[idx_of_widest_peak]
-        ori = R * Rotation.from_euler("z", yaw)
+        ori = R * Rotation.from_euler("z", yaws[idx_of_widest_peak])
+    else:
+        ori = Rotation.identity()
 
-    # Due to the symmetric geometry of a parallel-jaw gripper, make sure
-    # the y-axis always points upwards.
+    # Ensure that the y-axis of the parallel-jaw gripper points upwards
     y_axis = ori.as_dcm()[:, 1]
     if np.dot(y_axis, np.r_[0.0, 0.0, 1.0]) < 0.0:
         ori *= Rotation.from_euler("z", np.pi)
 
-    return Transform(ori, pos), np.max(outcomes)
+    return Transform(ori, pos), int(np.max(outcomes))
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--data", type=str, required=True, help="name of dataset")
-    parser.add_argument(
-        "--n-scenes",
-        type=int,
-        default=1000,
-        help="number of generated virtual scenes (default: 1000)",
-    )
-    parser.add_argument(
-        "--n-grasps-per-scene",
-        type=int,
-        default=40,
-        help="number of grasp candidates per scene (default: 40)",
-    )
-    parser.add_argument("--sim-gui", action="store_true", help="disable headless mode")
-    parser.add_argument("--rtf", type=float, default=-1.0, help="real time factor")
-    args = parser.parse_args()
-
+def main(args):
     n_workers = MPI.COMM_WORLD.Get_size()
     rank = MPI.COMM_WORLD.Get_rank()
 
@@ -172,9 +152,9 @@ def main():
         print("Generating data using {} processes.".format(n_workers))
 
     collect_dataset(
-        data=args.data,
-        n_scenes=args.n_scenes // n_workers,
-        n_grasps_per_scene=args.n_grasps_per_scene,
+        object_set=args.object_set,
+        n_scenes=args.scenes // n_workers,
+        n_grasps_per_scene=args.grasps_per_scene,
         sim_gui=args.sim_gui,
         rtf=args.rtf,
         rank=rank,
@@ -182,4 +162,26 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument(
+        "--object-set",
+        choices=["debug", "cuboid", "cuboids"],
+        default="debug",
+        help="object set to be used",
+    )
+    parser.add_argument(
+        "--scenes", type=int, default=1000, help="number of generated virtual scenes"
+    )
+    parser.add_argument(
+        "--grasps-per-scene",
+        type=int,
+        default=40,
+        help="number of grasp candidates per scene",
+    )
+    parser.add_argument("--sim-gui", action="store_true", help="disable headless mode")
+    parser.add_argument("--rtf", type=float, default=-1.0, help="real time factor")
+    args = parser.parse_args()
+
+    main(args)

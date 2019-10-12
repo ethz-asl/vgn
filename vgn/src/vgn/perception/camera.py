@@ -43,13 +43,13 @@ class PinholeCameraIntrinsic(object):
             "cx": self.cx,
             "cy": self.cy,
         }
-        with open(fname, "wb") as f:
+        with open(fname, "w") as f:
             json.dump(data, f, indent=2)
 
     @classmethod
     def from_json(cls, fname):
         """Load intrinsic parameters from a JSON file."""
-        with open(fname, "rb") as f:
+        with open(fname, "r") as f:
             data = json.load(f)
         return cls(
             data["width"],

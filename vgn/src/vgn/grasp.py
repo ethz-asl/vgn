@@ -1,7 +1,7 @@
 import enum
 
 
-class Outcome(enum.Enum):
+class Outcome(enum.IntEnum):
     """Possible outcomes of a grasp experiment."""
 
     COLLISION = 1
