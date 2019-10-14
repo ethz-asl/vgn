@@ -19,12 +19,12 @@ def store_scene(dirname, scene):
 
 def load_scene(dirname):
     intrinsic = load_intrinsic(dirname)
-    extrinsics, images = load_images(dirname)
+    extrinsics, depth_imgs = load_images(dirname)
     poses, outcomes = load_grasps(dirname)
     scene = {
         "intrinsic": intrinsic,
         "extrinsics": extrinsics,
-        "images": images,
+        "depth_imgs": depth_imgs,
         "poses": poses,
         "outcomes": outcomes,
     }

@@ -11,12 +11,16 @@ from tqdm import tqdm
 import vgn.config as cfg
 from vgn import utils, grasp
 from vgn.utils import data
+from vgn.perception import integration
 from vgn.utils.transform import Rotation, Transform
 
 
 class VGNDataset(torch.utils.data.Dataset):
     def __init__(self, root_dir, rebuild_cache=False):
         """Dataset for the volumetric grasping network.
+
+        The mapping between grasp outcome and target grasp quality is defined
+        by the `outcome2quality` method.
 
         Args:
             root_dir: Path to the synthetic grasp dataset.
@@ -29,6 +33,11 @@ class VGNDataset(torch.utils.data.Dataset):
         self.detect_scenes()
         self.build_cache()
 
+    @staticmethod
+    def outcome2quality(outcome):
+        quality = 1.0 if outcome == grasp.Outcome.SUCCESS else 0.0
+        return quality
+
     def __len__(self):
         return len(self.scenes)
 
@@ -38,8 +47,8 @@ class VGNDataset(torch.utils.data.Dataset):
 
         tsdf = data["tsdf"]
         indices = data["indices"]
-        outcomes = data["outcomes"]
         quats = np.swapaxes(data["quats"], 0, 1)
+        outcomes = data["qualities"]
 
         return np.expand_dims(tsdf, 0), indices, quats, outcomes
 
@@ -57,24 +66,26 @@ class VGNDataset(torch.utils.data.Dataset):
             os.makedirs(self.cache_dir)
 
         for dirname in tqdm(self.scenes):
-            path = os.path.join(self.cache_dir, dirname) + ".npz"
-            if not os.path.exists(path) or self.rebuild_cache:
+            fname = os.path.join(self.cache_dir, dirname) + ".npz"
+            if not os.path.exists(fname) or self.rebuild_cache:
+                # Load the scene data and reconstruct the TSDF
                 scene = data.load_scene(os.path.join(self.root_dir, dirname))
-                _, voxel_grid = data.reconstruct_volume(scene)
-                tsdf = utils.voxel_grid_to_array(voxel_grid, cfg.resolution)
+                _, voxel_grid = integration.reconstruct_scene(
+                    scene["intrinsic"], scene["extrinsics"], scene["depth_imgs"]
+                )
 
+                # Store the input TSDF and targets as tensors
+                tsdf = utils.voxel_grid_to_array(voxel_grid, cfg.resolution)
                 indices = np.empty((len(scene["poses"]), 3), dtype=np.long)
                 quats = np.empty((len(scene["poses"]), 4), dtype=np.float32)
                 for i, pose in enumerate(scene["poses"]):
                     index = voxel_grid.get_voxel(pose.translation)
                     indices[i] = np.clip(index, [0, 0, 0], [cfg.resolution - 1] * 3)
                     quats[i] = pose.rotation.as_quat()
-                outcomes = np.asarray(scene["outcomes"], dtype=np.int32)
+                qualities = np.asarray(
+                    [VGNDataset.outcome2quality(o) for o in scene["outcomes"]]
+                )
 
                 np.savez_compressed(
-                    path,
-                    tsdf=tsdf,
-                    indices=indices,
-                    quats=quats,
-                    outcomes=scene["outcomes"],
+                    fname, tsdf=tsdf, indices=indices, quats=quats, qualities=qualities
                 )
