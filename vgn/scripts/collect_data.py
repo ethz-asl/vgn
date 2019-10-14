@@ -183,5 +183,4 @@ if __name__ == "__main__":
     parser.add_argument("--sim-gui", action="store_true", help="disable headless mode")
     parser.add_argument("--rtf", type=float, default=-1.0, help="real time factor")
     args = parser.parse_args()
-
     main(args)
