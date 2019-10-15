@@ -16,19 +16,19 @@ from vgn.utils.transform import Rotation, Transform
 
 
 class VGNDataset(torch.utils.data.Dataset):
-    def __init__(self, root_dir, rebuild_cache=False):
+    def __init__(self, root, rebuild_cache=False):
         """Dataset for the volumetric grasping network.
 
         The mapping between grasp outcome and target grasp quality is defined
         by the `outcome2quality` method.
 
         Args:
-            root_dir: Path to the synthetic grasp dataset.
+            root: Root directory of a grasp dataset.
             rebuild_cache: Discard cached volumes.
         """
-        self.root_dir = root_dir
+        self.root = root
         self.rebuild_cache = rebuild_cache
-        self.cache_dir = os.path.join(self.root_dir, "cache")
+        self.cache_dir = os.path.join(self.root, "cache")
 
         self.detect_scenes()
         self.build_cache()
@@ -48,14 +48,14 @@ class VGNDataset(torch.utils.data.Dataset):
         tsdf = data["tsdf"]
         indices = data["indices"]
         quats = np.swapaxes(data["quats"], 0, 1)
-        outcomes = data["qualities"]
+        qualities = data["qualities"]
 
-        return np.expand_dims(tsdf, 0), indices, quats, outcomes
+        return np.expand_dims(tsdf, 0), indices, quats, qualities
 
     def detect_scenes(self):
         self.scenes = []
-        for d in sorted(os.listdir(self.root_dir)):
-            path = os.path.join(self.root_dir, d)
+        for d in sorted(os.listdir(self.root)):
+            path = os.path.join(self.root, d)
             if os.path.isdir(path) and path != self.cache_dir:
                 self.scenes.append(d)
 
@@ -69,7 +69,7 @@ class VGNDataset(torch.utils.data.Dataset):
             fname = os.path.join(self.cache_dir, dirname) + ".npz"
             if not os.path.exists(fname) or self.rebuild_cache:
                 # Load the scene data and reconstruct the TSDF
-                scene = data.load_scene(os.path.join(self.root_dir, dirname))
+                scene = data.load_scene(os.path.join(self.root, dirname))
                 _, voxel_grid = integration.reconstruct_scene(
                     scene["intrinsic"], scene["extrinsics"], scene["depth_imgs"]
                 )
@@ -83,7 +83,8 @@ class VGNDataset(torch.utils.data.Dataset):
                     indices[i] = np.clip(index, [0, 0, 0], [cfg.resolution - 1] * 3)
                     quats[i] = pose.rotation.as_quat()
                 qualities = np.asarray(
-                    [VGNDataset.outcome2quality(o) for o in scene["outcomes"]]
+                    [VGNDataset.outcome2quality(o) for o in scene["outcomes"]],
+                    dtype=np.float32,
                 )
 
                 np.savez_compressed(
