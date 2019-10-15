@@ -71,7 +71,10 @@ class VGNDataset(torch.utils.data.Dataset):
                 # Load the scene data and reconstruct the TSDF
                 scene = data.load_scene(os.path.join(self.root, dirname))
                 _, voxel_grid = integration.reconstruct_scene(
-                    scene["intrinsic"], scene["extrinsics"], scene["depth_imgs"]
+                    scene["intrinsic"],
+                    scene["extrinsics"],
+                    scene["depth_imgs"],
+                    resolution=cfg.resolution,
                 )
 
                 # Store the input TSDF and targets as tensors

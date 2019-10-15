@@ -41,6 +41,7 @@ def collect_dataset(object_set, n_scenes, n_grasps_per_scene, sim_gui, rtf, rank
         rtf: Real time factor of the simulation.
         rank: MPI rank.
     """
+    resolution = 80  # TODO make this transparent
     s = simulation.GraspingExperiment(sim_gui, rtf)
 
     # Create the root directory if it does not exist yet
@@ -60,7 +61,7 @@ def collect_dataset(object_set, n_scenes, n_grasps_per_scene, sim_gui, rtf, rank
         extrinsics = exploration.sample_hemisphere(n_views_per_scene)
         depth_imgs = [s.camera.render(e)[1] for e in extrinsics]
         point_cloud, _ = integration.reconstruct_scene(
-            s.camera.intrinsic, extrinsics, depth_imgs
+            s.camera.intrinsic, extrinsics, depth_imgs, resolution
         )
 
         scene_data["intrinsic"] = s.camera.intrinsic

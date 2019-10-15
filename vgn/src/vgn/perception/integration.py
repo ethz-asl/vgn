@@ -54,8 +54,8 @@ class TSDFVolume(object):
         return self._volume.extract_point_cloud()
 
 
-def reconstruct_scene(intrinsic, extrinsics, depth_imgs):
-    volume = TSDFVolume(cfg.size, cfg.resolution)
+def reconstruct_scene(intrinsic, extrinsics, depth_imgs, resolution):
+    volume = TSDFVolume(cfg.size, resolution)
     for extrinsic, depth_img in zip(extrinsics, depth_imgs):
         volume.integrate(depth_img, intrinsic, extrinsic)
     point_cloud = volume.get_point_cloud()
