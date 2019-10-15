@@ -47,7 +47,7 @@ class GraspingExperiment(object):
 
         # Load objects
         if object_set == "debug":
-            self.spawn_debug_cuboid()
+            self.spawn_debug_object()
         if object_set == "cuboid":
             self.spawn_cuboid()
         elif object_set == "cuboids":
@@ -101,7 +101,7 @@ class GraspingExperiment(object):
         for _ in range(240):
             self.world.step()
 
-    def spawn_debug_cuboid(self):
+    def spawn_debug_object(self):
         urdf = "data/urdfs/wooden_blocks/cuboid0.urdf"
         position = np.r_[0.5 * cfg.size, 0.5 * cfg.size, 0.12]
         orientation = Rotation.from_quat([0.0, 0.0, 0.0, 1.0])
@@ -115,7 +115,7 @@ class GraspingExperiment(object):
 
     def spawn_cuboids(self):
         for _ in range(1 + np.random.randint(4)):
-            self.spawn_cuboid_random()
+            self.spawn_cuboid()
 
 
 class RobotArm(object):
