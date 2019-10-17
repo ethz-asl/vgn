@@ -9,7 +9,8 @@ from scipy import ndimage
 from tqdm import tqdm
 
 import vgn.config as cfg
-from vgn import utils, grasp
+from vgn.grasp import Label
+from vgn import utils
 from vgn.utils import data
 from vgn.perception import integration
 from vgn.utils.transform import Rotation, Transform
@@ -19,8 +20,8 @@ class VGNDataset(torch.utils.data.Dataset):
     def __init__(self, root, rebuild_cache=False):
         """Dataset for the volumetric grasping network.
 
-        The mapping between grasp outcome and target grasp quality is defined
-        by the `outcome2quality` method.
+        The mapping between grasp label and target grasp quality is defined
+        by the `label2quality` method.
 
         Args:
             root: Root directory of the dataset.
@@ -34,8 +35,8 @@ class VGNDataset(torch.utils.data.Dataset):
         self.build_cache()
 
     @staticmethod
-    def outcome2quality(outcome):
-        quality = 1.0 if outcome == grasp.Outcome.SUCCESS else 0.0
+    def label2quality(label):
+        quality = 1.0 if label == Label.SUCCESS else 0.0
         return quality
 
     def __len__(self):
@@ -69,24 +70,24 @@ class VGNDataset(torch.utils.data.Dataset):
             fname = os.path.join(self.cache_dir, dirname) + ".npz"
             if not os.path.exists(fname) or self.rebuild_cache:
                 # Load the scene data and reconstruct the TSDF
-                scene = data.load_scene(os.path.join(self.root, dirname))
+                scene = data.SceneData.load(os.path.join(self.root, dirname))
                 _, voxel_grid = integration.reconstruct_scene(
-                    scene["intrinsic"],
-                    scene["extrinsics"],
-                    scene["depth_imgs"],
+                    scene.intrinsic,
+                    scene.extrinsics,
+                    scene.depth_imgs,
                     resolution=cfg.resolution,
                 )
 
                 # Store the input TSDF and targets as tensors
                 tsdf = utils.voxel_grid_to_array(voxel_grid, cfg.resolution)
-                indices = np.empty((len(scene["poses"]), 3), dtype=np.long)
-                quats = np.empty((len(scene["poses"]), 4), dtype=np.float32)
-                for i, pose in enumerate(scene["poses"]):
-                    index = voxel_grid.get_voxel(pose.translation)
+                indices = np.empty((scene.n_grasp_attempts, 3), dtype=np.long)
+                quats = np.empty((scene.n_grasp_attempts, 4), dtype=np.float32)
+                for i, grasp in enumerate(scene.grasps):
+                    index = voxel_grid.get_voxel(grasp.pose.translation)
                     indices[i] = np.clip(index, [0, 0, 0], [cfg.resolution - 1] * 3)
-                    quats[i] = pose.rotation.as_quat()
+                    quats[i] = grasp.pose.rotation.as_quat()
                 qualities = np.asarray(
-                    [VGNDataset.outcome2quality(o) for o in scene["outcomes"]],
+                    [VGNDataset.label2quality(l) for l in scene.labels],
                     dtype=np.float32,
                 )
 

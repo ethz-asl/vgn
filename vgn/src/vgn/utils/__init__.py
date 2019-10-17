@@ -1,8 +1,22 @@
+import json
 import os
 
 import cv2
 import numpy as np
 import torch
+
+
+def save_dict(fname, data):
+    """Serialize dict object as JSON file."""
+    with open(fname, "w") as fp:
+        json.dump(data, fp, indent=4)
+
+
+def load_dict(fname):
+    """Load dict object from JSON file."""
+    with open(fname, "r") as fp:
+        data = json.load(fp)
+    return data
 
 
 def save_image(fname, img):
@@ -25,3 +39,4 @@ def voxel_grid_to_array(voxel_grid, resolution):
         i, j, k = voxel.grid_index
         v[i, j, k] = voxel.color[0]
     return v
+

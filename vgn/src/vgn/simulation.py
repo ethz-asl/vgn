@@ -4,7 +4,7 @@ import numpy as np
 import pybullet
 
 import vgn.config as cfg
-from vgn import grasp
+from vgn.grasp import Label
 from vgn.perception import camera
 from vgn.utils import sim
 from vgn.utils.transform import Rotation, Transform
@@ -42,7 +42,7 @@ class GraspingExperiment(object):
         self.robot = RobotArm(self.world)
 
         # Load camera
-        intrinsic = camera.PinholeCameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)
+        intrinsic = camera.PinholeCamera(640, 480, 540.0, 540.0, 320.0, 240.0)
         self.camera = self.world.add_camera(intrinsic, 0.1, 2.0)
 
         # Load objects
@@ -72,28 +72,28 @@ class GraspingExperiment(object):
         T_base_pregrasp = T_base_grasp * T_grasp_pregrasp
         self.robot.set_tcp(T_base_pregrasp, override_dynamics=True)
         if self.robot.detect_collision():
-            return grasp.Outcome.COLLISION
+            return Label.COLLISION
 
         # Open the gripper
         self.robot.move_gripper(1.0)
 
         # Approach the grasp pose
         if not self.robot.move_tcp_xyz(T_base_grasp):
-            return grasp.Outcome.COLLISION
+            return Label.COLLISION
 
         # Close the gripper
         if not self.robot.grasp(0.0, epsilon):
-            return grasp.Outcome.EMPTY
+            return Label.EMPTY
 
         # Retrieve the object
         self.robot.move_tcp_xyz(T_base_pregrasp, check_collisions=False)
 
         if not self.robot.grasp(0.0, epsilon):
-            return grasp.Outcome.SLIPPED
+            return Label.SLIPPED
 
         # TODO shake test
 
-        return grasp.Outcome.SUCCESS
+        return Label.SUCCESS
 
     def spawn_object(self, urdf, pose):
         obj = self.world.load_urdf(urdf)

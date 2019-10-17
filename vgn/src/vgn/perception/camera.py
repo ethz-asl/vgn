@@ -3,7 +3,7 @@ import json
 import numpy as np
 
 
-class PinholeCameraIntrinsic(object):
+class PinholeCamera(object):
     """Intrinsic parameters of a pinhole camera model.
 
     Attributes:
@@ -33,8 +33,8 @@ class PinholeCameraIntrinsic(object):
     def cy(self):
         return self.K[1, 2]
 
-    def to_json(self, fname):
-        """Save intrinsic parameters to a JSON file."""
+    def to_dict(self):
+        """Serialize intrinsic parameters to a dict object."""
         data = {
             "width": self.width,
             "height": self.height,
@@ -43,15 +43,12 @@ class PinholeCameraIntrinsic(object):
             "cx": self.cx,
             "cy": self.cy,
         }
-        with open(fname, "w") as f:
-            json.dump(data, f, indent=2)
+        return data
 
     @classmethod
-    def from_json(cls, fname):
-        """Load intrinsic parameters from a JSON file."""
-        with open(fname, "r") as f:
-            data = json.load(f)
-        return cls(
+    def from_dict(cls, data):
+        """Deserialize intrinisic parameters from a dict object."""
+        intrinsic = cls(
             data["width"],
             data["height"],
             data["fx"],
@@ -59,3 +56,4 @@ class PinholeCameraIntrinsic(object):
             data["cx"],
             data["cy"],
         )
+        return intrinsic

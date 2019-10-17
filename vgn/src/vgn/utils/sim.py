@@ -248,7 +248,7 @@ class Camera(object):
     """Virtual RGB-D camera based on the PyBullet camera interface.
 
     Attributes:
-        intrinsic (PinholeCameraIntrinsic): The camera intrinsic parameters.
+        intrinsic: The camera intrinsic parameters.
     """
 
     def __init__(self, physics_client, intrinsic, near, far):
