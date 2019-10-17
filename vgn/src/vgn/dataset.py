@@ -23,7 +23,7 @@ class VGNDataset(torch.utils.data.Dataset):
         by the `outcome2quality` method.
 
         Args:
-            root: Root directory of a grasp dataset.
+            root: Root directory of the dataset.
             rebuild_cache: Discard cached volumes.
         """
         self.root = root

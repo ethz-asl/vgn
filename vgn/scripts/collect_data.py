@@ -17,7 +17,7 @@ from vgn.perception import integration, exploration
 from vgn.utils.transform import Rotation, Transform
 
 
-def collect_dataset(object_set, n_scenes, n_grasps_per_scene, sim_gui, rtf, rank):
+def collect_dataset(root, object_set, n_scenes, n_grasps_per_scene, sim_gui, rtf, rank):
     """Generate a dataset of synthetic grasps.
 
     This script will generate multiple virtual scenes, and for each scene
@@ -34,6 +34,7 @@ def collect_dataset(object_set, n_scenes, n_grasps_per_scene, sim_gui, rtf, rank
         * pose and outcome for each sampled grasp.
 
     Args:
+        root: Root directory of the dataset.
         object_set: Object set to be used.
         n_scenes: Number of generated virtual scenes.
         n_grasps_per_scene: Number of grasp candidates sampled per scene.
@@ -45,9 +46,8 @@ def collect_dataset(object_set, n_scenes, n_grasps_per_scene, sim_gui, rtf, rank
     s = simulation.GraspingExperiment(sim_gui, rtf)
 
     # Create the root directory if it does not exist yet
-    root_dir = os.path.join("data", "datasets", object_set)
-    if not os.path.exists(root_dir):
-        os.makedirs(root_dir)
+    if not os.path.exists(root) and rank == 0:
+        os.makedirs(root)
 
     for _ in tqdm.tqdm(range(n_scenes), disable=rank is not 0):
         scene_data = {}  # placeholder for the generated sample
@@ -83,7 +83,7 @@ def collect_dataset(object_set, n_scenes, n_grasps_per_scene, sim_gui, rtf, rank
                 scene_data["outcomes"].append(outcome)
                 n_negatives += not is_positive(outcome)
 
-        dirname = os.path.join(root_dir, str(uuid.uuid4().hex))
+        dirname = os.path.join(root, str(uuid.uuid4().hex))
         vgn.utils.data.store_scene(dirname, scene_data)
 
 
@@ -153,6 +153,7 @@ def main(args):
         print("Generating data using {} processes.".format(n_workers))
 
     collect_dataset(
+        root=args.root,
         object_set=args.object_set,
         n_scenes=args.scenes // n_workers,
         n_grasps_per_scene=args.grasps_per_scene,
@@ -165,6 +166,9 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument(
+        "--root", type=str, required=True, help="root directory of the dataset"
     )
     parser.add_argument(
         "--object-set",
@@ -182,6 +186,8 @@ if __name__ == "__main__":
         help="number of grasp candidates per scene",
     )
     parser.add_argument("--sim-gui", action="store_true", help="disable headless mode")
-    parser.add_argument("--rtf", type=float, default=-1.0, help="real time factor")
+    parser.add_argument(
+        "--rtf", type=float, default=-1.0, help="real time factor of the simulation"
+    )
     args = parser.parse_args()
     main(args)

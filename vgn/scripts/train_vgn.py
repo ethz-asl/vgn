@@ -103,7 +103,7 @@ def main(args):
     descr = "{},net={},data={},batch_size={},lr={:.0e}".format(
         datetime.now().strftime("%b%d_%H-%M-%S"),
         args.net,
-        args.data,
+        os.path.basename(args.root),
         args.batch_size,
         args.lr,
     )
@@ -113,8 +113,7 @@ def main(args):
     assert not os.path.exists(log_dir), "log with this setup already exists"
 
     # Load dataset
-    root = os.path.join("data", "datasets", args.data)
-    dataset = VGNDataset(root, rebuild_cache=args.rebuild_cache)
+    dataset = VGNDataset(args.root, rebuild_cache=args.rebuild_cache)
 
     validation_size = int(args.validation_split * len(dataset))
     train_size = len(dataset) - validation_size
@@ -216,10 +215,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--net", choices=["conv"], default="conv", help="network name")
     parser.add_argument(
-        "--data",
-        choices=["debug", "cuboid", "cuboids"],
-        default="debug",
-        help="name of dataset",
+        "--root", type=str, required=True, help="root directory of the dataset"
     )
     parser.add_argument(
         "--log-dir", type=str, default="data/runs", help="path to log directory"
