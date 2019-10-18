@@ -19,8 +19,9 @@ class Grasp(object):
     TODO(mbreyer): clarify definition of grasp frame
     """
 
-    def __init__(self, pose):
+    def __init__(self, pose, quality=None):
         self.pose = pose
+        self.quality = quality
 
     @classmethod
     def from_dict(cls, data):

@@ -204,7 +204,7 @@ def main(args):
         save_as_state_dict=True,
     )
     evaluator.add_event_handler(
-        Events.EPOCH_COMPLETED, checkpoint_handler, to_save={"net": net}
+        Events.EPOCH_COMPLETED, checkpoint_handler, to_save={args.net: net}
     )
 
     # Run the training loop

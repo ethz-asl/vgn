@@ -9,6 +9,17 @@ def get_network(name):
     return models[name.lower()]
 
 
+def predict(net, device, tsdf):
+    assert tsdf.ndim == 3
+    with torch.no_grad():
+        # unsqueeze twice to dimensions for channel and batch size
+        tsdf_in = torch.from_numpy(tsdf).unsqueeze(0).unsqueeze(0).to(device)
+        quality_out, quat_out = net(tsdf_in)
+    quality_grid = quality_out.squeeze().cpu().numpy()
+    quat_grid = None  # TODO move to CPU and swap axes
+    return quality_grid, quat_grid
+
+
 class ConvNet(nn.Module):
     def __init__(self):
         super(ConvNet, self).__init__()
