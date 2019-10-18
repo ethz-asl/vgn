@@ -3,7 +3,7 @@ import json
 import numpy as np
 
 
-class PinholeCamera(object):
+class PinholeCameraIntrinsic(object):
     """Intrinsic parameters of a pinhole camera model.
 
     Attributes:

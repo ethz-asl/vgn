@@ -1,7 +1,6 @@
 from __future__ import division, print_function
 
 import json
-import os
 
 import numpy as np
 import torch.utils.data
@@ -27,9 +26,9 @@ class VGNDataset(torch.utils.data.Dataset):
             root: Root directory of the dataset.
             rebuild_cache: Discard cached volumes.
         """
-        self.root = root
+        self.root_dir = root
         self.rebuild_cache = rebuild_cache
-        self.cache_dir = os.path.join(self.root, "cache")
+        self.cache_dir = self.root_dir / "cache"
 
         self.detect_scenes()
         self.build_cache()
@@ -43,8 +42,8 @@ class VGNDataset(torch.utils.data.Dataset):
         return len(self.scenes)
 
     def __getitem__(self, idx):
-        scene = self.scenes[idx]
-        data = np.load(os.path.join(self.cache_dir, scene) + ".npz")
+        scene_dir = self.scenes[idx]
+        data = np.load(self.cache_dir / (scene_dir.name + ".npz"))
 
         tsdf = data["tsdf"]
         indices = data["indices"]
@@ -54,23 +53,19 @@ class VGNDataset(torch.utils.data.Dataset):
         return np.expand_dims(tsdf, 0), indices, quats, qualities
 
     def detect_scenes(self):
-        self.scenes = []
-        for d in sorted(os.listdir(self.root)):
-            path = os.path.join(self.root, d)
-            if os.path.isdir(path) and path != self.cache_dir:
-                self.scenes.append(d)
+        self.scenes = [
+            d for d in self.root_dir.iterdir() if d.is_dir() and d != self.cache_dir
+        ]
 
     def build_cache(self):
         print("Verifying cache:")
+        self.cache_dir.mkdir(exist_ok=True)
 
-        if not os.path.exists(self.cache_dir):
-            os.makedirs(self.cache_dir)
-
-        for dirname in tqdm(self.scenes):
-            fname = os.path.join(self.cache_dir, dirname) + ".npz"
-            if not os.path.exists(fname) or self.rebuild_cache:
+        for scene_dir in tqdm(self.scenes, ascii=True):
+            p = self.cache_dir / (scene_dir.name + ".npz")
+            if not p.exists() or self.rebuild_cache:
                 # Load the scene data and reconstruct the TSDF
-                scene = data.SceneData.load(os.path.join(self.root, dirname))
+                scene = data.SceneData.load(scene_dir)
                 _, voxel_grid = integration.reconstruct_scene(
                     scene.intrinsic,
                     scene.extrinsics,
@@ -92,5 +87,5 @@ class VGNDataset(torch.utils.data.Dataset):
                 )
 
                 np.savez_compressed(
-                    fname, tsdf=tsdf, indices=indices, quats=quats, qualities=qualities
+                    p, tsdf=tsdf, indices=indices, quats=quats, qualities=qualities
                 )

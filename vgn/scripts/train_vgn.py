@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import argparse
-import os
+from pathlib import Path
 from datetime import datetime
 
 import open3d
@@ -80,8 +80,8 @@ def create_evaluator(net, device):
 
 
 def create_summary_writers(net, data_loader, device, log_dir):
-    train_path = os.path.join(log_dir, "train")
-    val_path = os.path.join(log_dir, "validation")
+    train_path = log_dir / "train"
+    val_path = log_dir / "validation"
 
     train_writer = tensorboard.SummaryWriter(train_path, flush_secs=60)
     val_writer = tensorboard.SummaryWriter(val_path, flush_secs=60)
@@ -98,22 +98,24 @@ def main(args):
 
     device = torch.device("cuda")
     kwargs = {"pin_memory": True}
+    root = Path(args.root)
+    log_dir = Path(args.log_dir)
 
     # Create log directory for the training run
     descr = "{},net={},data={},batch_size={},lr={:.0e}".format(
         datetime.now().strftime("%b%d_%H-%M-%S"),
         args.net,
-        os.path.basename(args.root),
+        root.name,
         args.batch_size,
         args.lr,
     )
     if args.descr != "":
         descr += ",descr={}".format(args.descr)
-    log_dir = os.path.join(args.log_dir, descr)
-    assert not os.path.exists(log_dir), "log with this setup already exists"
+    log_dir = log_dir / descr
+    assert not log_dir.exists(), "log with this setup already exists"
 
     # Load dataset
-    dataset = VGNDataset(args.root, rebuild_cache=args.rebuild_cache)
+    dataset = VGNDataset(root, rebuild_cache=args.rebuild_cache)
 
     validation_size = int(args.validation_split * len(dataset))
     train_size = len(dataset) - validation_size

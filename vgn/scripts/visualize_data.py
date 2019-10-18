@@ -1,5 +1,5 @@
 import argparse
-import os
+from pathlib import Path
 
 import numpy as np
 import open3d
@@ -13,9 +13,11 @@ from vgn.utils.data import SceneData
 
 
 def main(args):
+    scene_dir = Path(args.scene)
+
     # Load dataset
-    dataset = VGNDataset(os.path.dirname(args.scene), rebuild_cache=args.rebuild_cache)
-    index = dataset.scenes.index(os.path.basename(args.scene))
+    dataset = VGNDataset(scene_dir.parent, rebuild_cache=args.rebuild_cache)
+    index = dataset.scenes.index(scene_dir)
 
     tsdf, indices, quats, qualities = dataset[index]
     quats = np.swapaxes(quats, 0, 1)
@@ -23,7 +25,7 @@ def main(args):
     # Visualize TSDF
     mlab.figure()
 
-    scene = SceneData.load(args.scene)
+    scene = SceneData.load(scene_dir)
     point_cloud, _ = integration.reconstruct_scene(
         scene.intrinsic, scene.extrinsics, scene.depth_imgs, resolution=80
     )

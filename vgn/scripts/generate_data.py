@@ -9,7 +9,7 @@ in a unique folder within the root directory.
 from __future__ import print_function, division
 
 import argparse
-import os
+from pathlib import Path
 import uuid
 
 import numpy as np
@@ -92,8 +92,9 @@ def main(args):
     s = GraspingExperiment(args.sim_gui, args.rtf)
 
     # Create the root directory if it does not exist yet
-    if not os.path.exists(args.root) and rank == 0:
-        os.makedirs(args.root)
+    root = Path(args.root)
+    if not root.exists() and rank == 0:
+        root.mkdir()
 
     for _ in tqdm.tqdm(range(args.scenes), disable=rank is not 0):
         # Setup experiment
@@ -124,7 +125,7 @@ def main(args):
                 n_negatives += not is_positive(label)
 
         data = SceneData(intrinsic, extrinsics, depth_imgs, grasps, labels)
-        data.save(os.path.join(args.root, str(uuid.uuid4().hex)))
+        data.save(root / str(uuid.uuid4().hex))
 
 
 if __name__ == "__main__":

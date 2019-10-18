@@ -6,28 +6,28 @@ import numpy as np
 import torch
 
 
-def save_dict(fname, data):
+def save_dict(path, data):
     """Serialize dict object as JSON file."""
-    with open(fname, "w") as fp:
-        json.dump(data, fp, indent=4)
+    with path.open("w") as f:
+        json.dump(data, f, indent=4)
 
 
-def load_dict(fname):
+def load_dict(path):
     """Load dict object from JSON file."""
-    with open(fname, "r") as fp:
-        data = json.load(fp)
+    with path.open("r") as f:
+        data = json.load(f)
     return data
 
 
-def save_image(fname, img):
+def save_image(path, img):
     """Save image as a PNG file."""
     img = (1000.0 * img).astype(np.uint16)
-    cv2.imwrite(fname, img)
+    cv2.imwrite(str(path), img)
 
 
-def load_image(fname):
+def load_image(path):
     """Load image from a PNG file."""
-    img = cv2.imread(fname, cv2.IMREAD_UNCHANGED)
+    img = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
     img = img.astype(np.float32) * 0.001
     return img
 
@@ -39,4 +39,3 @@ def voxel_grid_to_array(voxel_grid, resolution):
         i, j, k = voxel.grid_index
         v[i, j, k] = voxel.color[0]
     return v
-

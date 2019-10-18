@@ -5,7 +5,7 @@ import pybullet
 
 import vgn.config as cfg
 from vgn.grasp import Label
-from vgn.perception import camera
+from vgn.perception.camera import PinholeCameraIntrinsic
 from vgn.utils import sim
 from vgn.utils.transform import Rotation, Transform
 
@@ -42,7 +42,7 @@ class GraspingExperiment(object):
         self.robot = RobotArm(self.world)
 
         # Load camera
-        intrinsic = camera.PinholeCamera(640, 480, 540.0, 540.0, 320.0, 240.0)
+        intrinsic = PinholeCameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)
         self.camera = self.world.add_camera(intrinsic, 0.1, 2.0)
 
         # Load objects
