@@ -11,7 +11,7 @@ import vgn.config as cfg
 from vgn.grasp import Label
 from vgn import utils
 from vgn.utils import data
-from vgn.perception import integration
+from vgn.perception.integration import TSDFVolume
 from vgn.utils.transform import Rotation, Transform
 
 
@@ -45,12 +45,12 @@ class VGNDataset(torch.utils.data.Dataset):
         scene_dir = self.scenes[idx]
         data = np.load(self.cache_dir / (scene_dir.name + ".npz"))
 
-        tsdf = data["tsdf"]
+        tsdf_vol = data["tsdf_vol"]
         indices = data["indices"]
         quats = np.swapaxes(data["quats"], 0, 1)
         qualities = data["qualities"]
 
-        return np.expand_dims(tsdf, 0), indices, quats, qualities
+        return tsdf_vol, indices, quats, qualities
 
     def detect_scenes(self):
         self.scenes = [
@@ -66,20 +66,17 @@ class VGNDataset(torch.utils.data.Dataset):
             if not p.exists() or self.rebuild_cache:
                 # Load the scene data and reconstruct the TSDF
                 scene = data.SceneData.load(scene_dir)
-                _, voxel_grid = integration.reconstruct_scene(
-                    scene.intrinsic,
-                    scene.extrinsics,
-                    scene.depth_imgs,
-                    resolution=cfg.resolution,
-                )
+                tsdf = TSDFVolume(cfg.size, cfg.resolution)
+                for depth_img, extrinsic in zip(scene.depth_imgs, scene.extrinsics):
+                    tsdf.integrate(depth_img, scene.intrinsic, extrinsic)
+                tsdf_vol = tsdf.get_volume()
 
                 # Store the input TSDF and targets as tensors
-                tsdf = utils.voxel_grid_to_array(voxel_grid, cfg.resolution)
                 indices = np.empty((scene.n_grasp_attempts, 3), dtype=np.long)
                 quats = np.empty((scene.n_grasp_attempts, 4), dtype=np.float32)
                 for i, grasp in enumerate(scene.grasps):
-                    index = voxel_grid.get_voxel(grasp.pose.translation)
-                    indices[i] = np.clip(index, [0, 0, 0], [cfg.resolution - 1] * 3)
+                    index = tsdf.get_index(grasp.pose.translation)
+                    indices[i] = np.clip(index, [0, 0, 0], [tsdf.resolution - 1] * 3)
                     quats[i] = grasp.pose.rotation.as_quat()
                 qualities = np.asarray(
                     [VGNDataset.label2quality(l) for l in scene.labels],
@@ -87,5 +84,9 @@ class VGNDataset(torch.utils.data.Dataset):
                 )
 
                 np.savez_compressed(
-                    p, tsdf=tsdf, indices=indices, quats=quats, qualities=qualities
+                    p,
+                    tsdf_vol=np.expand_dims(tsdf_vol, 0),  # add channel dimension
+                    indices=indices,
+                    quats=quats,
+                    qualities=qualities,
                 )

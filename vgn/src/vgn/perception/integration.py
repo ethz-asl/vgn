@@ -47,17 +47,19 @@ class TSDFVolume(object):
 
         self._volume.integrate(rgbd, intrinsic, extrinsic)
 
-    def get_voxel_grid(self):
-        return self._volume.extract_voxel_grid()
+    def get_index(self, position):
+        return np.round(position / self.voxel_size)
 
-    def get_point_cloud(self):
+    def get_volume(self):
+        """Return voxel volume with truncated signed distances."""
+        shape = (self.resolution, self.resolution, self.resolution)
+        tsdf_vol = np.zeros(shape, dtype=np.float32)
+        voxels = self._volume.extract_voxel_grid().voxels
+        for voxel in voxels:
+            i, j, k = voxel.grid_index
+            tsdf_vol[i, j, k] = voxel.color[0]
+        return tsdf_vol
+
+    def extract_point_cloud(self):
+        """Return extracted point cloud as open3d.PointCloud object."""
         return self._volume.extract_point_cloud()
-
-
-def reconstruct_scene(intrinsic, extrinsics, depth_imgs, resolution):
-    volume = TSDFVolume(cfg.size, resolution)
-    for extrinsic, depth_img in zip(extrinsics, depth_imgs):
-        volume.integrate(depth_img, intrinsic, extrinsic)
-    point_cloud = volume.get_point_cloud()
-    voxel_grid = volume.get_voxel_grid()
-    return point_cloud, voxel_grid

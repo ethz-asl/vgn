@@ -4,11 +4,9 @@ from mayavi import mlab
 from vgn.utils.transform import Rotation
 
 
-def draw_voxels(voxels, tol=0.001):
-    voxels = voxels.squeeze()
-
-    x, y, z = np.where(voxels > tol)
-    scalars = voxels[voxels > tol]
+def draw_volume(vol, tol=0.001):
+    x, y, z = np.where(vol > tol)
+    scalars = vol[vol > tol]
 
     mlab.points3d(
         x,
@@ -23,7 +21,7 @@ def draw_voxels(voxels, tol=0.001):
         opacity=0.05,
     )
     mlab.volume_slice(
-        voxels, vmin=0.0, vmax=1.0, plane_orientation="x_axes", transparent=True
+        vol, vmin=0.0, vmax=1.0, plane_orientation="x_axes", transparent=True
     )
 
     mlab.xlabel("x")

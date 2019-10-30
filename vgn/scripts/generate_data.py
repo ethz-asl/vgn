@@ -22,7 +22,8 @@ import vgn.config as cfg
 from vgn.simulation import GraspingExperiment
 from vgn.grasp import Grasp, Label
 from vgn.utils.data import SceneData
-from vgn.perception import integration, exploration
+from vgn.perception.integration import TSDFVolume
+from vgn.perception.exploration import sample_hemisphere
 from vgn.utils.transform import Rotation, Transform
 
 
@@ -104,11 +105,13 @@ def main(args):
         # Reconstruct scene
         n_views_per_scene = 16  # TODO(mbreyer): move to config
         intrinsic = s.camera.intrinsic
-        extrinsics = exploration.sample_hemisphere(n_views_per_scene)
+        extrinsics = sample_hemisphere(n_views_per_scene)
         depth_imgs = [s.camera.render(e)[1] for e in extrinsics]
-        point_cloud, _ = integration.reconstruct_scene(
-            intrinsic, extrinsics, depth_imgs, resolution
-        )
+
+        volume = TSDFVolume(cfg.size, resolution)
+        for depth_img, extrinsic in zip(depth_imgs, extrinsics):
+            volume.integrate(depth_img, intrinsic, extrinsic)
+        point_cloud = volume.extract_point_cloud()
 
         # Sample and evaluate grasp candidates
         grasps, labels = [], []
@@ -124,7 +127,7 @@ def main(args):
                 labels.append(label)
                 n_negatives += not is_positive(label)
 
-        data = SceneData(intrinsic, extrinsics, depth_imgs, grasps, labels)
+        data = SceneData(depth_imgs, intrinsic, extrinsics, grasps, labels)
         data.save(root / str(uuid.uuid4().hex))
 
 

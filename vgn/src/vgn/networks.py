@@ -9,15 +9,19 @@ def get_network(name):
     return models[name.lower()]
 
 
-def predict(net, device, tsdf):
-    assert tsdf.ndim == 3
+def predict(tsdf_vol, net, device):
+    # Move data to the PyTorch device
+    tsdf_vol = torch.from_numpy(tsdf_vol).unsqueeze(0).unsqueeze(0).to(device)
+
+    # Predict grasp qualities and orientations
     with torch.no_grad():
-        # unsqueeze twice to dimensions for channel and batch size
-        tsdf_in = torch.from_numpy(tsdf).unsqueeze(0).unsqueeze(0).to(device)
-        quality_out, quat_out = net(tsdf_in)
-    quality_grid = quality_out.squeeze().cpu().numpy()
-    quat_grid = None  # TODO move to CPU and swap axes
-    return quality_grid, quat_grid
+        quality_vol, quat_vol = net(tsdf_vol)
+
+    # Move data back to the CPU
+    quality_vol = quality_vol.squeeze().cpu().numpy()
+    quat_vol = quat_vol.cpu().numpy()  # TODO swap axes
+
+    return quality_vol, quat_vol
 
 
 class ConvNet(nn.Module):

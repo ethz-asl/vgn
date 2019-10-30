@@ -7,32 +7,22 @@ from mayavi import mlab
 
 from vgn.dataset import VGNDataset
 from vgn.utils import vis
-from vgn.perception import integration
-import vgn.config as cfg
 from vgn.utils.data import SceneData
 
 
 def main(args):
     scene_dir = Path(args.scene)
 
-    # Load dataset
+    # Load data point
     dataset = VGNDataset(scene_dir.parent, rebuild_cache=args.rebuild_cache)
     index = dataset.scenes.index(scene_dir)
-
-    tsdf, indices, quats, qualities = dataset[index]
+    tsdf_vol, indices, quats, qualities = dataset[index]
     quats = np.swapaxes(quats, 0, 1)
 
-    # Visualize TSDF
+    # Visualize TSDF grid and reconstructed point cloud
     mlab.figure()
-
-    scene = SceneData.load(scene_dir)
-    point_cloud, _ = integration.reconstruct_scene(
-        scene.intrinsic, scene.extrinsics, scene.depth_imgs, resolution=80
-    )
-
-    vis.draw_voxels(tsdf)
+    vis.draw_volume(tsdf_vol.squeeze())
     vis.draw_candidates(indices, quats, qualities, draw_frames=False)
-    vis.draw_points(np.asarray(point_cloud.points) / cfg.size * cfg.resolution)
     mlab.show()
 
 
