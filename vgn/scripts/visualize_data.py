@@ -36,6 +36,5 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="visualize data from a scene")
     parser.add_argument("--scene", type=str, required=True, help="scene directory")
-    parser.add_argument("--rebuild-cache", action="store_true")
     args = parser.parse_args()
     main(args)

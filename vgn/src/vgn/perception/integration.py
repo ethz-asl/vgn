@@ -48,7 +48,7 @@ class TSDFVolume(object):
         self._volume.integrate(rgbd, intrinsic, extrinsic)
 
     def get_index(self, position):
-        return np.round(position / self.voxel_size)
+        return np.round(position / self.voxel_size).astype(np.int)
 
     def get_volume(self):
         """Return voxel volume with truncated signed distances."""
