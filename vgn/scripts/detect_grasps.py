@@ -1,42 +1,45 @@
 import argparse
 from pathlib import Path
+import time
 
 import open3d
 from mayavi import mlab
-import torch
 
-from vgn.utils import vis
-import vgn.config as cfg
-from vgn.perception import integration
-from vgn import utils
-from vgn.utils.data import SceneData
+from vgn import config as cfg
 from vgn.grasp_detector import GraspDetector
+from vgn.perception.integration import TSDFVolume
+from vgn.utils import vis
+from vgn.utils.data import SceneData
 
 
 def main(args):
-
     # Load scene data
     scene_dir = Path(args.scene)
-    scene_data = SceneData.load(scene_dir)
+    scene = SceneData.load(scene_dir)
 
-    point_cloud, voxel_grid = integration.reconstruct_scene(
-        scene_data.intrinsic,
-        scene_data.extrinsics,
-        scene_data.depth_imgs,
-        resolution=40,
-    )
-    tsdf = utils.voxel_grid_to_array(voxel_grid, cfg.resolution)
+    # Build TSDF
+    tsdf = TSDFVolume(cfg.size, cfg.resolution)
+    for depth_img, extrinsic in zip(scene.depth_imgs, scene.extrinsics):
+        tsdf.integrate(depth_img, scene.intrinsic, extrinsic)
+    point_cloud = tsdf.extract_point_cloud()
+    tsdf_vol = tsdf.get_volume()
 
     # Detect grasps
     detector = GraspDetector(Path(args.model))
-    grasps, info = detector.detect_grasps(tsdf)
+    tic = time.time()
+    grasps, qualities, info = detector.detect_grasps(tsdf_vol, tsdf.voxel_size, 0.8)
+    toc = time.time() - tic
+    print("Prediction took {} s".format(toc))
 
-    # Plot the network output
-    mlab.figure()
-    vis.draw_voxels(tsdf)
+    # Plot TSDF voxel volume
+    mlab.figure("TSDF volume")
+    vis.draw_volume(tsdf_vol, tsdf.voxel_size)
 
-    mlab.figure()
-    vis.draw_voxels(info["quality_out"])
+    # Draw network output, overlaid with point cloud and detected grasps
+    mlab.figure("Grasp quality volume")
+    vis.draw_volume(info["filtered"], tsdf.voxel_size)
+    vis.draw_point_cloud(point_cloud)
+    vis.draw_grasps(grasps, qualities, draw_frames=True)
 
     mlab.show()
 

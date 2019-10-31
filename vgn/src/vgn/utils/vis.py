@@ -4,24 +4,31 @@ from mayavi import mlab
 from vgn.utils.transform import Rotation
 
 
-def draw_volume(vol, tol=0.001):
-    x, y, z = np.where(vol > tol)
-    scalars = vol[vol > tol]
-
+def draw_volume(vol, voxel_size, tol=0.001):
+    (x, y, z), scalars = np.where(vol > tol), vol[vol > tol]
     mlab.points3d(
-        x,
-        y,
-        z,
+        x * voxel_size,
+        y * voxel_size,
+        z * voxel_size,
         scalars,
         vmin=0.0,
         vmax=1.0,
         mode="cube",
         scale_mode="none",
-        scale_factor=1.0,
+        scale_factor=voxel_size,
         opacity=0.05,
     )
+
+    x, y, z = np.mgrid[0:40, 0:40, 0:40]
     mlab.volume_slice(
-        vol, vmin=0.0, vmax=1.0, plane_orientation="x_axes", transparent=True
+        x * voxel_size,
+        y * voxel_size,
+        z * voxel_size,
+        vol,
+        vmin=0.0,
+        vmax=1.0,
+        plane_orientation="x_axes",
+        transparent=True,
     )
 
     mlab.xlabel("x")
@@ -30,38 +37,33 @@ def draw_volume(vol, tol=0.001):
     mlab.colorbar(nb_labels=6, orientation="vertical")
 
 
-def draw_frame(index, quat, scale=1.0):
-    x, y, z = np.split(np.repeat(index, 3), 3)
-    u, v, w = np.split(scale * Rotation.from_quat(quat).as_dcm().flatten(), 3)
-    c = [1.0, 0.5, 0.0]
-
-    axes = mlab.quiver3d(
-        x,
-        y,
-        z,
-        u,
-        v,
-        w,
-        scalars=c,
-        colormap="blue-red",
-        mode="arrow",
-        scale_mode="none",
-        scale_factor=scale,
-    )
-    axes.glyph.color_mode = "color_by_scalar"
-
-
-def draw_points(points):
+def draw_point_cloud(point_cloud):
+    points = np.asarray(point_cloud.points)
     x, y, z = points[:, 0], points[:, 1], points[:, 2]
-    mlab.points3d(x, y, z, color=(0.4, 0.4, 0.4), scale_mode="none", scale_factor=0.3)
+    mlab.points3d(x, y, z, color=(0.4, 0.4, 0.4), scale_mode="none", scale_factor=0.002)
 
 
-def draw_candidates(indices, quats, qualities, draw_frames=False):
-    x, y, z = indices[:, 0], indices[:, 1], indices[:, 2]
-    mlab.points3d(
-        x, y, z, qualities, vmin=0.0, vmax=1.0, scale_mode="none", scale_factor=0.5
-    )
+def draw_grasps(grasps, qualities, draw_frames=True):
+    for grasp, quality in zip(grasps, qualities):
+        x, y, z = grasp.pose.translation
+        mlab.points3d(
+            x, y, z, quality, vmin=0.0, vmax=1.0, scale_mode="none", scale_factor=0.004
+        )
 
-    if draw_frames:
-        for index, quat in zip(indices, quats):
-            draw_frame(index, quat)
+        if draw_frames:
+            x, y, z = np.split(np.repeat([x, y, z], 3), 3)
+            u, v, w = np.split(grasp.pose.rotation.as_dcm().flatten(), 3)
+            axes = mlab.quiver3d(
+                x,
+                y,
+                z,
+                u,
+                v,
+                w,
+                scalars=[1.0, 0.5, 0.0],
+                colormap="blue-red",
+                mode="arrow",
+                scale_mode="none",
+                scale_factor=0.01,
+            )
+            axes.glyph.color_mode = "color_by_scalar"

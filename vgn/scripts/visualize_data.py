@@ -5,24 +5,31 @@ import numpy as np
 import open3d
 from mayavi import mlab
 
+from vgn import config as cfg
+from vgn import grasp
 from vgn.dataset import VGNDataset
-from vgn.utils import vis
+from vgn.utils import vis, data
 from vgn.utils.data import SceneData
+from vgn.perception.integration import TSDFVolume
 
 
 def main(args):
     scene_dir = Path(args.scene)
 
-    # Load data point
-    dataset = VGNDataset(scene_dir.parent, rebuild_cache=args.rebuild_cache)
-    index = dataset.scenes.index(scene_dir)
-    tsdf_vol, indices, quats, qualities = dataset[index]
-    quats = np.swapaxes(quats, 0, 1)
+    # Load scene data
+    scene = SceneData.load(scene_dir)
+    tsdf = TSDFVolume(cfg.size, cfg.resolution)
+    for depth_img, extrinsic in zip(scene.depth_imgs, scene.extrinsics):
+        tsdf.integrate(depth_img, scene.intrinsic, extrinsic)
+    tsdf_vol = tsdf.get_volume()
+    point_cloud = tsdf.extract_point_cloud()
+    qualities = [0.0 if label < grasp.Label.SUCCESS else 1.0 for label in scene.labels]
 
-    # Visualize TSDF grid and reconstructed point cloud
-    mlab.figure()
-    vis.draw_volume(tsdf_vol.squeeze())
-    vis.draw_candidates(indices, quats, qualities, draw_frames=False)
+    # Visualize TSDF volume, reconstructed point cloud, and grasps
+    mlab.figure("Scene {}".format(scene_dir.name))
+    vis.draw_volume(tsdf_vol.squeeze(), tsdf.voxel_size)
+    vis.draw_point_cloud(point_cloud)
+    vis.draw_grasps(scene.grasps, qualities, draw_frames=True)
     mlab.show()
 
 
