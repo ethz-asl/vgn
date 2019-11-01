@@ -18,25 +18,12 @@ from vgn.dataset import VGNDataset
 
 
 def prepare_batch(batch, device):
-    tsdf, idx, quat, quality = batch
-    tsdf = tsdf.to(device)
-    idx = idx.to(device)
-    quality = quality.squeeze().to(device)
-    quat = quat.to(device)
-    return tsdf, idx, quality, quat
-
-
-def select_pred(qualities, quats, indices):
-    quality_pred = torch.cat(
-        [
-            s[0, i[:, 0], i[:, 1], i[:, 2]].unsqueeze(0)
-            for s, i in zip(qualities, indices)
-        ]
-    )
-    quat_pred = torch.cat(
-        [q[:, i[:, 0], i[:, 1], i[:, 2]].unsqueeze(0) for q, i in zip(quats, indices)]
-    )
-    return quality_pred, quat_pred
+    input_tsdf, target_quality, target_quat, mask = batch
+    input_tsdf = input_tsdf.to(device)
+    target_quality = target_quality.to(device)
+    target_quat = target_quat.to(device)
+    mask = mask.to(device)
+    return input_tsdf, target_quality, target_quat, mask
 
 
 def create_trainer(net, optimizer, quality_loss_fn, quat_loss_fn, device):
@@ -47,18 +34,17 @@ def create_trainer(net, optimizer, quality_loss_fn, quat_loss_fn, device):
         optimizer.zero_grad()
 
         # Forward pass
-        tsdf, idx, quality, quat = prepare_batch(batch, device)
-        quality_out, quat_out = net(tsdf)
-        quality_pred, quat_pred = select_pred(quality_out, quat_out, idx)
-        loss_quality = quality_loss_fn(quality_pred, quality)
-        loss_quat = quat_loss_fn(quat_pred, quat)
+        input_tsdf, target_quality, target_quat, mask = prepare_batch(batch, device)
+        pred_quality, pred_quat = net(input_tsdf)
+        loss_quality = quality_loss_fn(pred_quality, target_quality, mask)
+        loss_quat = quat_loss_fn(pred_quat, target_quat, target_quality)
         loss = loss_quality + loss_quat
 
         # Backward pass
         loss.backward()
         optimizer.step()
 
-        return loss, loss_quality, loss_quat, quality_pred, quality
+        return loss, loss_quality, loss_quat, pred_quality, target_quality, mask
 
     return Engine(_update)
 
@@ -69,17 +55,16 @@ def create_evaluator(net, device):
     def _inference(_, batch):
         net.eval()
         with torch.no_grad():
-            tsdf, idx, quality, quat = prepare_batch(batch, device)
-            quality_out, quat_out = net(tsdf)
-            quality_pred, quat_pred = select_pred(quality_out, quat_out, idx)
-        return quality_pred, quality, quat_pred, quat
+            input_tsdf, target_quality, target_quat, mask = prepare_batch(batch, device)
+            pred_quality, pred_quat = net(input_tsdf)
+        return pred_quality, target_quality, pred_quat, target_quat
 
     engine = Engine(_inference)
 
     return engine
 
 
-def create_summary_writers(net, data_loader, device, log_dir):
+def create_summary_writers(net, trace, device, log_dir):
     train_path = log_dir / "train"
     val_path = log_dir / "validation"
 
@@ -87,7 +72,6 @@ def create_summary_writers(net, data_loader, device, log_dir):
     val_writer = tensorboard.SummaryWriter(val_path, flush_secs=60)
 
     # Write the graph to Tensorboard
-    trace, _, _, _ = prepare_batch(next(iter(data_loader)), device)
     train_writer.add_graph(net, trace)
 
     return train_writer, val_writer
@@ -140,8 +124,13 @@ def main(args):
     net = networks.get_network(args.net)
 
     # Define loss functions
-    quality_loss_fn = F.binary_cross_entropy
-    quat_loss_fn = torch.nn.L1Loss()
+    def quality_loss_fn(pred, target, mask):
+        loss = F.binary_cross_entropy_with_logits(pred, target, reduction="none")
+        return (loss * mask).sum() / mask.sum()
+
+    def quat_loss_fn(pred, target, mask):
+        loss = F.l1_loss(pred, target, reduction="none")
+        return (loss * mask).sum() / mask.sum()
 
     # Define optimizer
     optimizer = torch.optim.Adam(net.parameters(), lr=args.lr)
@@ -151,50 +140,47 @@ def main(args):
     evaluator = create_evaluator(net, device)
 
     # Train metrics
-    quality_loss_metric = RunningAverage(output_transform=lambda x: x[1])
-    quality_loss_metric.attach(trainer, "loss_quality")
-    quat_loss_metric = RunningAverage(output_transform=lambda x: x[2])
-    quat_loss_metric.attach(trainer, "loss_quat")
-    loss_metric = RunningAverage(output_transform=lambda x: x[0])
-    loss_metric.attach(trainer, "loss")
-    acc_metric = Accuracy(lambda x: (torch.round(x[3]), x[4]))
-    acc_metric.attach(trainer, "acc")
+    RunningAverage(output_transform=lambda x: x[0]).attach(trainer, "loss")
+    RunningAverage(output_transform=lambda x: x[1]).attach(trainer, "loss_quality")
+    RunningAverage(output_transform=lambda x: x[2]).attach(trainer, "loss_quat")
+    # TODO log accuracy
 
     # Validation metrics
-    quality_loss_metric = Loss(quality_loss_fn, lambda x: (x[0], x[1]))
-    quality_loss_metric.attach(evaluator, "loss_quality")
-    quat_loss_metric = Loss(quat_loss_fn, lambda x: (x[2], x[3]))
-    quat_loss_metric.attach(evaluator, "loss_quat")
-    loss_metric = quality_loss_metric + quat_loss_metric
-    loss_metric.attach(evaluator, "loss")
-    acc_metric = Accuracy(lambda x: (torch.round(x[0]), x[1]))
-    acc_metric.attach(evaluator, "acc")
+    # quality_loss_metric = Loss(quality_loss_fn, lambda x: (x[0], x[1]))
+    # quality_loss_metric.attach(evaluator, "loss_quality")
+    # quat_loss_metric = Loss(quat_loss_fn, lambda x: (x[2], x[3]))
+    # quat_loss_metric.attach(evaluator, "loss_quat")
+    # loss_metric = quality_loss_metric + quat_loss_metric
+    # loss_metric.attach(evaluator, "loss")
+    # acc_metric = Accuracy(lambda x: (torch.round(x[0]), x[1]))
+    # acc_metric.attach(evaluator, "acc")
 
-    # Setup loggers and checkpoints
+    # Add CLI progress bar
     ProgressBar(persist=True, ascii=True).attach(trainer, ["loss"])
 
-    train_writer, val_writer = create_summary_writers(
-        net, train_loader, device, log_dir
-    )
+    # Write train and eval metrics to tensorboard at the end of each epoch
+    trace, _, _, _ = prepare_batch(next(iter(train_loader)), device)
+    train_writer, val_writer = create_summary_writers(net, trace, device, log_dir)
 
-    @trainer.on(Events.EPOCH_COMPLETED)
-    def log_metrics(_):
+    def logging_handler(_):
         evaluator.run(validation_loader)
-
         epoch = trainer.state.epoch
 
         metrics = trainer.state.metrics
         train_writer.add_scalar("loss_quality", metrics["loss_quality"], epoch)
         train_writer.add_scalar("loss_quat", metrics["loss_quat"], epoch)
         train_writer.add_scalar("loss", metrics["loss"], epoch)
-        train_writer.add_scalar("accuracy", metrics["acc"], epoch)
+        # train_writer.add_scalar("accuracy", metrics["acc"], epoch)
 
-        metrics = evaluator.state.metrics
-        val_writer.add_scalar("loss_quality", metrics["loss_quality"], epoch)
-        val_writer.add_scalar("loss_quat", metrics["loss_quat"], epoch)
-        val_writer.add_scalar("loss", metrics["loss"], epoch)
-        val_writer.add_scalar("accuracy", metrics["acc"], epoch)
+        # metrics = evaluator.state.metrics
+        # val_writer.add_scalar("loss_quality", metrics["loss_quality"], epoch)
+        # val_writer.add_scalar("loss_quat", metrics["loss_quat"], epoch)
+        # val_writer.add_scalar("loss", metrics["loss"], epoch)
+        # val_writer.add_scalar("accuracy", metrics["acc"], epoch)
 
+    trainer.add_event_handler(Events.EPOCH_COMPLETED, logging_handler)
+
+    # Save the model weights every 10 epochs
     checkpoint_handler = ModelCheckpoint(
         log_dir,
         "vgn",
@@ -203,6 +189,7 @@ def main(args):
         require_empty=True,
         save_as_state_dict=True,
     )
+
     evaluator.add_event_handler(
         Events.EPOCH_COMPLETED, checkpoint_handler, to_save={args.net: net}
     )
@@ -231,7 +218,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--epochs", type=int, default=100, help="number of epochs to train"
     )
-    parser.add_argument("--lr", type=float, default=0.001, help="learning rate")
+    parser.add_argument("--lr", type=float, default=3e-4, help="learning rate")
     parser.add_argument(
         "--validation-split",
         type=float,
