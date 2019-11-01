@@ -10,7 +10,7 @@ import torch.nn.functional as F
 from ignite.contrib.handlers.tqdm_logger import ProgressBar
 from ignite.engine import Engine, Events
 from ignite.handlers import ModelCheckpoint
-from ignite.metrics import Accuracy, Loss, RunningAverage
+from ignite.metrics import Metric, Average
 from torch.utils import tensorboard
 
 from vgn import networks
@@ -26,30 +26,50 @@ def prepare_batch(batch, device):
     return input_tsdf, target_quality, target_quat, mask
 
 
-def create_trainer(net, optimizer, quality_loss_fn, quat_loss_fn, device):
+def quality_loss_fn(pred, target, mask):
+    loss = F.binary_cross_entropy(pred, target, reduction="none")
+    return (loss * mask).sum() / mask.sum()
+
+
+def quat_loss_fn(pred, target, mask):
+    loss = F.l1_loss(pred, target, reduction="none")
+    return (loss * mask).sum() / mask.sum()
+
+
+def loss_fn(pred_quality, target_quality, pred_quat, target_quat, mask):
+    quality_loss = quality_loss_fn(pred_quality, target_quality, mask)
+    quat_loss = quat_loss_fn(pred_quat, target_quat, target_quality)
+    loss = quality_loss + quat_loss
+    return loss
+
+
+def create_trainer(net, optimizer, metrics, device):
     net.to(device)
 
     def _update(_, batch):
         net.train()
         optimizer.zero_grad()
 
-        # Forward pass
+        # Forward
         input_tsdf, target_quality, target_quat, mask = prepare_batch(batch, device)
         pred_quality, pred_quat = net(input_tsdf)
-        loss_quality = quality_loss_fn(pred_quality, target_quality, mask)
-        loss_quat = quat_loss_fn(pred_quat, target_quat, target_quality)
-        loss = loss_quality + loss_quat
+        loss = loss_fn(pred_quality, target_quality, pred_quat, target_quat, mask)
 
-        # Backward pass
+        # Backward
         loss.backward()
         optimizer.step()
 
-        return loss, loss_quality, loss_quat, pred_quality, target_quality, mask
+        return pred_quality, target_quality, pred_quat, target_quat, mask
 
-    return Engine(_update)
+    engine = Engine(_update)
+
+    for name, metric in metrics.items():
+        metric.attach(engine, name)
+
+    return engine
 
 
-def create_evaluator(net, device):
+def create_evaluator(net, metrics, device):
     net.to(device)
 
     def _inference(_, batch):
@@ -57,11 +77,31 @@ def create_evaluator(net, device):
         with torch.no_grad():
             input_tsdf, target_quality, target_quat, mask = prepare_batch(batch, device)
             pred_quality, pred_quat = net(input_tsdf)
-        return pred_quality, target_quality, pred_quat, target_quat
+
+        return pred_quality, target_quality, pred_quat, target_quat, mask
 
     engine = Engine(_inference)
 
+    for name, metric in metrics.items():
+        metric.attach(engine, name)
+
     return engine
+
+
+class Accuracy(Metric):
+    def reset(self):
+        self.num_correct = 0
+        self.num_examples = 0
+
+    def update(self, out):
+        pred_quality, target_quality, mask = out[0], out[1], out[4]
+        correct = torch.eq(torch.round(pred_quality), target_quality) * mask
+
+        self.num_correct += torch.sum(correct).item()
+        self.num_examples += torch.sum(mask).item()
+
+    def compute(self):
+        return self.num_correct / self.num_examples
 
 
 def create_summary_writers(net, trace, device, log_dir):
@@ -123,62 +163,44 @@ def main(args):
     # Build the network
     net = networks.get_network(args.net)
 
-    # Define loss functions
-    def quality_loss_fn(pred, target, mask):
-        loss = F.binary_cross_entropy_with_logits(pred, target, reduction="none")
-        return (loss * mask).sum() / mask.sum()
-
-    def quat_loss_fn(pred, target, mask):
-        loss = F.l1_loss(pred, target, reduction="none")
-        return (loss * mask).sum() / mask.sum()
-
     # Define optimizer
     optimizer = torch.optim.Adam(net.parameters(), lr=args.lr)
 
+    # Define metrics
+    metrics = {
+        "loss": Average(lambda out: loss_fn(out[0], out[1], out[2], out[3], out[4])),
+        "loss_quality": Average(lambda out: quality_loss_fn(out[0], out[1], out[4])),
+        "loss_quat": Average(lambda out: quat_loss_fn(out[2], out[3], out[1])),
+        "acc": Accuracy(),
+    }
+
     # Create Ignite engines for training and validation
-    trainer = create_trainer(net, optimizer, quality_loss_fn, quat_loss_fn, device)
-    evaluator = create_evaluator(net, device)
+    trainer = create_trainer(net, optimizer, metrics, device)
+    evaluator = create_evaluator(net, metrics, device)
 
-    # Train metrics
-    RunningAverage(output_transform=lambda x: x[0]).attach(trainer, "loss")
-    RunningAverage(output_transform=lambda x: x[1]).attach(trainer, "loss_quality")
-    RunningAverage(output_transform=lambda x: x[2]).attach(trainer, "loss_quat")
-    # TODO log accuracy
+    # Add progress bar
+    ProgressBar(persist=True, ascii=True).attach(trainer)
 
-    # Validation metrics
-    # quality_loss_metric = Loss(quality_loss_fn, lambda x: (x[0], x[1]))
-    # quality_loss_metric.attach(evaluator, "loss_quality")
-    # quat_loss_metric = Loss(quat_loss_fn, lambda x: (x[2], x[3]))
-    # quat_loss_metric.attach(evaluator, "loss_quat")
-    # loss_metric = quality_loss_metric + quat_loss_metric
-    # loss_metric.attach(evaluator, "loss")
-    # acc_metric = Accuracy(lambda x: (torch.round(x[0]), x[1]))
-    # acc_metric.attach(evaluator, "acc")
-
-    # Add CLI progress bar
-    ProgressBar(persist=True, ascii=True).attach(trainer, ["loss"])
-
-    # Write train and eval metrics to tensorboard at the end of each epoch
+    # Logging
     trace, _, _, _ = prepare_batch(next(iter(train_loader)), device)
     train_writer, val_writer = create_summary_writers(net, trace, device, log_dir)
 
-    def logging_handler(_):
-        evaluator.run(validation_loader)
-        epoch = trainer.state.epoch
-
-        metrics = trainer.state.metrics
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def log_train_results(engine):
+        epoch, metrics = trainer.state.epoch, trainer.state.metrics
+        train_writer.add_scalar("loss", metrics["loss"], epoch)
         train_writer.add_scalar("loss_quality", metrics["loss_quality"], epoch)
         train_writer.add_scalar("loss_quat", metrics["loss_quat"], epoch)
-        train_writer.add_scalar("loss", metrics["loss"], epoch)
-        # train_writer.add_scalar("accuracy", metrics["acc"], epoch)
+        train_writer.add_scalar("acc", metrics["acc"], epoch)
 
-        # metrics = evaluator.state.metrics
-        # val_writer.add_scalar("loss_quality", metrics["loss_quality"], epoch)
-        # val_writer.add_scalar("loss_quat", metrics["loss_quat"], epoch)
-        # val_writer.add_scalar("loss", metrics["loss"], epoch)
-        # val_writer.add_scalar("accuracy", metrics["acc"], epoch)
-
-    trainer.add_event_handler(Events.EPOCH_COMPLETED, logging_handler)
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def log_validation_results(engine):
+        evaluator.run(validation_loader)
+        epoch, metrics = trainer.state.epoch, evaluator.state.metrics
+        val_writer.add_scalar("loss", metrics["loss"], epoch)
+        val_writer.add_scalar("loss_quality", metrics["loss_quality"], epoch)
+        val_writer.add_scalar("loss_quat", metrics["loss_quat"], epoch)
+        val_writer.add_scalar("acc", metrics["acc"], epoch)
 
     # Save the model weights every 10 epochs
     checkpoint_handler = ModelCheckpoint(
@@ -189,7 +211,6 @@ def main(args):
         require_empty=True,
         save_as_state_dict=True,
     )
-
     evaluator.add_event_handler(
         Events.EPOCH_COMPLETED, checkpoint_handler, to_save={args.net: net}
     )

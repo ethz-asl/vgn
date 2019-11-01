@@ -12,5 +12,17 @@
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal"
         },
+        {
+            "name": "Train",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/vgn/scripts/train_vgn.py",
+            "cwd": "${workspaceFolder}/vgn",
+            "console": "integratedTerminal",
+            "args": [
+                "--root=/home/michel/Developer/catkin_ws/src/grasp_playground/vgn/data/datasets/debug",
+                // "--batch-size=1"
+            ]
+        },
     ]
 }

@@ -13,7 +13,7 @@ def predict(tsdf_vol, net, device):
     # Move data to the PyTorch device
     if tsdf_vol.ndim == 3:
         tsdf_vol = tsdf_vol[None, None, :, :, :]
-    tsdf_vol = torch.from_numpy().to(device)
+    tsdf_vol = torch.from_numpy(tsdf_vol).to(device)
 
     # Predict grasp qualities and orientations
     with torch.no_grad():
@@ -21,7 +21,7 @@ def predict(tsdf_vol, net, device):
 
     # Move data back to the CPU
     quality_vol = quality_vol.cpu().squeeze().numpy()
-    quat_vol = quat_vol.cpu().squeeze().transpose(1, 2, 3, 0).numpy()
+    quat_vol = quat_vol.cpu().squeeze().numpy().transpose(1, 2, 3, 0)
 
     return quality_vol, quat_vol
 
@@ -89,7 +89,7 @@ class ConvNet(nn.Module):
         x = F.interpolate(x, 40)
 
         quality = self.conv_quality(x)
-        quality_out = quality  # sigmoid is applied by loss fn
+        quality_out = torch.sigmoid(quality)
 
         quat = self.conv_quat(x)
         quat_out = F.normalize(quat, dim=1)
