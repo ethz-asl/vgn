@@ -74,7 +74,10 @@ class VGNDataset(torch.utils.data.Dataset):
                 target_quat_vol = np.zeros((4,) + vol_shape, dtype=np.float32)
 
                 for grasp, label in zip(scene.grasps, scene.labels):
-                    i, j, k = tsdf.get_index(grasp.pose.translation)
+                    index = tsdf.get_index(grasp.pose.translation)
+                    if np.any(index < 0) or np.any(index > tsdf.resolution - 1):
+                        continue
+                    i, j, k = index
                     mask[0, i, j, k] = 1.0
                     target_quality_vol[0, i, j, k] = VGNDataset.label2quality(label)
                     target_quat_vol[:, i, j, k] = grasp.pose.rotation.as_quat()
