@@ -73,13 +73,7 @@ def evaluate_grasp_point(sim, pos, normal, n_rotations=9):
     else:
         ori = Rotation.identity()
 
-    # Ensure that the y-axis of the parallel-jaw gripper points upwards
-    y_axis = ori.as_dcm()[:, 1]
-    if np.dot(y_axis, np.r_[0.0, 0.0, 1.0]) < 0.0:
-        ori *= Rotation.from_euler("z", np.pi)
-    pose = Transform(ori, pos)
-
-    return Grasp(pose), int(np.max(outcomes))
+    return Grasp(Transform(ori, pos)), int(np.max(outcomes))
 
 
 def main(args):
