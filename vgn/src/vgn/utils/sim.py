@@ -72,6 +72,12 @@ class BtWorld(object):
             toc = time.time() - self.tic
             time.sleep(max(0.0, self.sim_time - self.rtf * toc))
 
+    def pause(self):
+        self.pause_tic = time.time()
+
+    def resume(self):
+        self.tic += time.time() - self.pause_tic
+
     def save_state(self):
         return self.p.saveState()
 

@@ -53,6 +53,12 @@ class GraspingExperiment(object):
         elif object_set == "cuboids":
             self.spawn_cuboids()
 
+    def pause(self):
+        self.world.pause()
+
+    def resume(self):
+        self.world.resume()
+
     def save_state(self):
         self.snapshot_id = self.world.save_state()
 
