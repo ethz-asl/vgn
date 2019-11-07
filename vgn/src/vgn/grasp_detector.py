@@ -11,7 +11,7 @@ class GraspDetector(object):
     def __init__(self, model_path):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.net = get_network(model_path.name.split("_")[1]).to(self.device)
-        self.net.load_state_dict(torch.load(model_path))
+        self.net.load_state_dict(torch.load(model_path, map_location=self.device))
 
     def detect_grasps(self, tsdf_vol, voxel_size, threshold=0.9):
         """Returns a list of detected grasps.
