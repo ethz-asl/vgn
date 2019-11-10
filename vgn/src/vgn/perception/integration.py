@@ -47,6 +47,10 @@ class TSDFVolume(object):
 
         self._volume.integrate(rgbd, intrinsic, extrinsic)
 
+    def integrate_images(self, depth_imgs, intrinsic, extrinsics):
+        for depth_img, extrinsic in zip(depth_imgs, extrinsics):
+            self.integrate(depth_img, intrinsic, extrinsic)
+
     def get_index(self, position):
         return np.round(position / self.voxel_size).astype(np.int)
 

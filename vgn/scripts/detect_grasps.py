@@ -19,8 +19,7 @@ def main(args):
 
     # Build TSDF
     tsdf = TSDFVolume(cfg.size, cfg.resolution)
-    for depth_img, extrinsic in zip(scene.depth_imgs, scene.extrinsics):
-        tsdf.integrate(depth_img, scene.intrinsic, extrinsic)
+    tsdf.integrate_images(scene.depth_imgs, scene.intrinsic, scene.extrinsics)
     point_cloud = tsdf.extract_point_cloud()
     tsdf_vol = tsdf.get_volume()
 

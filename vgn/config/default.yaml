@@ -10,7 +10,7 @@ simulation:
 # Warning: only change the values below if you want to generate a new dataset 
 # and/or train the network with different parameters
 
-data_generation:  
+data_generation:
   n_scenes: 1000
   tsdf_res: 80
   n_viewpoints: 16

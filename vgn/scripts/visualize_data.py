@@ -19,8 +19,7 @@ def main(args):
     # Load scene data
     scene = SceneData.load(scene_dir)
     tsdf = TSDFVolume(cfg.size, cfg.resolution)
-    for depth_img, extrinsic in zip(scene.depth_imgs, scene.extrinsics):
-        tsdf.integrate(depth_img, scene.intrinsic, extrinsic)
+    tsdf.integrate_images(scene.depth_imgs, scene.intrinsic, scene.extrinsics)
     tsdf_vol = tsdf.get_volume()
     point_cloud = tsdf.extract_point_cloud()
     qualities = [0.0 if label < grasp.Label.SUCCESS else 1.0 for label in scene.labels]

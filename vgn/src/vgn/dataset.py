@@ -59,8 +59,9 @@ class VGNDataset(torch.utils.data.Dataset):
                 # Load the data and build the TSDF
                 scene = SceneData.load(scene_dir)
                 tsdf = TSDFVolume(cfg.size, cfg.resolution)
-                for depth_img, extrinsic in zip(scene.depth_imgs, scene.extrinsics):
-                    tsdf.integrate(depth_img, scene.intrinsic, extrinsic)
+                tsdf.integrate_images(
+                    scene.depth_imgs, scene.intrinsic, scene.extrinsics
+                )
                 tsdf_vol = tsdf.get_volume()
 
                 # Construct input

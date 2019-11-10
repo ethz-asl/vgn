@@ -115,10 +115,9 @@ def main(args):
         extrinsics = sample_hemisphere(tsdf_size, n_viewpoints)
         depth_imgs = [sim.camera.render(e)[1] for e in extrinsics]
 
-        volume = TSDFVolume(tsdf_size, tsdf_res)
-        for depth_img, extrinsic in zip(depth_imgs, extrinsics):
-            volume.integrate(depth_img, intrinsic, extrinsic)
-        point_cloud = volume.extract_point_cloud()
+        tsdf = TSDFVolume(tsdf_size, tsdf_res)
+        tsdf.integrate_images(depth_imgs, intrinsic, extrinsics)
+        point_cloud = tsdf.extract_point_cloud()
 
         # Sample and evaluate grasp candidates
         grasps, labels = [], []
