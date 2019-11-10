@@ -111,8 +111,8 @@ class Body(object):
             self.links[link_name] = Link(self.p, self.body_uid, i)
 
     @classmethod
-    def from_urdf(cls, physics_client, fname):
-        body_uid = physics_client.loadURDF(fname)
+    def from_urdf(cls, physics_client, path):
+        body_uid = physics_client.loadURDF(str(path))
         return cls(physics_client, body_uid)
 
     def get_pose(self):

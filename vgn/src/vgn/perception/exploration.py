@@ -6,10 +6,11 @@ import vgn.config as cfg
 from vgn.utils.transform import Transform
 
 
-def sample_hemisphere(n):
+def sample_hemisphere(size, n):
     """Generate random viewpoints on a task space cenetered half-sphere.
 
     Args:
+        size: Size of the task space.
         n: The number of viewpoints.
 
     Returns:
@@ -17,7 +18,7 @@ def sample_hemisphere(n):
     """
     extrinsics = []
     for _ in range(n):
-        half_size = 0.5 * cfg.size
+        half_size = 0.5 * size
 
         phi = np.random.uniform(0.0, 2.0 * pi)
         theta = np.random.uniform(pi / 6.0, 5.0 * pi / 12.0)

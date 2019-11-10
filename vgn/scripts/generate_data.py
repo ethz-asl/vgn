@@ -18,7 +18,8 @@ import tqdm
 from mpi4py import MPI
 import open3d
 
-import vgn.config as cfg
+
+from vgn.config import Config
 from vgn.simulation import GraspingExperiment
 from vgn.grasp import Grasp, Label
 from vgn.utils.data import SceneData
@@ -27,8 +28,7 @@ from vgn.perception.exploration import sample_hemisphere
 from vgn.utils.transform import Rotation, Transform
 
 
-def sample_grasp_point(point_cloud):
-    gripper_depth = 0.5 * cfg.max_width
+def sample_grasp_point(gripper_depth, point_cloud):
     epsilon = 0.2
 
     points = np.asarray(point_cloud.points)
@@ -83,26 +83,39 @@ def main(args):
     if rank == 0:
         print("Generating data using {} processes.".format(n_workers))
 
-    resolution = 80  # TODO make this transparent
-    s = GraspingExperiment(args.sim_gui, args.rtf)
+    # Load the configuration
+    config = Config(Path(args.config))
+
+    tsdf_res = config["data_generation"]["tsdf_res"]
+    tsdf_size = config["scene"]["size"]
+
+    urdf_root = Path(config["simulation"]["urdf_root"])
+
+    n_scenes = config["data_generation"]["n_scenes"]
+    n_viewpoints = config["data_generation"]["n_viewpoints"]
+    n_grasps = config["data_generation"]["n_grasps"]
+
+    gripper_depth = 0.5 * config["hand"]["max_width"]  # TODO(mbreyer) parameterize this
+
+    # Setup simulation
+    sim = GraspingExperiment(urdf_root, tsdf_size, args.sim_gui, args.rtf)
 
     # Create the root directory if it does not exist yet
     root = Path(args.root)
     if not root.exists() and rank == 0:
         root.mkdir()
 
-    for _ in tqdm.tqdm(range(args.scenes), disable=rank is not 0):
+    for _ in tqdm.tqdm(range(n_scenes), disable=rank is not 0):
         # Setup experiment
-        s.setup(args.object_set)
-        s.save_state()
+        sim.setup(args.object_set)
+        sim.save_state()
 
         # Reconstruct scene
-        n_views_per_scene = 16  # TODO(mbreyer): move to config
-        intrinsic = s.camera.intrinsic
-        extrinsics = sample_hemisphere(n_views_per_scene)
-        depth_imgs = [s.camera.render(e)[1] for e in extrinsics]
+        intrinsic = sim.camera.intrinsic
+        extrinsics = sample_hemisphere(tsdf_size, n_viewpoints)
+        depth_imgs = [sim.camera.render(e)[1] for e in extrinsics]
 
-        volume = TSDFVolume(cfg.size, resolution)
+        volume = TSDFVolume(tsdf_size, tsdf_res)
         for depth_img, extrinsic in zip(depth_imgs, extrinsics):
             volume.integrate(depth_img, intrinsic, extrinsic)
         point_cloud = volume.extract_point_cloud()
@@ -113,10 +126,10 @@ def main(args):
         is_positive = lambda o: o == Label.SUCCESS
         n_negatives = 0
 
-        while len(grasps) < args.grasps:
-            point, normal = sample_grasp_point(point_cloud)
-            grasp, label = evaluate_grasp_point(s, point, normal)
-            if is_positive(label) or n_negatives < args.grasps // 2:
+        while len(grasps) < n_grasps:
+            point, normal = sample_grasp_point(gripper_depth, point_cloud)
+            grasp, label = evaluate_grasp_point(sim, point, normal)
+            if is_positive(label) or n_negatives < n_grasps // 2:
                 grasps.append(grasp)
                 labels.append(label)
                 n_negatives += not is_positive(label)
@@ -140,10 +153,10 @@ if __name__ == "__main__":
         help="object set to be used",
     )
     parser.add_argument(
-        "--scenes", type=int, default=1000, help="number of generated virtual scenes"
-    )
-    parser.add_argument(
-        "--grasps", type=int, default=40, help="number of grasp candidates per scene"
+        "--config",
+        type=str,
+        default="config/default.yaml",
+        help="path to configuration file",
     )
     parser.add_argument("--sim-gui", action="store_true", help="disable headless mode")
     parser.add_argument(

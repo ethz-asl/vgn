@@ -19,8 +19,10 @@ class GraspingExperiment(object):
         world: Reference to the simulated world.
     """
 
-    def __init__(self, gui, real_time_factor=-1.0):
+    def __init__(self, urdf_root, size, gui, real_time_factor=-1.0):
+        self.size = size
         self.world = sim.BtWorld(gui, real_time_factor)
+        self.urdf_root = urdf_root
 
     def setup(self, object_set):
         """Setup a grasping experiment.
@@ -35,11 +37,11 @@ class GraspingExperiment(object):
         self.world.set_gravity([0.0, 0.0, -9.81])
 
         # Load support surface
-        plane = self.world.load_urdf("data/urdfs/plane/plane.urdf")
+        plane = self.world.load_urdf(self.urdf_root / "plane/plane.urdf")
         plane.set_pose(Transform(Rotation.identity(), [0.0, 0.0, 0.0]))
 
         # Load robot
-        self.robot = RobotArm(self.world)
+        self.robot = RobotArm(self.world, self.urdf_root / "hand/hand.urdf")
 
         # Load camera
         intrinsic = PinholeCameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)
@@ -108,14 +110,14 @@ class GraspingExperiment(object):
             self.world.step()
 
     def spawn_debug_object(self):
-        urdf = "data/urdfs/wooden_blocks/cuboid0.urdf"
-        position = np.r_[0.5 * cfg.size, 0.5 * cfg.size, 0.12]
+        urdf = self.urdf_root / "toy_blocks/cuboid/cuboid.urdf"
+        position = np.r_[0.5 * self.size, 0.5 * self.size, 0.12]
         orientation = Rotation.from_quat([0.0, 0.0, 0.0, 1.0])
         self.spawn_object(urdf, Transform(orientation, position))
 
     def spawn_cuboid(self):
-        urdf = "data/urdfs/wooden_blocks/cuboid0.urdf"
-        position = np.r_[np.random.uniform(0.06, cfg.size - 0.06, 2), 0.12]
+        urdf = self.urdf_root / "toy_blocks/cuboid/cuboid.urdf"
+        position = np.r_[np.random.uniform(0.06, self.size - 0.06, 2), 0.12]
         orientation = Rotation.random()
         self.spawn_object(urdf, Transform(orientation, position))
 
@@ -131,9 +133,9 @@ class RobotArm(object):
     T_tcp_tool0 = T_tool0_tcp.inverse()
     max_opening_width = 0.06
 
-    def __init__(self, world):
+    def __init__(self, world, urdf_path):
         self.world = world
-        self.body = world.load_urdf("data/urdfs/hand/hand.urdf")
+        self.body = world.load_urdf(str(urdf_path))
         pose = Transform(Rotation.identity(), np.r_[0.0, 0.0, 1.0])
         self.body.set_pose(pose)
         self.constraint = self.world.add_constraint(
