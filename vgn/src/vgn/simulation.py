@@ -6,7 +6,7 @@ import pybullet
 import vgn.config as cfg
 from vgn.grasp import Label
 from vgn.perception.camera import PinholeCameraIntrinsic
-from vgn.utils import sim
+from vgn.utils import btsim
 from vgn.utils.transform import Rotation, Transform
 
 
@@ -21,7 +21,7 @@ class GraspingExperiment(object):
 
     def __init__(self, urdf_root, size, gui, real_time_factor=-1.0):
         self.size = size
-        self.world = sim.BtWorld(gui, real_time_factor)
+        self.world = btsim.BtWorld(gui, real_time_factor)
         self.urdf_root = urdf_root
 
     def setup(self, object_set):
