@@ -4,21 +4,24 @@ from pathlib import Path
 from mpi4py import MPI
 
 from vgn.data_generation import generate_data
-from vgn.utils.io import load_dict
+from vgn.utils.io import load_dict, save_dict
 
 
 def main(args):
     n_workers = MPI.COMM_WORLD.Get_size()
     rank = MPI.COMM_WORLD.Get_rank()
 
-    if rank == 0:
-        print("Generating data using {} processes.".format(n_workers))
-
+    root_dir = Path(args.root)
     data_gen_config = load_dict(Path(args.data_gen_config))
     sim_config = load_dict(Path(args.sim_config))
 
+    if rank == 0:
+        print("Generating data using {} processes.".format(n_workers))
+        root_dir.mkdir(parents=True, exist_ok=True)
+        save_dict(data_gen_config, root_dir / "config.yaml")
+
     generate_data(
-        root=Path(args.root),
+        root=root_dir,
         object_set=data_gen_config["object_set"],
         n_scenes=data_gen_config["n_scenes"],
         n_grasps=data_gen_config["n_grasps"],

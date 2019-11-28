@@ -29,10 +29,6 @@ def generate_data(
     sim = GraspingExperiment(urdf_root, vol_size, sim_gui, rtf)
     gripper_depth = 0.5 * sim.robot.max_opening_width
 
-    # Create the root directory if it does not exist yet
-    if not root.exists() and rank == 0:
-        root.mkdir(parents=True)
-
     for _ in tqdm(range(n_scenes), disable=rank is not 0):
         # Setup experiment
         sim.setup(object_set)
