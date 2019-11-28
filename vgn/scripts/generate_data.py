@@ -23,7 +23,7 @@ def main(args):
     generate_data(
         root=root_dir,
         object_set=data_gen_config["object_set"],
-        n_scenes=data_gen_config["n_scenes"],
+        n_scenes=data_gen_config["n_scenes"] // n_workers,
         n_grasps=data_gen_config["n_grasps"],
         n_viewpoints=data_gen_config["n_viewpoints"],
         vol_size=data_gen_config["vol_size"],
