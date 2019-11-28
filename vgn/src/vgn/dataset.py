@@ -1,14 +1,12 @@
-from pathlib import Path
-
 import open3d
 import numpy as np
 import torch.utils.data
 from tqdm import tqdm
 
-import vgn.config as cfg
 from vgn.grasp import Label
 from vgn.perception.integration import TSDFVolume
 from vgn.utils.data import SceneData
+from vgn.utils.io import load_dict
 from vgn.utils.transform import Rotation, Transform
 
 
@@ -52,13 +50,16 @@ class VGNDataset(torch.utils.data.Dataset):
         print("Building cache:")
         self.cache_dir.mkdir(exist_ok=True)
 
+        vol_size = load_dict(self.root_dir / "config.yaml")["vol_size"]
+        vol_res = 40
+
         # Iterate through all scenes and verify whether it needs to be processed
         for scene_dir in tqdm(self.scenes, ascii=True):
             p = self.cache_dir / (scene_dir.name + ".npz")
             if not p.exists() or self.rebuild_cache:
                 # Load the data and build the TSDF
                 scene = SceneData.load(scene_dir)
-                tsdf = TSDFVolume(cfg.size, cfg.resolution)
+                tsdf = TSDFVolume(vol_size, vol_res)
                 tsdf.integrate_images(
                     scene.depth_imgs, scene.intrinsic, scene.extrinsics
                 )
@@ -95,13 +96,3 @@ class VGNDataset(torch.utils.data.Dataset):
     def label2quality(label):
         quality = 1.0 if label == Label.SUCCESS else 0.0
         return quality
-
-
-if __name__ == "__main__":
-    # Use for debugging
-    scene_dir = Path("data/datasets/debug/foo")
-    print(scene_dir.absolute())
-    dataset = VGNDataset(scene_dir.parent, rebuild_cache=True)
-
-    index = dataset.scenes.index(scene_dir)
-    input_tsdf_vol, target_quality_vol, target_quat_vol, mask = dataset[index]
