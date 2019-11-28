@@ -13,7 +13,7 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "Generate",
+            "name": "Generate Data",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/vgn/scripts/generate_data.py",
@@ -24,15 +24,25 @@
             ]
         },
         {
-            "name": "Train",
+            "name": "Display Scene",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/vgn/scripts/display_scene.py",
+            "cwd": "${workspaceFolder}/vgn",
+            "console": "integratedTerminal",
+            "args": [
+                "--scene=data/debug/foo",
+            ]
+        },
+        {
+            "name": "Train VGN",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/vgn/scripts/train_vgn.py",
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
-                "--root=data/debug",
-                // "--batch-size=1"
+                "--data-dir=data/debug",
             ]
         },
     ]
