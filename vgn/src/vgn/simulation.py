@@ -3,7 +3,6 @@ from __future__ import division
 import numpy as np
 import pybullet
 
-import vgn.config as cfg
 from vgn.grasp import Label
 from vgn.perception.camera import PinholeCameraIntrinsic
 from vgn.utils import btsim
@@ -14,15 +13,14 @@ class GraspingExperiment(object):
     """Simulation of a grasping experiment.
 
     In this simulation, world, task and robot base frames are identical.
-
-    Attributes:
-        world: Reference to the simulated world.
     """
 
     def __init__(self, urdf_root, size, gui, real_time_factor=-1.0):
-        self.size = size
         self.world = btsim.BtWorld(gui, real_time_factor)
         self.urdf_root = urdf_root
+        self.size = size
+
+        self.robot = Robot(self.world, urdf_root / "hand/hand.urdf")
 
     def setup(self, object_set):
         """Setup a grasping experiment.
@@ -32,6 +30,8 @@ class GraspingExperiment(object):
                 * debug : a single cuboid at a fixed pose
                 * cuboid: a single cuboid
                 * cuboids: multiple cuboids
+                * object_zoo: a single object selected from a variety of different meshes
+                * objects_zoo: piles of objects
         """
         self.world.reset()
         self.world.set_gravity([0.0, 0.0, -9.81])
@@ -41,7 +41,8 @@ class GraspingExperiment(object):
         plane.set_pose(Transform(Rotation.identity(), [0.0, 0.0, 0.0]))
 
         # Load robot
-        self.robot = RobotArm(self.world, self.urdf_root / "hand/hand.urdf")
+        pose = Transform(Rotation.identity(), np.r_[0.0, 0.0, 1.0])
+        self.robot.reset(pose)
 
         # Load camera
         intrinsic = PinholeCameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)
@@ -126,17 +127,19 @@ class GraspingExperiment(object):
             self.spawn_cuboid()
 
 
-class RobotArm(object):
+class Robot(object):
     """Simulated robot arm with a simple parallel-jaw gripper."""
-
-    T_tool0_tcp = Transform(Rotation.identity(), np.r_[0.0, 0.0, 0.02])
-    T_tcp_tool0 = T_tool0_tcp.inverse()
-    max_opening_width = 0.06
 
     def __init__(self, world, urdf_path):
         self.world = world
-        self.body = world.load_urdf(str(urdf_path))
-        pose = Transform(Rotation.identity(), np.r_[0.0, 0.0, 1.0])
+        self.urdf_path = urdf_path
+
+        self.T_tool0_tcp = Transform(Rotation.identity(), np.r_[0.0, 0.0, 0.02])
+        self.T_tcp_tool0 = self.T_tool0_tcp.inverse()
+        self.max_opening_width = 0.06
+
+    def reset(self, pose):
+        self.body = self.world.load_urdf(str(self.urdf_path))
         self.body.set_pose(pose)
         self.constraint = self.world.add_constraint(
             self.body,
@@ -155,7 +158,7 @@ class RobotArm(object):
 
     def set_tcp(self, pose, override_dynamics=False):
         """Set pose of TCP w.r.t. to world frame."""
-        T_world_tool0 = pose * RobotArm.T_tcp_tool0
+        T_world_tool0 = pose * self.T_tcp_tool0
         if override_dynamics:
             self.body.set_pose(T_world_tool0)
         self.constraint.change(T_world_tool0, max_force=300)
@@ -188,11 +191,11 @@ class RobotArm(object):
         pos_l = self.body.joints["finger_l"].get_position()
         pos_r = self.body.joints["finger_r"].get_position()
         width = pos_l + pos_r
-        return width / RobotArm.max_opening_width
+        return width / self.max_opening_width
 
     def move_gripper(self, width):
         """Move gripper to desired opening width."""
-        width *= 0.5 * RobotArm.max_opening_width
+        width *= 0.5 * self.max_opening_width
         self.body.joints["finger_l"].set_position(width)
         self.body.joints["finger_r"].set_position(width)
         for _ in range(int(0.5 / self.world.dt)):

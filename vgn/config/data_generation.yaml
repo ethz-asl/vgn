@@ -1,0 +1,6 @@
+object_set: debug
+n_scenes: 800
+n_grasps: 20
+n_viewpoints: 10
+vol_size: 0.24  # 4x max opening width of the simulated gripper
+vol_res: 80

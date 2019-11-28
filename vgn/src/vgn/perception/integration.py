@@ -1,8 +1,6 @@
 import numpy as np
 import open3d
 
-import vgn.config as cfg
-
 
 class TSDFVolume(object):
     """Integration of multiple depth images using a TSDF."""

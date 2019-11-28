@@ -13,6 +13,17 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "Generate",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/vgn/scripts/generate_data.py",
+            "cwd": "${workspaceFolder}/vgn",
+            "console": "integratedTerminal",
+            "args": [
+                "--root=data/debug",
+            ]
+        },
+        {
             "name": "Train",
             "type": "python",
             "request": "launch",
@@ -20,7 +31,7 @@
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
-                "--root=/home/michel/Developer/catkin_ws/src/grasp_playground/vgn/data/datasets/debug",
+                "--root=data/debug",
                 // "--batch-size=1"
             ]
         },

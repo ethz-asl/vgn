@@ -28,7 +28,7 @@ def load_dict(path):
     return data
 
 
-def save_image(path, img):
+def save_image(img, path):
     """Save image as a PNG file."""
     img = (1000.0 * img).astype(np.uint16)
     cv2.imwrite(str(path), img)

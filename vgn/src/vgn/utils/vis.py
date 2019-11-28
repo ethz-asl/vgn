@@ -1,11 +1,33 @@
 import numpy as np
 from mayavi import mlab
 
+from vgn.grasp import Label
+from vgn.perception.integration import TSDFVolume
 from vgn.utils.transform import Rotation
+
+
+def display_scene(scene_data, vol_size, vol_res):
+
+    tsdf = TSDFVolume(vol_size, vol_res)
+    tsdf.integrate_images(
+        scene_data.depth_imgs, scene_data.intrinsic, scene_data.extrinsics
+    )
+    tsdf_vol = tsdf.get_volume()
+    point_cloud = tsdf.extract_point_cloud()
+
+    mlab.figure()
+
+    draw_volume(tsdf_vol.squeeze(), tsdf.voxel_size)
+    draw_point_cloud(point_cloud)
+    draw_grasps(scene_data.grasps, scene_data.labels, frame=True)
+
+    mlab.show()
 
 
 def draw_volume(vol, voxel_size, tol=0.001):
     (x, y, z), scalars = np.where(vol > tol), vol[vol > tol]
+
+    # Draw the volume
     mlab.points3d(
         x * voxel_size,
         y * voxel_size,
@@ -19,7 +41,9 @@ def draw_volume(vol, voxel_size, tol=0.001):
         opacity=0.05,
     )
 
-    x, y, z = np.mgrid[0:40, 0:40, 0:40]
+    # Draw a slice through the volume
+    res = vol.shape[0]
+    x, y, z = np.mgrid[0:res, 0:res, 0:res]
     mlab.volume_slice(
         x * voxel_size,
         y * voxel_size,
@@ -43,14 +67,17 @@ def draw_point_cloud(point_cloud):
     mlab.points3d(x, y, z, color=(0.4, 0.4, 0.4), scale_mode="none", scale_factor=0.002)
 
 
-def draw_grasps(grasps, qualities, draw_frames=True):
-    for grasp, quality in zip(grasps, qualities):
+def draw_grasps(grasps, labels, frame=True):
+
+    for grasp, label in zip(grasps, labels):
         x, y, z = grasp.pose.translation
+        s = 0.0 if label < Label.SUCCESS else 1.0
+
         mlab.points3d(
-            x, y, z, quality, vmin=0.0, vmax=1.0, scale_mode="none", scale_factor=0.004
+            x, y, z, s, vmin=0.0, vmax=1.0, scale_mode="none", scale_factor=0.004
         )
 
-        if draw_frames:
+        if frame:
             x, y, z = np.split(np.repeat([x, y, z], 3), 3)
             u, v, w = np.split(grasp.pose.rotation.as_dcm().flatten(), 3)
             axes = mlab.quiver3d(

@@ -2,7 +2,6 @@ from math import cos, pi, sin
 
 import numpy as np
 
-import vgn.config as cfg
 from vgn.utils.transform import Transform
 
 
