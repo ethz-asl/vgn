@@ -2,23 +2,25 @@ import numpy as np
 from scipy import ndimage
 import torch
 
+from vgn.constants import vgn_res
 from vgn.grasp import Grasp
 from vgn.utils.transform import Transform, Rotation
 from vgn.networks import get_network, predict
 
 
 class GraspDetector(object):
-    def __init__(self, model_path):
+    def __init__(self, model_path, vol_size):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.net = get_network(model_path.name.split("_")[1]).to(self.device)
         self.net.load_state_dict(torch.load(model_path, map_location=self.device))
 
-    def detect_grasps(self, tsdf_vol, voxel_size, threshold=0.9):
+        self.voxel_size = vol_size / vgn_res
+
+    def detect_grasps(self, tsdf_vol, threshold=0.9):
         """Returns a list of detected grasps.
         
         Args:
             tsdf_vol
-            voxel_size
             threshold
 
         Return:
@@ -41,7 +43,7 @@ class GraspDetector(object):
 
         # Sort by their scores
         for (i, j, k) in np.argwhere(quality_vol):
-            position = voxel_size * np.r_[i, j, k]
+            position = self.voxel_size * np.r_[i, j, k]
             orientation = Rotation.from_quat(quat_vol[i, j, k])
             grasps.append(Grasp(Transform(orientation, position)))
             qualities.append(quality_vol[i, j, k])

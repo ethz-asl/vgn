@@ -4,33 +4,30 @@ from pathlib import Path
 from mpi4py import MPI
 
 from vgn.data_generation import generate_data
-from vgn.utils.io import load_dict, save_dict
+from vgn.utils.io import load_dict
 
 
 def main(args):
     n_workers = MPI.COMM_WORLD.Get_size()
     rank = MPI.COMM_WORLD.Get_rank()
 
+    if rank == 0:
+        print("Generating data using {} processes.".format(n_workers))
+
     root_dir = Path(args.root)
     data_gen_config = load_dict(Path(args.data_gen_config))
     sim_config = load_dict(Path(args.sim_config))
 
-    if rank == 0:
-        print("Generating data using {} processes.".format(n_workers))
-        root_dir.mkdir(parents=True, exist_ok=True)
-        save_dict(data_gen_config, root_dir / "config.yaml")
-
     generate_data(
-        root=root_dir,
-        object_set=data_gen_config["object_set"],
-        n_scenes=data_gen_config["n_scenes"] // n_workers,
+        root_dir=root_dir,
+        object_set=args.object_set,
+        n_scenes=args.n_scenes // n_workers,
         n_grasps=data_gen_config["n_grasps"],
         n_viewpoints=data_gen_config["n_viewpoints"],
-        vol_size=data_gen_config["vol_size"],
         vol_res=data_gen_config["vol_res"],
         urdf_root=Path(sim_config["urdf_root"]),
-        sim_gui=sim_config["sim_gui"],
-        rtf=sim_config["rtf"],
+        sim_gui=args.sim_gui,
+        rtf=args.rtf,
         rank=rank,
     )
 
@@ -44,6 +41,15 @@ if __name__ == "__main__":
         "--root", type=str, required=True, help="root directory of the dataset"
     )
     parser.add_argument(
+        "--object-set",
+        choices=["debug", "cuboid", "cuboids"],
+        default="debug",
+        help="object set to be used",
+    )
+    parser.add_argument(
+        "--n-scenes", type=int, default=800, help="numbers of scenes to generate"
+    )
+    parser.add_argument(
         "--data-gen-config",
         type=str,
         default="config/data_generation.yaml",
@@ -55,5 +61,12 @@ if __name__ == "__main__":
         default="config/simulation.yaml",
         help="path to simulation configuration",
     )
+    parser.add_argument("--sim-gui", action="store_true", help="disable headless mode")
+    parser.add_argument(
+        "--rtf", type=float, default=-1.0, help="real time factor of the simulation"
+    )
     args = parser.parse_args()
     main(args)
+
+sim_gui: False
+rtf: -1.0

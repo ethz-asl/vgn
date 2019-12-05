@@ -4,6 +4,7 @@ import torch.utils.data
 from tqdm import tqdm
 
 from vgn.grasp import Label
+from vgn.constants import vgn_res
 from vgn.perception.integration import TSDFVolume
 from vgn.utils.data import SceneData
 from vgn.utils.io import load_dict
@@ -51,7 +52,7 @@ class VGNDataset(torch.utils.data.Dataset):
         self.cache_dir.mkdir(exist_ok=True)
 
         vol_size = load_dict(self.root_dir / "config.yaml")["vol_size"]
-        vol_res = 40
+        vol_res = vgn_res
 
         # Iterate through all scenes and verify whether it needs to be processed
         for scene_dir in tqdm(self.scenes, ascii=True):

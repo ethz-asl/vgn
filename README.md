@@ -51,13 +51,13 @@ Lastly, don't forget to source the catkin workspace.
 The data generation can be distributed over multiple processors using MPI.
 
 ```
-mpiexec -n <n-procs> python scripts/generate_data.py <path-to-dataset>
+mpiexec -n <n-procs> python scripts/generate_data.py --root <path/to/dataset>
 ```
 
 ## Training
 
 ```
-python scripts/train_vgn.py
+python scripts/train_vgn.py --net conv --data-dir <path/to/dataset> --log-dir <path/to/logdir>
 ```
 
 ## Evaluation

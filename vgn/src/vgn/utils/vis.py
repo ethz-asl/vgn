@@ -19,7 +19,7 @@ def display_scene(scene_data, vol_size, vol_res):
 
     draw_volume(tsdf_vol.squeeze(), tsdf.voxel_size)
     draw_point_cloud(point_cloud)
-    draw_grasps(scene_data.grasps, scene_data.labels, frame=True)
+    draw_grasps(scene_data.grasps, scene_data.labels, draw_frames=True)
 
     mlab.show()
 
@@ -67,7 +67,7 @@ def draw_point_cloud(point_cloud):
     mlab.points3d(x, y, z, color=(0.4, 0.4, 0.4), scale_mode="none", scale_factor=0.002)
 
 
-def draw_grasps(grasps, labels, frame=True):
+def draw_grasps(grasps, labels, draw_frames=True):
 
     for grasp, label in zip(grasps, labels):
         x, y, z = grasp.pose.translation
@@ -77,7 +77,7 @@ def draw_grasps(grasps, labels, frame=True):
             x, y, z, s, vmin=0.0, vmax=1.0, scale_mode="none", scale_factor=0.004
         )
 
-        if frame:
+        if draw_frames:
             x, y, z = np.split(np.repeat([x, y, z], 3), 3)
             u, v, w = np.split(grasp.pose.rotation.as_dcm().flatten(), 3)
             axes = mlab.quiver3d(

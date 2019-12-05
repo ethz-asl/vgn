@@ -8,17 +8,17 @@ from vgn.grasp import Label, Grasp
 from vgn.perception.exploration import sample_hemisphere
 from vgn.perception.integration import TSDFVolume
 from vgn.simulation import GraspingExperiment
+from vgn.utils.io import save_dict
 from vgn.utils.data import SceneData
 from vgn.utils.transform import Rotation, Transform
 
 
 def generate_data(
-    root,
+    root_dir,
     object_set,
     n_scenes,
     n_grasps,
     n_viewpoints,
-    vol_size,
     vol_res,
     urdf_root,
     sim_gui,
@@ -26,8 +26,20 @@ def generate_data(
     rank,
 ):
     # Setup simulation
-    sim = GraspingExperiment(urdf_root, vol_size, sim_gui, rtf)
+    sim = GraspingExperiment(urdf_root, sim_gui, rtf)
     gripper_depth = 0.5 * sim.robot.max_opening_width
+
+    if rank == 0:
+        root_dir.mkdir(parents=True, exist_ok=True)
+        config = {
+            "object_set": object_set,
+            "n_scenes": n_scenes,
+            "n_grasps": n_grasps,
+            "n_viewpoints": n_viewpoints,
+            "vol_size": sim.size,
+            "vol_res": vol_res,
+        }
+        save_dict(config, root_dir / "config.yaml")
 
     for _ in tqdm(range(n_scenes), disable=rank is not 0):
         # Setup experiment
@@ -58,7 +70,7 @@ def generate_data(
                 n_negatives += not is_positive(label)
 
         data = SceneData(depth_imgs, intrinsic, extrinsics, grasps, labels)
-        data.save(root / str(uuid.uuid4().hex))
+        data.save(root_dir / str(uuid.uuid4().hex))
 
 
 def sample_grasp_point(gripper_depth, point_cloud):

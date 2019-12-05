@@ -16,32 +16,37 @@ from vgn.networks import get_network
 from vgn.utils.train import *
 
 
-def main(args):
-    assert torch.cuda.is_available(), "ERROR: cuda is not available"
-
+def train(
+    network_name,
+    data_dir,
+    rebuild_cache,
+    log_dir,
+    descr,
+    batch_size,
+    lr,
+    epochs,
+    val_split,
+):
     device = torch.device("cuda")
     kwargs = {"pin_memory": True}
-    root = Path(args.root)
-    log_dir = Path(args.log_dir)
 
     # Create log directory for the training run
-    descr = "{},net={},data={},batch_size={},lr={:.0e}".format(
+    descr = "{},net={},data={},batch_size={},lr={:.0e},descr={}".format(
         datetime.now().strftime("%b%d_%H-%M-%S"),
-        args.net,
-        root.name,
-        args.batch_size,
-        args.lr,
+        network_name,
+        data_dir.name,
+        batch_size,
+        lr,
+        descr,
     )
-    if args.descr != "":
-        descr += ",descr={}".format(args.descr)
     log_dir = log_dir / descr
     assert not log_dir.exists(), "log with this setup already exists"
 
     # Load dataset
-    dataset = VGNDataset(root, rebuild_cache=args.rebuild_cache)
+    dataset = VGNDataset(data_dir, rebuild_cache=rebuild_cache)
 
     # Split into train and validation sets
-    validation_size = int(args.validation_split * len(dataset))
+    validation_size = int(val_split * len(dataset))
     train_size = len(dataset) - validation_size
 
     train_dataset, validation_dataset = torch.utils.data.random_split(
@@ -53,18 +58,18 @@ def main(args):
 
     # Create data loaders
     train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs
+        train_dataset, batch_size=batch_size, shuffle=True, **kwargs
     )
 
     validation_loader = torch.utils.data.DataLoader(
-        validation_dataset, batch_size=args.batch_size, shuffle=False, **kwargs
+        validation_dataset, batch_size=batch_size, shuffle=False, **kwargs
     )
 
     # Build the network
-    net = get_network(args.net)
+    net = get_network(network_name)
 
     # Define optimizer
-    optimizer = torch.optim.Adam(net.parameters(), lr=args.lr)
+    optimizer = torch.optim.Adam(net.parameters(), lr=lr)
 
     # Define metrics
     metrics = {
@@ -111,11 +116,27 @@ def main(args):
         save_as_state_dict=True,
     )
     evaluator.add_event_handler(
-        Events.EPOCH_COMPLETED, checkpoint_handler, to_save={args.net: net}
+        Events.EPOCH_COMPLETED, checkpoint_handler, to_save={network_name: net}
     )
 
     # Run the training loop
-    trainer.run(train_loader, max_epochs=args.epochs)
+    trainer.run(train_loader, max_epochs=epochs)
+
+
+def main(args):
+    assert torch.cuda.is_available(), "ERROR: cuda is not available"
+
+    train(
+        network_name=args.net,
+        data_dir=Path(args.data_dir),
+        rebuild_cache=args.rebuild_cache,
+        log_dir=Path(args.log_dir),
+        descr=args.descr,
+        batch_size=args.batch_size,
+        lr=args.lr,
+        epochs=args.epochs,
+        val_split=args.val_split,
+    )
 
 
 if __name__ == "__main__":
@@ -124,7 +145,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--net", choices=["conv"], default="conv", help="network name")
     parser.add_argument(
-        "--root", type=str, required=True, help="root directory of the dataset"
+        "--data-dir", type=str, required=True, help="root directory of the dataset"
     )
     parser.add_argument(
         "--log-dir", type=str, default="data/runs", help="path to log directory"
@@ -135,12 +156,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--batch-size", type=int, default=32, help="input batch size for training"
     )
+    parser.add_argument("--lr", type=float, default=3e-4, help="learning rate")
     parser.add_argument(
         "--epochs", type=int, default=100, help="number of epochs to train"
     )
-    parser.add_argument("--lr", type=float, default=3e-4, help="learning rate")
     parser.add_argument(
-        "--validation-split",
+        "--val-split",
         type=float,
         default=0.2,
         help="ratio of data used for validation",

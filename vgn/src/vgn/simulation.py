@@ -3,6 +3,7 @@ from __future__ import division
 import numpy as np
 import pybullet
 
+from vgn.constants import vgn_size
 from vgn.grasp import Label
 from vgn.perception.camera import PinholeCameraIntrinsic
 from vgn.utils import btsim
@@ -15,12 +16,12 @@ class GraspingExperiment(object):
     In this simulation, world, task and robot base frames are identical.
     """
 
-    def __init__(self, urdf_root, size, gui, real_time_factor=-1.0):
+    def __init__(self, urdf_root, gui, real_time_factor=-1.0):
         self.world = btsim.BtWorld(gui, real_time_factor)
         self.urdf_root = urdf_root
-        self.size = size
-
         self.robot = Robot(self.world, urdf_root / "hand/hand.urdf")
+
+        self.size = vgn_size * self.robot.max_opening_width
 
     def setup(self, object_set):
         """Setup a grasping experiment.
