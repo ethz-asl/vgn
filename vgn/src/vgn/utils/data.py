@@ -1,6 +1,6 @@
 import numpy as np
 
-from vgn import utils
+from vgn.utils.io import *
 from vgn.grasp import Grasp, Label
 from vgn.perception import integration
 from vgn.perception.camera import PinholeCameraIntrinsic
@@ -44,22 +44,20 @@ class SceneData(object):
 
 
 def load_intrinsic(scene_dir):
-    return PinholeCameraIntrinsic.from_dict(
-        utils.io.load_dict(scene_dir / "intrinsic.json")
-    )
+    return PinholeCameraIntrinsic.from_dict(load_dict(scene_dir / "intrinsic.json"))
 
 
 def load_images(scene_dir):
-    images = utils.io.load_dict(scene_dir / "images.json")
+    images = load_dict(scene_dir / "images.json")
     depth_imgs, extrinsics = [], []
     for image in images:
-        depth_imgs.append(utils.io.load_image(scene_dir / image["name"]))
+        depth_imgs.append(load_image(scene_dir / image["name"]))
         extrinsics.append(Transform.from_dict(image["extrinsic"]))
     return depth_imgs, extrinsics
 
 
 def load_grasps(scene_dir):
-    grasp_attempts = utils.io.load_dict(scene_dir / "grasps.json")
+    grasp_attempts = load_dict(scene_dir / "grasps.json")
     grasps, labels = [], []
     for attempt in grasp_attempts:
         grasps.append(Grasp.from_dict(attempt["grasp"]))
@@ -68,20 +66,20 @@ def load_grasps(scene_dir):
 
 
 def save_intrinsic(scene_dir, intrinsic):
-    utils.io.save_dict(intrinsic.to_dict(), scene_dir / "intrinsic.json")
+    save_dict(intrinsic.to_dict(), scene_dir / "intrinsic.json")
 
 
 def save_images(scene_dir, depth_imgs, extrinsics):
     images = []
     for i in range(len(depth_imgs)):
         name = "{0:03d}.png".format(i)
-        utils.io.save_image(depth_imgs[i], scene_dir / name)
+        save_image(depth_imgs[i], scene_dir / name)
         images.append({"name": name, "extrinsic": extrinsics[i].to_dict()})
-    utils.io.save_dict(images, scene_dir / "images.json")
+    save_dict(images, scene_dir / "images.json")
 
 
 def save_grasps(scene_dir, grasps, labels):
     grasp_attempts = []
     for grasp, label in zip(grasps, labels):
         grasp_attempts.append({"grasp": grasp.to_dict(), "label": label})
-    utils.io.save_dict(grasp_attempts, scene_dir / "grasps.json")
+    save_dict(grasp_attempts, scene_dir / "grasps.json")
