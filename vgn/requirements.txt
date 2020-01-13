@@ -1,12 +1,12 @@
 catkin_pkg
 jupyter
 matplotlib
-mayavi
+# mayavi
 mpi4py
 numpy
-open3d-python
+open3d==0.8.0
 opencv-python
-pybullet
+# pybullet
 pytorch-ignite
 pyyaml 
 scipy
