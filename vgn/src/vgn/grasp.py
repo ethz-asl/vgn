@@ -13,20 +13,26 @@ class Label(enum.IntEnum):
     ROBUST = 5
 
 
+def to_voxel_coordinates(grasp, T_base_task, voxel_size):
+    pose = T_base_task.inverse() * grasp.pose
+    pose.translation /= voxel_size
+    width = grasp.width / voxel_size
+    return Grasp(pose, width)
+
+
+def from_voxel_coordinates(grasp, T_base_task, voxel_size):
+    pose = T_base_task * grasp.pose
+    pose.translation *= voxel_size
+    width = grasp.width * voxel_size
+    return Grasp(pose, width)
+
+
 class Grasp(object):
     """Grasp parameterized as pose of a 2-finger robot hand.
     
     TODO(mbreyer): clarify definition of grasp frame
     """
 
-    def __init__(self, pose):
+    def __init__(self, pose, width):
         self.pose = pose
-
-    @classmethod
-    def from_dict(cls, data):
-        pose = Transform.from_dict(data["pose"])
-        return cls(pose)
-
-    def to_dict(self):
-        data = {"pose": self.pose.to_dict()}
-        return data
+        self.width = width

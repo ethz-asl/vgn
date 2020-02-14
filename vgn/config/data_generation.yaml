@@ -1,3 +1,10 @@
-n_grasps: 20
-n_viewpoints: 10
-vol_res: 80
+# path to the object URDF files
+urdf_root: /home/michel/Developer/urdf_zoo
+# path to the hand config file
+hand_config: /home/michel/Developer/catkin_ws/src/grasp_playground/vgn/config/hand.yaml
+# object set to be used [debug, cuboid]
+object_set: debug
+# number of scenes to be generated
+num_scenes: 1
+# number of grasps to be generated per scene
+num_grasps_per_scene: 10

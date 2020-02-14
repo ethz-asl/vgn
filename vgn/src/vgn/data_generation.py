@@ -1,95 +1,98 @@
 import uuid
 
 import numpy as np
+import open3d as o3d
 import scipy.signal as signal
 from tqdm import tqdm
 
-from vgn.grasp import Label, Grasp
+from vgn.hand import Hand
+from vgn.grasp import Grasp, Label, to_voxel_coordinates
 from vgn.perception.exploration import sample_hemisphere
 from vgn.perception.integration import TSDFVolume
-from vgn.simulation import GraspingExperiment
-from vgn.utils.io import save_dict
-from vgn.utils.data import SceneData
+from vgn.simulation import GraspExperiment
 from vgn.utils.transform import Rotation, Transform
 
 
 def generate_data(
-    root_dir,
-    object_set,
-    n_scenes,
-    n_grasps,
-    n_viewpoints,
-    vol_res,
     urdf_root,
+    hand_config,
+    object_set,
+    num_scenes,
+    num_grasps_per_scene,
+    root_dir,
     sim_gui,
     rtf,
     rank,
 ):
-    # Setup simulation
-    sim = GraspingExperiment(urdf_root, sim_gui, rtf)
-    gripper_depth = 0.5 * sim.robot.max_opening_width
+    hand = Hand.from_dict(hand_config)
+    size = hand.max_gripper_width * 4
+    resolution = 40
+    high_resolution = 160
+
+    sim = GraspExperiment(urdf_root, hand, size, sim_gui, rtf)
 
     if rank == 0:
         root_dir.mkdir(parents=True, exist_ok=True)
-        config = {
-            "object_set": object_set,
-            "n_scenes": n_scenes,
-            "n_grasps": n_grasps,
-            "n_viewpoints": n_viewpoints,
-            "vol_size": sim.size,
-            "vol_res": vol_res,
-        }
-        save_dict(config, root_dir / "config.yaml")
 
-    for _ in tqdm(range(n_scenes), disable=rank is not 0):
+    for _ in tqdm(range(num_scenes), disable=rank is not 0):
         # Setup experiment
         sim.setup(object_set)
         sim.save_state()
 
         # Reconstruct scene
-        intrinsic = sim.camera.intrinsic
-        extrinsics = sample_hemisphere(sim.size, n_viewpoints)
-        depth_imgs = [sim.camera.render(e)[1] for e in extrinsics]
+        tsdf = TSDFVolume(size, resolution)
+        high_res_tsdf = TSDFVolume(size, high_resolution)
 
-        tsdf = TSDFVolume(sim.size, vol_res)
-        tsdf.integrate_images(depth_imgs, intrinsic, extrinsics)
-        point_cloud = tsdf.extract_point_cloud()
+        expected_num_of_viewpoints = 8
+        num_viewpoints = np.random.poisson(expected_num_of_viewpoints - 1) + 1
+
+        intrinsic = sim.camera.intrinsic
+        extrinsics = sample_hemisphere(size, num_viewpoints)
+
+        for extrinsic in extrinsics:
+            depth_img = sim.camera.render(extrinsic)[1]
+            tsdf.integrate(depth_img, intrinsic, extrinsic)
+            high_res_tsdf.integrate(depth_img, intrinsic, extrinsic)
+
+        point_cloud = high_res_tsdf.extract_point_cloud()
+        # o3d.visualization.draw_geometries([point_cloud])
 
         # Sample and evaluate grasp candidates
         grasps, labels = [], []
 
         is_positive = lambda o: o == Label.SUCCESS
-        n_negatives = 0
+        num_negatives = 0
 
-        while len(grasps) < n_grasps:
-            point, normal = sample_grasp_point(gripper_depth, point_cloud)
+        while len(grasps) < num_grasps_per_scene:
+            point, normal = sample_grasp_point(point_cloud, hand.finger_depth)
             grasp, label = evaluate_grasp_point(sim, point, normal)
-            if is_positive(label) or n_negatives < n_grasps // 2:
+            if is_positive(label) or num_negatives < num_grasps_per_scene // 2:
                 grasps.append(grasp)
                 labels.append(label)
-                n_negatives += not is_positive(label)
+                num_negatives += not is_positive(label)
 
-        data = SceneData(depth_imgs, intrinsic, extrinsics, grasps, labels)
-        data.save(root_dir / str(uuid.uuid4().hex))
+        # Store the sample
+        path = root_dir / str(uuid.uuid4().hex)
+        store_sample(path, tsdf, grasps, labels)
 
 
-def sample_grasp_point(gripper_depth, point_cloud):
-    epsilon = 0.2
+def sample_grasp_point(point_cloud, finger_depth):
 
     points = np.asarray(point_cloud.points)
     normals = np.asarray(point_cloud.normals)
 
     idx = np.random.randint(len(points))
     point, normal = points[idx], normals[idx]
-    z_offset = np.random.uniform(
-        (0.0 - epsilon) * gripper_depth, (1.0 + epsilon) * gripper_depth
-    )
-    point = point - normal * (z_offset - gripper_depth)
+
+    eps = 0.2
+    grasp_depth = np.random.uniform(-eps * finger_depth, (1.0 + eps) * finger_depth)
+
+    point = point + normal * (finger_depth - grasp_depth)
 
     return point, normal
 
 
-def evaluate_grasp_point(sim, pos, normal, n_rotations=9):
+def evaluate_grasp_point(sim, pos, normal, num_rotations=12):
     # Define initial grasp frame on object surface
     z_axis = -normal
     x_axis = np.r_[1.0, 0.0, 0.0]
@@ -100,12 +103,15 @@ def evaluate_grasp_point(sim, pos, normal, n_rotations=9):
     R = Rotation.from_dcm(np.vstack((x_axis, y_axis, z_axis)).T)
 
     # Try to grasp with different yaw angles
-    yaws = np.linspace(-0.5 * np.pi, 0.5 * np.pi, n_rotations)
-    outcomes = []
+    yaws = np.linspace(0.0, np.pi, num_rotations)
+    outcomes, widths = [], []
     for yaw in yaws:
         ori = R * Rotation.from_euler("z", yaw)
         sim.restore_state()
-        outcomes.append(sim.test_grasp(Transform(ori, pos)))
+        outcome, width = sim.test_grasp(Transform(ori, pos))
+
+        outcomes.append(outcome)
+        widths.append(width)
 
     # Detect mid-point of widest peak of successful yaw angles
     successes = (np.asarray(outcomes) == Label.SUCCESS).astype(float)
@@ -115,7 +121,47 @@ def evaluate_grasp_point(sim, pos, normal, n_rotations=9):
         )
         idx_of_widest_peak = peaks[np.argmax(properties["widths"])] - 1
         ori = R * Rotation.from_euler("z", yaws[idx_of_widest_peak])
+        width = widths[idx_of_widest_peak]
     else:
         ori = Rotation.identity()
+        width = 0.0
 
-    return Grasp(Transform(ori, pos)), int(np.max(outcomes))
+    return Grasp(Transform(ori, pos), width), int(np.max(outcomes))
+
+
+def label2quality(label):
+    quality = 1.0 if label == Label.SUCCESS else 0.0
+    return quality
+
+
+def store_sample(path, tsdf, grasps, labels):
+    tsdf_vol = tsdf.get_volume()
+    shape = tsdf_vol.shape
+
+    tsdf_vol = np.expand_dims(tsdf_vol, 0)
+    qual_vol = np.zeros_like(tsdf_vol, dtype=np.float32)
+    rot_vol = np.zeros((4,) + shape, dtype=np.float32)
+    width_vol = np.zeros_like(tsdf_vol, dtype=np.float32)
+    mask = np.zeros_like(tsdf_vol, dtype=np.float32)
+
+    for grasp, label in zip(grasps, labels):
+        grasp = to_voxel_coordinates(grasp, Transform.identity(), tsdf.voxel_size)
+
+        index = np.round(grasp.pose.translation).astype(np.int)
+        if np.any(index < 0) or np.any(index > tsdf.resolution - 1):
+            continue
+        i, j, k = index
+
+        qual_vol[0, i, j, k] = label2quality(label)
+        rot_vol[:, i, j, k] = grasp.pose.rotation.as_quat()
+        width_vol[0, i, j, k] = grasp.width
+        mask[0, i, j, k] = 1.0
+
+    np.savez_compressed(
+        path,
+        tsdf_vol=tsdf_vol,
+        qual_vol=qual_vol,
+        rot_vol=rot_vol,
+        width_vol=width_vol,
+        mask=mask,
+    )

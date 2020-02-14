@@ -14,18 +14,15 @@ def main(args):
     if rank == 0:
         print("Generating data using {} processes.".format(n_workers))
 
-    root_dir = Path(args.root)
-    data_gen_config = load_dict(Path(args.data_gen_config))
-    sim_config = load_dict(Path(args.sim_config))
+    config = load_dict(Path(args.config))
 
     generate_data(
-        root_dir=root_dir,
-        object_set=args.object_set,
-        n_scenes=args.n_scenes // n_workers,
-        n_grasps=data_gen_config["n_grasps"],
-        n_viewpoints=data_gen_config["n_viewpoints"],
-        vol_res=data_gen_config["vol_res"],
-        urdf_root=Path(sim_config["urdf_root"]),
+        urdf_root=Path(config["urdf_root"]),
+        hand_config=load_dict(Path(config["hand_config"])),
+        object_set=config["object_set"],
+        num_scenes=config["num_scenes"],
+        num_grasps_per_scene=config["num_grasps_per_scene"],
+        root_dir=Path(args.root),
         sim_gui=args.sim_gui,
         rtf=args.rtf,
         rank=rank,
@@ -41,25 +38,10 @@ if __name__ == "__main__":
         "--root", type=str, required=True, help="root directory of the dataset"
     )
     parser.add_argument(
-        "--object-set",
-        choices=["debug", "cuboid", "cuboids"],
-        default="debug",
-        help="object set to be used",
-    )
-    parser.add_argument(
-        "--n-scenes", type=int, default=800, help="numbers of scenes to generate"
-    )
-    parser.add_argument(
-        "--data-gen-config",
+        "--config",
         type=str,
         default="config/data_generation.yaml",
         help="path to data generation configuration",
-    )
-    parser.add_argument(
-        "--sim-config",
-        type=str,
-        default="config/simulation.yaml",
-        help="path to simulation configuration",
     )
     parser.add_argument("--sim-gui", action="store_true", help="disable headless mode")
     parser.add_argument(
@@ -67,6 +49,3 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     main(args)
-
-sim_gui: False
-rtf: -1.0

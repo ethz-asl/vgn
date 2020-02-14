@@ -1,0 +1,11 @@
+# matches hand.urdf, be careful when editing these values
+
+max_gripper_width: 0.08
+
+T_tool0_tcp:
+  rotation: [0.0, 0.0, 0.0, 1.0]
+  translation: [0.0, 0.0, 0.04]
+
+# used for data generation only
+urdf_path: /home/michel/Developer/catkin_ws/src/grasp_playground/vgn/config/hand.urdf
+finger_depth: 0.05

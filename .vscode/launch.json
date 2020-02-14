@@ -5,15 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Current File",
-            "type": "python",
-            "request": "launch",
-            "program": "${file}",
-            "cwd": "${workspaceFolder}/vgn",
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "Generate Data",
+            "name": "generate_data",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/vgn/scripts/generate_data.py",
@@ -21,21 +13,23 @@
             "console": "integratedTerminal",
             "args": [
                 "--root=data/debug",
+                "--sim-gui",
+                "--rtf=-1"
             ]
         },
         {
-            "name": "Display Scene",
+            "name": "display_data",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/vgn/scripts/display_scene.py",
+            "program": "${workspaceFolder}/vgn/scripts/display_data.py",
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
-                "--scene=data/debug/foo",
+                "data/debug/.npz",
             ]
         },
         {
-            "name": "Train VGN",
+            "name": "train_vgn",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/vgn/scripts/train_vgn.py",
