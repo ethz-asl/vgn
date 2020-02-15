@@ -11,7 +11,7 @@ def main(args):
     sample_path = Path(args.sample_path)
 
     dataset = VgnDataset(sample_path.parent)
-    tsdf, qual, rot, width, mask = dataset[dataset.samples.index(sample_path.name)]
+    tsdf, (qual, rot, width), mask = dataset[dataset.samples.index(sample_path.name)]
 
     display_sample(tsdf, qual, rot, width, mask)
 

@@ -19,14 +19,11 @@ class VgnDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         path = self.root_dir / self.samples[idx]
         sample = np.load(path)
+        x = sample["tsdf_vol"]
+        y = (sample["qual_vol"], sample["rot_vol"], sample["width_vol"])
+        mask = sample["mask"]
 
-        return (
-            sample["tsdf_vol"],
-            sample["qual_vol"],
-            sample["rot_vol"],
-            sample["width_vol"],
-            sample["mask"],
-        )
+        return x, y, mask
 
     def _detect_samples(self):
         self.samples = [f.name for f in self.root_dir.iterdir() if f.suffix == ".npz"]
