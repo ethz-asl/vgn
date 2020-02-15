@@ -1,4 +1,5 @@
 import uuid
+import logging
 
 import numpy as np
 import open3d as o3d
@@ -56,6 +57,10 @@ def generate_data(
 
         point_cloud = high_res_tsdf.extract_point_cloud()
         # o3d.visualization.draw_geometries([point_cloud])
+
+        if point_cloud.is_empty():
+            logging.warning("Empty point cloud, skipping scene")
+            continue
 
         # Sample and evaluate grasp candidates
         grasps, labels = [], []
