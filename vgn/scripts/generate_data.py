@@ -8,11 +8,11 @@ from vgn.utils.io import load_dict
 
 
 def main(args):
-    n_workers = MPI.COMM_WORLD.Get_size()
+    num_workers = MPI.COMM_WORLD.Get_size()
     rank = MPI.COMM_WORLD.Get_rank()
 
     if rank == 0:
-        print("Generating data using {} processes.".format(n_workers))
+        print("Generating data using {} processes.".format(num_workers))
 
     config = load_dict(Path(args.config))
 
@@ -20,7 +20,7 @@ def main(args):
         urdf_root=Path(config["urdf_root"]),
         hand_config=load_dict(Path(config["hand_config"])),
         object_set=config["object_set"],
-        num_scenes=config["num_scenes"],
+        num_scenes=config["num_scenes"] // num_workers,
         num_grasps_per_scene=config["num_grasps_per_scene"],
         root_dir=Path(args.root),
         sim_gui=args.sim_gui,
