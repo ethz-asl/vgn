@@ -4,19 +4,15 @@ from torch.utils import tensorboard
 
 
 def prepare_batch(batch, device):
-    input_tsdf, target_quality, target_quat, mask = batch
+    tsdf, (qual, rot, width), mask = batch
 
-    input_tsdf = input_tsdf.to(device)
-    target_quality = target_quality.to(device)
-    target_quat = target_quat.to(device)
+    tsdf = tsdf.to(device)
+    qual = qual.to(device)
+    rot = rot.to(device)
+    width = width.to(device)
     mask = mask.to(device)
 
-    return {
-        "input_tsdf": input_tsdf,
-        "target_quality": target_quality,
-        "target_quat": target_quat,
-        "mask": mask,
-    }
+    return tsdf, (qual, rot, width), mask
 
 
 def create_trainer(net, optimizer, loss_fn, metrics, device):
@@ -27,15 +23,15 @@ def create_trainer(net, optimizer, loss_fn, metrics, device):
         optimizer.zero_grad()
 
         # Forward
-        batch = prepare_batch(batch, device)
-        batch["pred_quality"], batch["pred_quat"] = net(batch["input_tsdf"])
-        loss = loss_fn(batch)
+        x, y, mask = prepare_batch(batch, device)
+        y_pred = net(x)
+        losses = loss_fn(y_pred, y, mask)
 
         # Backward
-        loss.backward()
+        losses[0].backward()
         optimizer.step()
 
-        return batch
+        return x, y_pred, y, mask, losses
 
     engine = Engine(_update)
 
@@ -45,16 +41,17 @@ def create_trainer(net, optimizer, loss_fn, metrics, device):
     return engine
 
 
-def create_evaluator(net, metrics, device):
+def create_evaluator(net, loss_fn, metrics, device):
     net.to(device)
 
     def _inference(_, batch):
         net.eval()
         with torch.no_grad():
-            batch = prepare_batch(batch, device)
-            batch["pred_quality"], batch["pred_quat"] = net(batch["input_tsdf"])
+            x, y, mask = prepare_batch(batch, device)
+            y_pred = net(x)
+            losses = loss_fn(y_pred, y, mask)
 
-        return batch
+        return x, y_pred, y, mask, losses
 
     engine = Engine(_inference)
 

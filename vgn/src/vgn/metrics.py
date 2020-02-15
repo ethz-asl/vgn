@@ -8,7 +8,9 @@ class Accuracy(Metric):
         self.num_examples = 0
 
     def update(self, out):
-        pred, target, mask = out["pred_quality"], out["target_quality"], out["mask"]
+        _, y_pred, y, mask, _ = out
+
+        pred, target = y_pred[0], y[0]
         correct = torch.eq(torch.round(pred), target) * mask
 
         self.num_correct += torch.sum(correct).item()

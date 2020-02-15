@@ -9,21 +9,19 @@ def get_network(name):
     return models[name.lower()]
 
 
-def predict(tsdf_vol, net, device):
-    # Move data to the PyTorch device
-    if tsdf_vol.ndim == 3:
-        tsdf_vol = tsdf_vol[None, None, :, :, :]
-    tsdf_vol = torch.from_numpy(tsdf_vol).to(device)
+def predict(tsdf, net, device):
+    if tsdf.ndim == 3:
+        tsdf = tsdf[None, None, :, :, :]
+    tsdf = torch.from_numpy(tsdf).to(device)
 
-    # Predict grasp qualities and orientations
     with torch.no_grad():
-        quality_vol, quat_vol = net(tsdf_vol)
+        qual, rot, width = net(tsdf)
 
-    # Move data back to the CPU
-    quality_vol = quality_vol.cpu().squeeze().numpy()
-    quat_vol = quat_vol.cpu().squeeze().numpy().transpose(1, 2, 3, 0)
+    qual = qual.cpu().squeeze().numpy()
+    rot = rot.cpu().squeeze().numpy()
+    width = width.cpu().squeeze().numpy()
 
-    return quality_vol, quat_vol
+    return qual, rot, width
 
 
 class ConvNet(nn.Module):
@@ -31,16 +29,16 @@ class ConvNet(nn.Module):
         super(ConvNet, self).__init__()
 
         input_channels = 1
-        filter_sizes = [16, 32, 32, 32, 32, 16]
+        filter_sizes = [16, 32, 64, 64, 32, 16]
 
         self.conv1 = nn.Conv3d(
-            input_channels, filter_sizes[0], kernel_size=5, padding=2
+            input_channels, filter_sizes[0], kernel_size=5, stride=2, padding=2,
         )
         self.conv2 = nn.Conv3d(
-            filter_sizes[0], filter_sizes[1], kernel_size=3, padding=1
+            filter_sizes[0], filter_sizes[1], kernel_size=3, stride=2, padding=1
         )
         self.conv3 = nn.Conv3d(
-            filter_sizes[1], filter_sizes[2], kernel_size=3, padding=1
+            filter_sizes[1], filter_sizes[2], kernel_size=3, stride=2, padding=1
         )
         self.conv4 = nn.Conv3d(
             filter_sizes[2], filter_sizes[3], kernel_size=3, padding=1
@@ -52,25 +50,22 @@ class ConvNet(nn.Module):
             filter_sizes[4], filter_sizes[5], kernel_size=3, padding=1
         )
 
-        self.conv_quality = nn.Conv3d(filter_sizes[5], 1, kernel_size=5, padding=2)
-
-        self.conv_quat = nn.Conv3d(filter_sizes[5], 4, kernel_size=5, padding=2)
+        self.conv_qual = nn.Conv3d(filter_sizes[5], 1, kernel_size=5, padding=2)
+        self.conv_rot = nn.Conv3d(filter_sizes[5], 4, kernel_size=5, padding=2)
+        self.conv_width = nn.Conv3d(filter_sizes[5], 1, kernel_size=5, padding=2)
 
     def forward(self, x):
         # 1 x 40 x 40 x 40
         x = self.conv1(x)
         x = F.relu(x)
-        x = F.max_pool3d(x, 2)
 
         # 16 x 20 x 20 x 20
         x = self.conv2(x)
         x = F.relu(x)
-        x = F.max_pool3d(x, 2)
 
         # 32 x 10 x 10 x 10
         x = self.conv3(x)
         x = F.relu(x)
-        x = F.max_pool3d(x, 2)
 
         # 32 x 5 x 5 x 5
         x = self.conv4(x)
@@ -88,10 +83,9 @@ class ConvNet(nn.Module):
         # 16 x 20 x 20 x 20
         x = F.interpolate(x, 40)
 
-        quality = self.conv_quality(x)
-        quality_out = torch.sigmoid(quality)
+        qual_out = torch.sigmoid(self.conv_qual(x))
+        rot_out = F.normalize(self.conv_rot(x), dim=1)
+        width_out = self.conv_width(x)
 
-        quat = self.conv_quat(x)
-        quat_out = F.normalize(quat, dim=1)
+        return qual_out, rot_out, width_out
 
-        return quality_out, quat_out

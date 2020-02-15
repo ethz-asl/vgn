@@ -9,23 +9,15 @@ from ignite.handlers import ModelCheckpoint
 from ignite.metrics import Average
 import torch
 
-from vgn.dataset import VGNDataset
-from vgn.loss import *
+from vgn.dataset import VgnDataset
+from vgn.loss import loss_fn
 from vgn.metrics import Accuracy
 from vgn.networks import get_network
-from vgn.utils.train import *
+from vgn.utils.training import *
 
 
 def train(
-    network_name,
-    data_dir,
-    rebuild_cache,
-    log_dir,
-    descr,
-    batch_size,
-    lr,
-    epochs,
-    val_split,
+    network_name, dataset_dir, log_dir, descr, batch_size, lr, epochs, val_split,
 ):
     device = torch.device("cuda")
     kwargs = {"pin_memory": True}
@@ -34,7 +26,7 @@ def train(
     descr = "{},net={},data={},batch_size={},lr={:.0e},descr={}".format(
         datetime.now().strftime("%b%d_%H-%M-%S"),
         network_name,
-        data_dir.name,
+        dataset_dir.name,
         batch_size,
         lr,
         descr,
@@ -43,26 +35,26 @@ def train(
     assert not log_dir.exists(), "log with this setup already exists"
 
     # Load dataset
-    dataset = VGNDataset(data_dir, rebuild_cache=rebuild_cache)
+    dataset = VgnDataset(dataset_dir)
 
     # Split into train and validation sets
-    validation_size = int(val_split * len(dataset))
-    train_size = len(dataset) - validation_size
+    val_size = int(val_split * len(dataset))
+    train_size = len(dataset) - val_size
 
-    train_dataset, validation_dataset = torch.utils.data.random_split(
-        dataset, [train_size, validation_size]
+    train_dataset, val_dataset = torch.utils.data.random_split(
+        dataset, [train_size, val_size]
     )
 
     print("Size of training dataset: {}".format(train_size))
-    print("Size of validation dataset: {}".format(validation_size))
+    print("Size of validation dataset: {}".format(val_size))
 
     # Create data loaders
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True, **kwargs
     )
 
-    validation_loader = torch.utils.data.DataLoader(
-        validation_dataset, batch_size=batch_size, shuffle=False, **kwargs
+    val_loader = torch.utils.data.DataLoader(
+        val_dataset, batch_size=batch_size, shuffle=False, **kwargs
     )
 
     # Build the network
@@ -73,15 +65,16 @@ def train(
 
     # Define metrics
     metrics = {
-        "loss": Average(lambda out: loss_fn(out)),
-        "loss_quality": Average(lambda out: quality_loss_fn(out)),
-        "loss_quat": Average(lambda out: quat_loss_fn(out)),
+        "loss": Average(lambda out: out[4][0]),
+        "loss_qual": Average(lambda out: out[4][1]),
+        "loss_rot": Average(lambda out: out[4][2]),
+        "loss_width": Average(lambda out: out[4][3]),
         "acc": Accuracy(),
     }
 
     # Create Ignite engines for training and validation
     trainer = create_trainer(net, optimizer, loss_fn, metrics, device)
-    evaluator = create_evaluator(net, metrics, device)
+    evaluator = create_evaluator(net, loss_fn, metrics, device)
 
     # Add progress bar
     ProgressBar(persist=True, ascii=True).attach(trainer)
@@ -93,17 +86,19 @@ def train(
     def log_train_results(engine):
         epoch, metrics = trainer.state.epoch, trainer.state.metrics
         train_writer.add_scalar("loss", metrics["loss"], epoch)
-        train_writer.add_scalar("loss_quality", metrics["loss_quality"], epoch)
-        train_writer.add_scalar("loss_quat", metrics["loss_quat"], epoch)
+        train_writer.add_scalar("loss_qual", metrics["loss_qual"], epoch)
+        train_writer.add_scalar("loss_rot", metrics["loss_rot"], epoch)
+        train_writer.add_scalar("loss_width", metrics["loss_width"], epoch)
         train_writer.add_scalar("acc", metrics["acc"], epoch)
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(engine):
-        evaluator.run(validation_loader)
+        evaluator.run(val_loader)
         epoch, metrics = trainer.state.epoch, evaluator.state.metrics
         val_writer.add_scalar("loss", metrics["loss"], epoch)
-        val_writer.add_scalar("loss_quality", metrics["loss_quality"], epoch)
-        val_writer.add_scalar("loss_quat", metrics["loss_quat"], epoch)
+        val_writer.add_scalar("loss_qual", metrics["loss_qual"], epoch)
+        val_writer.add_scalar("loss_rot", metrics["loss_rot"], epoch)
+        val_writer.add_scalar("loss_width", metrics["loss_width"], epoch)
         val_writer.add_scalar("acc", metrics["acc"], epoch)
 
     # Save the model weights every 10 epochs
@@ -123,29 +118,13 @@ def train(
     trainer.run(train_loader, max_epochs=epochs)
 
 
-def main(args):
-    assert torch.cuda.is_available(), "ERROR: cuda is not available"
-
-    train(
-        network_name=args.net,
-        data_dir=Path(args.data_dir),
-        rebuild_cache=args.rebuild_cache,
-        log_dir=Path(args.log_dir),
-        descr=args.descr,
-        batch_size=args.batch_size,
-        lr=args.lr,
-        epochs=args.epochs,
-        val_split=args.val_split,
-    )
-
-
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument("--net", choices=["conv"], default="conv", help="network name")
     parser.add_argument(
-        "--data-dir", type=str, required=True, help="root directory of the dataset"
+        "--dataset-dir", type=str, required=True, help="root directory of the dataset"
     )
     parser.add_argument(
         "--log-dir", type=str, default="data/runs", help="path to log directory"
@@ -166,6 +145,21 @@ if __name__ == "__main__":
         default=0.2,
         help="ratio of data used for validation",
     )
-    parser.add_argument("--rebuild-cache", action="store_true")
     args = parser.parse_args()
-    main(args)
+
+    assert torch.cuda.is_available(), "ERROR: cuda is not available"
+
+    train(
+        network_name=args.net,
+        dataset_dir=Path(args.dataset_dir),
+        log_dir=Path(args.log_dir),
+        descr=args.descr,
+        batch_size=args.batch_size,
+        lr=args.lr,
+        epochs=args.epochs,
+        val_split=args.val_split,
+    )
+
+
+if __name__ == "__main__":
+    main()

@@ -36,7 +36,7 @@
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
-                "--data-dir=data/debug",
+                "--dataset-dir=data/cuboid",
             ]
         },
     ]
