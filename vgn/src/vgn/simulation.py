@@ -2,6 +2,7 @@ from __future__ import division
 
 import numpy as np
 import pybullet
+import scipy.stats as stats
 
 from vgn.grasp import Label
 from vgn.perception.camera import PinholeCameraIntrinsic
@@ -114,8 +115,10 @@ class GraspExperiment(object):
             self.world.step()
 
     def sample_pose(self):
-        loc, scale = self.size / 2.0, self.size / 4.0
-        position = np.r_[np.random.normal(loc, scale, 2), 0.15]
+        l, u = 0.0, self.size
+        mu, sigma = self.size / 2.0, self.size / 4.0
+        X = stats.truncnorm((l - mu) / sigma, (u - mu) / sigma, loc=mu, scale=sigma)
+        position = np.r_[X.rvs(2), 0.15]
         orientation = Rotation.random()
         return Transform(orientation, position)
 
