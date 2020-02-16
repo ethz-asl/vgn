@@ -1,3 +1,4 @@
+import torch
 import torch.nn.functional as F
 
 
@@ -17,7 +18,7 @@ def qual_loss_fn(pred, target, mask):
 
 
 def rot_loss_fn(pred, target, mask):
-    loss = F.l1_loss(pred, target, reduction="none")
+    loss = 1 - torch.abs(torch.sum(pred * target, dim=1, keepdim=True))
     return (loss * mask).sum() / mask.sum()
 
 
