@@ -14,7 +14,7 @@ from vgn.simulation import GraspExperiment
 from vgn.utils.transform import Rotation, Transform
 
 
-def generate_data(
+def generate_samples(
     urdf_root,
     hand_config,
     object_set,

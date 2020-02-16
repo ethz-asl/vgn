@@ -5,27 +5,28 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "generate_data",
+            "name": "generate_samples",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/vgn/scripts/generate_data.py",
+            "program": "${workspaceFolder}/vgn/scripts/generate_samples.py",
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
-                "--root=data/debug",
+                "--root_dir=data/debug",
+                "--config=config/data_generation.yaml",
                 "--sim-gui",
                 "--rtf=-1"
             ]
         },
         {
-            "name": "display_data",
+            "name": "show_sample",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/vgn/scripts/display_data.py",
+            "program": "${workspaceFolder}/vgn/scripts/show_sample.py",
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
-                "data/debug/.npz",
+                "data/cuboid/0ad99d2c9e4b4cba97c53f96588ab6a2.npz",
             ]
         },
         {
