@@ -9,7 +9,7 @@ from ignite.handlers import ModelCheckpoint
 from ignite.metrics import Average
 import torch
 
-from vgn.dataset import VgnDataset
+from vgn.dataset import VgnDataset, Rescale
 from vgn.loss import loss_fn
 from vgn.metrics import Accuracy
 from vgn.networks import get_network
@@ -35,7 +35,8 @@ def train(
     assert not log_dir.exists(), "log with this setup already exists"
 
     # Load dataset
-    dataset = VgnDataset(dataset_dir)
+    transforms = [Rescale(width_scale=0.1)]
+    dataset = VgnDataset(dataset_dir, transforms=transforms)
 
     # Split into train and validation sets
     val_size = int(val_split * len(dataset))
