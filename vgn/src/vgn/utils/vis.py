@@ -4,7 +4,7 @@ from mayavi import mlab
 from vgn.utils.transform import Rotation, Transform
 
 
-def display_sample(tsdf, qual, rot, width, mask):
+def show_sample(tsdf, qual, rot, width, mask):
 
     tsdf = tsdf.squeeze()
     qual = qual.squeeze()
