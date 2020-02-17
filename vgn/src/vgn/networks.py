@@ -9,21 +9,6 @@ def get_network(name):
     return models[name.lower()]
 
 
-def predict(tsdf, net, device):
-    if tsdf.ndim == 3:
-        tsdf = tsdf[None, None, :, :, :]
-    tsdf = torch.from_numpy(tsdf).to(device)
-
-    with torch.no_grad():
-        qual, rot, width = net(tsdf)
-
-    qual = qual.cpu().squeeze().numpy()
-    rot = rot.cpu().squeeze().numpy()
-    width = width.cpu().squeeze().numpy()
-
-    return qual, rot, width
-
-
 class ConvNet(nn.Module):
     def __init__(self):
         super(ConvNet, self).__init__()
