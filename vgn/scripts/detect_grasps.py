@@ -1,6 +1,5 @@
 import argparse
 from pathlib import Path
-import time
 
 import open3d
 from mayavi import mlab
@@ -17,12 +16,10 @@ def main(args):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     network_path = Path(args.model)
-    detector = GraspDetector(device, network_path, debug=True)
+    detector = GraspDetector(device, network_path, show_detections=True)
 
-    tic = time.time()
     grasps, qualities = detector.detect_grasps(tsdf)
-    toc = time.time() - tic
-    print("Detected {} grasps in {} s".format(len(grasps), toc))
+    mlab.show()
 
 
 if __name__ == "__main__":

@@ -17,8 +17,6 @@ def show_sample(tsdf, qual, rot, width, mask):
     draw_volume(tsdf.squeeze())
     draw_grasps(mask, qual, rot, width)
 
-    mlab.show()
-
 
 def draw_volume(vol, tol=0.001):
     (x, y, z), scalars = np.where(vol > tol), vol[vol > tol]
@@ -80,7 +78,7 @@ def draw_grasps(mask, qual, rot, width):
             for p in line:
                 points = np.concatenate([points, t.transform_point(p)])
             points = np.reshape(points, (3, -1), order="F")
-
+            s = q * np.ones_like(points[0])
             mlab.plot3d(
-                points[0], points[1], points[2], color=(1, 0, 0), tube_radius=0.2
+                points[0], points[1], points[2], s, vmin=0.0, vmax=1.0, tube_radius=0.2,
             )

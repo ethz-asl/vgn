@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 
 import open3d
+from mayavi import mlab
 
 from vgn.dataset import VgnDataset
 from vgn.utils.vis import show_sample
@@ -14,6 +15,7 @@ def main(args):
     tsdf, (qual, rot, width), mask = dataset[dataset.samples.index(sample_path.name)]
 
     show_sample(tsdf, qual, rot, width, mask)
+    mlab.show()
 
 
 if __name__ == "__main__":

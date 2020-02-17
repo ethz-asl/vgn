@@ -40,5 +40,17 @@
                 "--dataset-dir=data/cuboid",
             ]
         },
+        {
+            "name": "detect_grasps",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/vgn/scripts/detect_grasps.py",
+            "cwd": "${workspaceFolder}/vgn",
+            "console": "integratedTerminal",
+            "args": [
+                "--model=data/runs/Feb16_11-45-15,net=conv,data=cuboid,batch_size=32,lr=3e-04,descr=/vgn_conv_90.pth",
+                "--sample=data/cuboid/0a461de5080b4539af617afc31135e6b.npz"
+            ]
+        },
     ]
 }
