@@ -26,7 +26,7 @@ class Transform(object):
     def as_matrix(self):
         """Represent as a 4x4 matrix."""
         return np.vstack(
-            (np.c_[self.rotation.as_matrix(), self.translation], [0.0, 0.0, 0.0, 1.0])
+            (np.c_[self.rotation.as_dcm(), self.translation], [0.0, 0.0, 0.0, 1.0])
         )
 
     def to_dict(self):
