@@ -1,6 +1,3 @@
-import logging
-
-
 from mayavi import mlab
 import numpy as np
 from scipy import ndimage
@@ -9,7 +6,7 @@ import torch
 from vgn.grasp import Grasp
 from vgn.utils.transform import Transform, Rotation
 from vgn.networks import get_network
-from vgn.utils.vis import draw_volume, show_sample
+from vgn.utils.vis import draw_volume, draw_sample
 
 
 class GraspDetector(object):
@@ -18,8 +15,8 @@ class GraspDetector(object):
         device,
         network_path,
         threshold=0.9,
-        show_out_vol=False,
-        show_filtered_vol=False,
+        show_predicted_qual=False,
+        show_filtered_qual=False,
         show_detections=False,
     ):
         self.device = device
@@ -27,8 +24,8 @@ class GraspDetector(object):
         self.net.load_state_dict(torch.load(network_path, map_location=self.device))
 
         self.threshold = threshold
-        self.show_out_vol = show_out_vol
-        self.show_filtered_vol = show_filtered_vol
+        self.show_predicted_qual = show_predicted_qual
+        self.show_filtered_qual = show_filtered_qual
         self.show_detections = show_detections
 
     def detect_grasps(self, tsdf):
@@ -47,8 +44,11 @@ class GraspDetector(object):
         grasps, qualities = self._select_grasps(qual, rot, width, mask)
         grasps, qualities = self._sort_grasps(grasps, qualities)
 
+        print("Detected {} grasps".format(len(grasps)))
+
         if self.show_detections:
-            show_sample(tsdf, qual, rot, width, mask)
+            mlab.figure("Detected grasps")
+            draw_sample(tsdf, qual, rot, width, mask)
 
         return grasps, qualities
 
@@ -62,8 +62,8 @@ class GraspDetector(object):
         rot = rot.cpu().squeeze().numpy()
         width = width.cpu().squeeze().numpy() * 10
 
-        if self.show_out_vol:
-            mlab.figure()
+        if self.show_predicted_qual:
+            mlab.figure("Predicted grasp quality")
             draw_volume(qual)
 
         return qual, rot, width
@@ -78,8 +78,8 @@ class GraspDetector(object):
         qual = np.where(qual == max_vol, qual, 0.0)
         mask = np.where(qual, 1.0, 0.0)
 
-        if self.show_filtered_vol:
-            mlab.figure()
+        if self.show_filtered_qual:
+            mlab.figure("Filtered grasp quality")
             draw_volume(qual)
 
         return mask

@@ -4,15 +4,13 @@ from mayavi import mlab
 from vgn.utils.transform import Rotation, Transform
 
 
-def show_sample(tsdf, qual, rot, width, mask):
+def draw_sample(tsdf, qual, rot, width, mask):
 
     tsdf = tsdf.squeeze()
     qual = qual.squeeze()
     rot = rot.squeeze()
     width = width.squeeze()
     mask = mask.squeeze()
-
-    mlab.figure()
 
     draw_volume(tsdf.squeeze())
     draw_grasps(mask, qual, rot, width)

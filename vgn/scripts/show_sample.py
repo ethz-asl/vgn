@@ -5,7 +5,7 @@ import open3d
 from mayavi import mlab
 
 from vgn.dataset import VgnDataset, RandomAffine
-from vgn.utils.vis import show_sample
+from vgn.utils.vis import draw_sample
 
 
 def main(args):
@@ -16,7 +16,8 @@ def main(args):
     dataset = VgnDataset(sample_path.parent, transforms=transforms)
     tsdf, (qual, rot, width), mask = dataset[dataset.samples.index(sample_path.name)]
 
-    show_sample(tsdf, qual, rot[1], width, mask)
+    mlab.figure()
+    draw_sample(tsdf, qual, rot[1], width, mask)
     mlab.show()
 
 

@@ -5,18 +5,26 @@ import open3d
 from mayavi import mlab
 import torch
 
-from vgn.dataset import VgnDataset
+from vgn.dataset import VgnDataset, RandomAffine
 from vgn.grasp_detector import GraspDetector
 
 
 def main(args):
     sample_path = Path(args.sample)
-    dataset = VgnDataset(sample_path.parent)
+
+    transforms = [RandomAffine()]
+    dataset = VgnDataset(sample_path.parent, transforms=transforms)
     tsdf, (qual, rot, width), mask = dataset[dataset.samples.index(sample_path.name)]
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     network_path = Path(args.model)
-    detector = GraspDetector(device, network_path, show_detections=True)
+    detector = GraspDetector(
+        device,
+        network_path,
+        show_predicted_qual=True,
+        show_filtered_qual=True,
+        show_detections=True,
+    )
 
     grasps, qualities = detector.detect_grasps(tsdf)
     mlab.show()
