@@ -48,9 +48,9 @@ def draw_volume(vol, tol=0.001):
 
 
 def draw_grasps(mask, qual, rot, width):
-    indices = np.where(mask == 1.0)
+    indices = np.argwhere(mask == 1.0)
 
-    for i, j, k in zip(*indices):
+    for (i, j, k) in indices:
 
         q = qual[i, j, k]
         t = Transform(Rotation.from_quat(rot[:, i, j, k]), np.r_[i, j, k])
