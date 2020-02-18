@@ -14,7 +14,7 @@ def main(args):
     dataset = VgnDataset(sample_path.parent)
     tsdf, (qual, rot, width), mask = dataset[dataset.samples.index(sample_path.name)]
 
-    show_sample(tsdf, qual, rot, width, mask)
+    show_sample(tsdf, qual, rot[1], width, mask)
     mlab.show()
 
 

@@ -18,10 +18,17 @@ def qual_loss_fn(pred, target, mask):
 
 
 def rot_loss_fn(pred, target, mask):
-    loss = 1 - torch.abs(torch.sum(pred * target, dim=1, keepdim=True))
-    return (loss * mask).sum() / mask.sum()
+    loss0 = _quat_loss_fn(pred, target[:, 0], mask)
+    loss1 = _quat_loss_fn(pred, target[:, 1], mask)
+
+    return torch.min(loss0, loss1)
 
 
 def width_loss_fn(pred, target, mask):
     loss = F.mse_loss(pred, target, reduction="none")
+    return (loss * mask).sum() / mask.sum()
+
+
+def _quat_loss_fn(pred, target, mask):
+    loss = 1.0 - torch.abs(torch.sum(pred * target, dim=1, keepdim=True))
     return (loss * mask).sum() / mask.sum()

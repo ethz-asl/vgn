@@ -71,7 +71,7 @@ class GraspDetector(object):
     def _filter_grasps(self, tsdf, qual, rot, width):
         qual = qual.copy()
 
-        qual[tsdf.squeeze() == 0.0] = 0.0
+        # qual[tsdf.squeeze() == 0.0] = 0.0
         qual[qual < self.threshold] = 0.0
 
         max_vol = ndimage.maximum_filter(qual, size=5)
