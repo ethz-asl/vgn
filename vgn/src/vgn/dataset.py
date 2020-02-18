@@ -79,10 +79,7 @@ class RandomAffine(object):
         qual, rot, width = y
 
         qual_t = np.zeros_like(qual, dtype=np.float32)
-        rot_t = (
-            np.zeros_like(rot[0], dtype=np.float32),
-            np.zeros_like(rot[1], dtype=np.float32),
-        )
+        rot_t = np.zeros_like(rot, dtype=np.float32)
         width_t = np.zeros_like(width, dtype=np.float32)
         mask_t = np.zeros_like(mask, dtype=np.float32)
 
@@ -96,8 +93,8 @@ class RandomAffine(object):
             rot1 = T.rotation * Rotation.from_quat(rot[1][:, i, j, k])
 
             qual_t[0, i_t, j_t, k_t] = qual[0, i, j, k]
-            rot_t[0][:, i_t, j_t, k_t] = rot0.as_quat()
-            rot_t[1][:, i_t, j_t, k_t] = rot1.as_quat()
+            rot_t[0, :, i_t, j_t, k_t] = rot0.as_quat()
+            rot_t[1, :, i_t, j_t, k_t] = rot1.as_quat()
             width_t[0, i_t, j_t, k_t] = width[0, i, j, k]
             mask_t[0, i_t, j_t, k_t] = 1.0
 

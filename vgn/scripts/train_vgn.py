@@ -9,7 +9,7 @@ from ignite.handlers import ModelCheckpoint
 from ignite.metrics import Average
 import torch
 
-from vgn.dataset import VgnDataset, Rescale
+from vgn.dataset import VgnDataset, Rescale, RandomAffine
 from vgn.loss import loss_fn
 from vgn.metrics import Accuracy
 from vgn.networks import get_network
@@ -20,7 +20,7 @@ def train(
     network_name, dataset_dir, log_dir, descr, batch_size, lr, epochs, val_split,
 ):
     device = torch.device("cuda")
-    kwargs = {"pin_memory": True}
+    kwargs = {"num_workers": 4, "pin_memory": True}
 
     # Create log directory for the training run
     descr = "{},net={},data={},batch_size={},lr={:.0e},descr={}".format(
@@ -35,7 +35,7 @@ def train(
     assert not log_dir.exists(), "log with this setup already exists"
 
     # Load dataset
-    transforms = [Rescale(width_scale=0.1)]
+    transforms = [Rescale(width_scale=0.1), RandomAffine()]
     dataset = VgnDataset(dataset_dir, transforms=transforms)
 
     # Split into train and validation sets
