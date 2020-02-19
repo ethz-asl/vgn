@@ -19,45 +19,57 @@ def generate_samples(
     hand_config,
     object_set,
     num_scenes,
-    num_grasps_per_scene,
+    num_grasps,
+    max_num_negative_grasps,
     root_dir,
     sim_gui,
     rtf,
     rank,
 ):
-    hand = Hand.from_dict(hand_config)
-    size = hand.max_gripper_width * 4
-
-    sim = GraspExperiment(urdf_root, object_set, hand, size, sim_gui, rtf)
-
     if rank == 0:
         root_dir.mkdir(parents=True, exist_ok=True)
 
+    hand = Hand.from_dict(hand_config)
+    size = hand.max_gripper_width * 4
+    sim = GraspExperiment(urdf_root, object_set, hand, size, sim_gui, rtf)
+
     for _ in tqdm(range(num_scenes), disable=rank is not 0):
-        sim.setup()
-        sim.save_state()
-        tsdf, high_res_tsdf = reconstruct_scene(sim)
-        point_cloud = high_res_tsdf.extract_point_cloud()
-        # o3d.visualization.draw_geometries([point_cloud])
-
-        if point_cloud.is_empty():
-            logging.warning("Empty point cloud, skipping scene")
+        tsdf, grasps, labels = generate_sample(
+            sim, hand, num_grasps, max_num_negative_grasps
+        )
+        if tsdf is None:
             continue
+        store_sample(root_dir, tsdf, grasps, labels)
 
-        is_positive = lambda o: o == Label.SUCCESS
-        grasps, labels = [], []
-        num_negatives = 0
 
-        while len(grasps) < num_grasps_per_scene:
-            point, normal = sample_grasp_point(point_cloud, hand.finger_depth)
-            grasp, label = evaluate_grasp_point(sim, point, normal)
-            if is_positive(label) or num_negatives < num_grasps_per_scene // 2:
-                grasps.append(grasp)
-                labels.append(label)
-                num_negatives += not is_positive(label)
+def generate_sample(sim, hand, num_grasps, max_num_negative_grasps):
+    sim.setup()
+    sim.save_state()
+    tsdf, high_res_tsdf = reconstruct_scene(sim)
+    point_cloud = high_res_tsdf.extract_point_cloud()
 
-        path = root_dir / str(uuid.uuid4().hex)
-        store_sample(path, tsdf, grasps, labels)
+    if point_cloud.is_empty():
+        logging.warning("Empty point cloud, skipping scene")
+        return None, None, None
+
+    is_positive = lambda o: o == Label.SUCCESS
+    grasps, labels = [], []
+    num_negatives = 0
+
+    while True:
+        point, normal = sample_grasp_point(point_cloud, hand.finger_depth)
+        grasp, label = evaluate_grasp_point(sim, point, normal)
+        num_negatives += not is_positive(label)
+
+        if is_positive(label) or num_negatives < num_grasps // 2:
+            grasps.append(grasp)
+            labels.append(label)
+
+        if len(grasps) == num_grasps:
+            return tsdf, grasps, labels
+
+        if num_negatives > max_num_negative_grasps:
+            return None, None, None
 
 
 def reconstruct_scene(sim):
@@ -137,7 +149,9 @@ def label2quality(label):
     return quality
 
 
-def store_sample(path, tsdf, grasps, labels):
+def store_sample(root_dir, tsdf, grasps, labels):
+    path = root_dir / str(uuid.uuid4().hex)
+
     tsdf_vol = tsdf.get_volume()
     qual_vol = np.zeros_like(tsdf_vol, dtype=np.float32)
     rot_vol = np.zeros((2, 4, 40, 40, 40), dtype=np.float32)

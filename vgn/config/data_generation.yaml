@@ -7,4 +7,6 @@ object_set: debug
 # number of scenes to be generated
 num_scenes: 1
 # number of grasps to be generated per scene
-num_grasps_per_scene: 10
+num_grasps: 10
+# number of negative candidates before the scene is skipped
+max_num_negative_grasps: 200
