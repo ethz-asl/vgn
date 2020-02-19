@@ -141,14 +141,8 @@ def label2quality(label):
 
 def store_sample(path, tsdf, grasps, labels):
     tsdf_vol = tsdf.get_volume()
-    shape = tsdf_vol.shape
-
-    tsdf_vol = np.expand_dims(tsdf_vol, 0)
     qual_vol = np.zeros_like(tsdf_vol, dtype=np.float32)
-    rot_vol = (
-        np.zeros((4,) + shape, dtype=np.float32),
-        np.zeros((4,) + shape, dtype=np.float32),
-    )
+    rot_vol = np.zeros((2, 4, 40, 40, 40), dtype=np.float32)
     width_vol = np.zeros_like(tsdf_vol, dtype=np.float32)
     mask = np.zeros_like(tsdf_vol, dtype=np.float32)
 
@@ -163,8 +157,8 @@ def store_sample(path, tsdf, grasps, labels):
         i, j, k = index
 
         qual_vol[0, i, j, k] = label2quality(label)
-        rot_vol[0][:, i, j, k] = grasp.pose.rotation.as_quat()
-        rot_vol[1][:, i, j, k] = (grasp.pose.rotation * R).as_quat()
+        rot_vol[0, :, i, j, k] = grasp.pose.rotation.as_quat()
+        rot_vol[1, :, i, j, k] = (grasp.pose.rotation * R).as_quat()
         width_vol[0, i, j, k] = grasp.width
         mask[0, i, j, k] = 1.0
 

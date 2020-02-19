@@ -48,12 +48,12 @@ class TSDFVolume(object):
 
     def get_volume(self):
         """Return voxel volume with truncated signed distances."""
-        shape = (self.resolution, self.resolution, self.resolution)
+        shape = (1, self.resolution, self.resolution, self.resolution)
         tsdf_vol = np.zeros(shape, dtype=np.float32)
         voxels = self._volume.extract_voxel_grid().voxels
         for voxel in voxels:
             i, j, k = voxel.grid_index
-            tsdf_vol[i, j, k] = voxel.color[0]
+            tsdf_vol[0, i, j, k] = voxel.color[0]
         return tsdf_vol
 
     def extract_point_cloud(self):

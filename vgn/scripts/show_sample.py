@@ -17,7 +17,7 @@ def main(args):
     tsdf, (qual, rot, width), mask = dataset[dataset.samples.index(sample_path.name)]
 
     mlab.figure()
-    draw_sample(tsdf, qual, rot[1], width, mask)
+    draw_sample(tsdf, qual, rot[0], width, mask)
     mlab.show()
 
 
