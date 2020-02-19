@@ -1,3 +1,0 @@
-<launch>
-  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find vgn_ros)/rviz/data.rviz"/>
-</launch>
