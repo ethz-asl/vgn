@@ -2,87 +2,76 @@ import argparse
 from pathlib import Path
 
 import open3d
+from mayavi import mlab
 import numpy as np
 from tqdm import tqdm
+import torch
 
-from vgn.constants import vgn_res
-from vgn.grasp import Label
+from vgn.hand import Hand
+from vgn.grasp import from_voxel_coordinates
 from vgn.grasp_detector import GraspDetector
-from vgn.perception.exploration import sample_hemisphere
-from vgn.perception.integration import TSDFVolume
-from vgn.simulation import GraspingExperiment
+from vgn.data_generation import reconstruct_scene
+from vgn.simulation import GraspExperiment
 from vgn.utils.io import load_dict
-
-threshold = 0.9
-n_experiments = 20
-n_views_per_scene = 10
-
-
-def evaluate(model_file, urdf_root, sim_gui, rtf):
-    sim = GraspingExperiment(urdf_root, sim_gui, rtf)
-    detector = GraspDetector(model_file, sim.size)
-
-    outcomes = np.zeros((n_experiments,))
-
-    for n in tqdm(range(n_experiments)):
-        sim.setup(args.object_set)
-        sim.pause()
-
-        # Reconstruct scene
-        extrinsics = sample_hemisphere(sim.size, n_views_per_scene)
-        tsdf = TSDFVolume(sim.size, vgn_res)
-        for extrinsic in extrinsics:
-            _, depth_img = sim.camera.render(extrinsic)
-            tsdf.integrate(depth_img, sim.camera.intrinsic, extrinsic)
-        tsdf_vol = tsdf.get_volume()
-
-        # Detect grasps
-        grasps, qualities, info = detector.detect_grasps(tsdf_vol, threshold)
-
-        # Test highest ranked grasp
-        i = np.argmax(qualities)
-        sim.world.resume()
-        out = sim.test_grasp(grasps[i].pose)
-
-        # Store outcome
-        outcomes[n] = out
-
-    return (outcomes >= Label.SUCCESS).sum()
+from vgn.utils.transform import Transform
 
 
 def main(args):
+    config = load_dict(Path(args.config))
+    urdf_root = Path(config["urdf_root"])
+    hand_config = load_dict(Path(config["hand_config"]))
+    object_set = config["object_set"]
+    network_path = Path(config["model_path"])
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    num_experiments = 20
 
-    sim_config = load_dict(Path(args.sim_config))
+    hand = Hand.from_dict(hand_config)
+    size = 4 * hand.max_gripper_width
 
-    n_successes = evaluate(
-        model_file=Path(args.model),
-        urdf_root=Path(sim_config["urdf_root"]),
-        sim_gui=args.sim_gui,
-        rtf=args.rtf,
-    )
+    sim = GraspExperiment(urdf_root, object_set, hand, size, args.sim_gui, args.rtf)
+    detector = GraspDetector(device, network_path, show_detections=False)
 
-    print("Success rate: {}/{}".format(n_succeses, n_experiments))
+    outcomes = np.empty(num_experiments, dtype=np.int)
+    for i in tqdm(range(num_experiments), ascii=True):
+        outcomes[i] = run_trial(sim, detector)
+
+    print_results(outcomes)
+
+
+def run_trial(sim, detector):
+    sim.setup()
+    sim.pause()
+    tsdf, high_res_tsdf = reconstruct_scene(sim)
+
+    grasps, qualities = detector.detect_grasps(tsdf.get_volume())
+    # mlab.show()
+
+    i = np.argmax(qualities)
+    grasp = from_voxel_coordinates(grasps[i], Transform.identity(), tsdf.voxel_size)
+
+    sim.resume()
+    outcome, width = sim.test_grasp(grasp.pose)
+
+    return outcome
+
+
+def print_results(outcomes):
+    num_trials = len(outcomes)
+    num_collision = np.sum(outcomes == 1)
+    num_empty = np.sum(outcomes == 2)
+    num_slipped = np.sum(outcomes == 3)
+    num_success = np.sum(outcomes == 4)
+
+    print("Collision: {}/{}".format(num_collision, num_trials))
+    print("Empty:     {}/{}".format(num_empty, num_trials))
+    print("Slipped:   {}/{}".format(num_slipped, num_trials))
+    print("Success:   {}/{}".format(num_success, num_trials))
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="evaluate the vgn grasp detector in simulation",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    parser = argparse.ArgumentParser(description="evaluate vgn in simulation")
     parser.add_argument(
-        "--model", type=str, required=True, help="saved model ending with .pth"
-    )
-    parser.add_argument(
-        "--object-set",
-        choices=["debug", "cuboid", "cuboids"],
-        default="debug",
-        help="object set to be used",
-    )
-    parser.add_argument(
-        "--sim-config",
-        type=str,
-        default="config/simulation.yaml",
-        help="path to simulation configuration",
+        "--config", type=str, required=True, help="experiment configuration file",
     )
     parser.add_argument("--sim-gui", action="store_true", help="disable headless mode")
     parser.add_argument(
