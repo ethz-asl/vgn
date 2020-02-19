@@ -26,7 +26,8 @@
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
-                "data/cuboid/0ad99d2c9e4b4cba97c53f96588ab6a2.npz",
+                "data/cuboid/0cfc4bebab3a4c85914d96dd2fce7664.npz",
+                // "--augment",
             ]
         },
         {
@@ -41,15 +42,28 @@
             ]
         },
         {
-            "name": "detect_grasps",
+            "name": "show_detections",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/vgn/scripts/detect_grasps.py",
+            "program": "${workspaceFolder}/vgn/scripts/show_detections.py",
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
-                "--model=data/runs/Feb16_11-45-15,net=conv,data=cuboid,batch_size=32,lr=3e-04,descr=/vgn_conv_90.pth",
-                "--sample=data/cuboid/0a461de5080b4539af617afc31135e6b.npz"
+                "--model=data/runs/Feb18_20-02-23,net=conv,data=cuboid,batch_size=32,lr=3e-04,descr=/vgn_conv_100.pth",
+                "--sample=data/cuboid/0cfc4bebab3a4c85914d96dd2fce7664.npz",
+            ]
+        },
+        {
+            "name": "eval_vgn",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/vgn/scripts/eval_vgn.py",
+            "cwd": "${workspaceFolder}/vgn",
+            "console": "integratedTerminal",
+            "args": [
+                "--config=config/evaluation.yaml",
+                "--sim-gui",
+                "--rtf=-1.0",
             ]
         },
     ]
