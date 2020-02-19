@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 import pybullet
 import scipy.stats as stats
@@ -39,6 +41,7 @@ class GraspExperiment(object):
         # Load robot
         pose = Transform(Rotation.identity(), np.r_[0.0, 0.0, 1.0])
         self.robot.reset(pose)
+        self.robot.move_gripper(1.0)
 
         # Load camera
         intrinsic = PinholeCameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)
@@ -75,18 +78,12 @@ class GraspExperiment(object):
         """
         epsilon = 0.2  # threshold for detecting grasps
 
-        # Place the gripper at the pre-grasp pose
         T_grasp_pregrasp = Transform(Rotation.identity(), [0.0, 0.0, -0.05])
         T_base_pregrasp = T_base_grasp * T_grasp_pregrasp
-        self.robot.set_tcp(T_base_pregrasp, override_dynamics=True)
+
+        # Place the gripper at the grasp pose
+        self.robot.set_tcp(T_base_grasp, override_dynamics=True)
         if self.robot.detect_collision():
-            return Label.COLLISION, 0.0
-
-        # Open the gripper
-        self.robot.move_gripper(1.0)
-
-        # Approach the grasp pose
-        if not self.robot.move_tcp_xyz(T_base_grasp):
             return Label.COLLISION, 0.0
 
         # Close the gripper
@@ -105,8 +102,8 @@ class GraspExperiment(object):
 
         return Label.SUCCESS, width
 
-    def spawn_object(self, urdf, pose):
-        obj = self.world.load_urdf(urdf)
+    def spawn_object(self, urdf, pose, scale=1.0):
+        obj = self.world.load_urdf(urdf, scale=scale)
         obj.set_pose(pose)
         for _ in range(240):
             self.world.step()
@@ -140,7 +137,7 @@ class GraspExperiment(object):
         for name in np.random.choice(names, size=num_objects):
             urdf = urdf_dir / name / (name + ".urdf")
             pose = self.sample_pose()
-            self.spawn_object(urdf, pose)
+            self.spawn_object(urdf, pose, scale=0.6)
 
 
 class Robot(object):
