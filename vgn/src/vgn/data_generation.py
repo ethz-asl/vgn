@@ -27,34 +27,16 @@ def generate_samples(
 ):
     hand = Hand.from_dict(hand_config)
     size = hand.max_gripper_width * 4
-    resolution = 40
-    high_resolution = 160
 
-    sim = GraspExperiment(urdf_root, hand, size, sim_gui, rtf)
+    sim = GraspExperiment(urdf_root, object_set, hand, size, sim_gui, rtf)
 
     if rank == 0:
         root_dir.mkdir(parents=True, exist_ok=True)
 
     for _ in tqdm(range(num_scenes), disable=rank is not 0):
-        # Setup experiment
-        sim.setup(object_set)
+        sim.setup()
         sim.save_state()
-
-        # Reconstruct scene
-        tsdf = TSDFVolume(size, resolution)
-        high_res_tsdf = TSDFVolume(size, high_resolution)
-
-        expected_num_of_viewpoints = 8
-        num_viewpoints = np.random.poisson(expected_num_of_viewpoints - 1) + 1
-
-        intrinsic = sim.camera.intrinsic
-        extrinsics = sample_hemisphere(size, num_viewpoints)
-
-        for extrinsic in extrinsics:
-            depth_img = sim.camera.render(extrinsic)[1]
-            tsdf.integrate(depth_img, intrinsic, extrinsic)
-            high_res_tsdf.integrate(depth_img, intrinsic, extrinsic)
-
+        tsdf, high_res_tsdf = reconstruct_scene(sim)
         point_cloud = high_res_tsdf.extract_point_cloud()
         # o3d.visualization.draw_geometries([point_cloud])
 
@@ -62,10 +44,8 @@ def generate_samples(
             logging.warning("Empty point cloud, skipping scene")
             continue
 
-        # Sample and evaluate grasp candidates
-        grasps, labels = [], []
-
         is_positive = lambda o: o == Label.SUCCESS
+        grasps, labels = [], []
         num_negatives = 0
 
         while len(grasps) < num_grasps_per_scene:
@@ -76,9 +56,27 @@ def generate_samples(
                 labels.append(label)
                 num_negatives += not is_positive(label)
 
-        # Store the sample
         path = root_dir / str(uuid.uuid4().hex)
         store_sample(path, tsdf, grasps, labels)
+
+
+def reconstruct_scene(sim):
+    expected_num_of_viewpoints = 8
+
+    tsdf = TSDFVolume(sim.size, 40)
+    high_res_tsdf = TSDFVolume(sim.size, 160)
+
+    num_viewpoints = np.random.poisson(expected_num_of_viewpoints - 1) + 1
+
+    intrinsic = sim.camera.intrinsic
+    extrinsics = sample_hemisphere(sim.size, num_viewpoints)
+
+    for extrinsic in extrinsics:
+        depth_img = sim.camera.render(extrinsic)[1]
+        tsdf.integrate(depth_img, intrinsic, extrinsic)
+        high_res_tsdf.integrate(depth_img, intrinsic, extrinsic)
+
+    return tsdf, high_res_tsdf
 
 
 def sample_grasp_point(point_cloud, finger_depth):

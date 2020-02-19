@@ -14,24 +14,23 @@ class GraspExperiment(object):
     """Simulation of a grasping experiment.
 
     In this simulation, world, task and robot base frames are identical.
+
+    Attributes:
+        object_set: The grasping object set. Available options are
+            * debug: a single cuboid at a fixed pose
+            * cuboid
+            * random
     """
 
-    def __init__(self, urdf_root, hand, size, gui=True, real_time_factor=-1.0):
+    def __init__(self, urdf_root, object_set, hand, size, gui=True, rtf=-1.0):
         self.urdf_root = urdf_root
+        self.object_set = object_set
         self.size = size
 
-        self.world = btsim.BtWorld(gui, real_time_factor)
+        self.world = btsim.BtWorld(gui, rtf)
         self.robot = Robot(self.world, hand)
 
-    def setup(self, object_set, test=False):
-        """Setup a grasping experiment.
-
-        Args:
-            object_set: The grasping object set. Available options are
-                * debug: a single cuboid at a fixed pose
-                * cuboid
-                * random
-        """
+    def setup(self, test=False):
         self.world.reset()
         self.world.set_gravity([0.0, 0.0, -9.81])
 
@@ -48,11 +47,11 @@ class GraspExperiment(object):
         self.camera = self.world.add_camera(intrinsic, 0.1, 2.0)
 
         # Load objects
-        if object_set == "debug":
+        if self.object_set == "debug":
             self.spawn_debug_object()
-        if object_set == "cuboid":
+        if self.object_set == "cuboid":
             self.spawn_cuboid()
-        elif object_set == "random":
+        elif self.object_set == "random":
             self.spawn_random(test)
 
     def pause(self):
