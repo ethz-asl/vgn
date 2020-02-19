@@ -28,18 +28,22 @@ def generate_samples(
 ):
     if rank == 0:
         root_dir.mkdir(parents=True, exist_ok=True)
+        list_of_num_negatives = np.zeros(num_scenes)
 
     hand = Hand.from_dict(hand_config)
     size = hand.max_gripper_width * 4
     sim = GraspExperiment(urdf_root, object_set, hand, size, sim_gui, rtf)
 
-    for _ in tqdm(range(num_scenes), disable=rank is not 0):
-        tsdf, grasps, labels = generate_sample(
+    for i in tqdm(range(num_scenes), disable=rank is not 0):
+        tsdf, grasps, labels, num_negatives = generate_sample(
             sim, hand, num_grasps, max_num_negative_grasps
         )
-        if tsdf is None:
-            continue
-        store_sample(root_dir, tsdf, grasps, labels)
+        if rank == 0:
+            list_of_num_negatives[i] = num_negatives
+            np.savetxt(root_dir / "num_negatives.out", list_of_num_negatives)
+
+        if tsdf is not None:
+            store_sample(root_dir, tsdf, grasps, labels)
 
 
 def generate_sample(sim, hand, num_grasps, max_num_negative_grasps):
@@ -50,7 +54,7 @@ def generate_sample(sim, hand, num_grasps, max_num_negative_grasps):
 
     if point_cloud.is_empty():
         logging.warning("Empty point cloud, skipping scene")
-        return None, None, None
+        return None, None, None, None
 
     is_positive = lambda o: o == Label.SUCCESS
     grasps, labels = [], []
@@ -66,10 +70,10 @@ def generate_sample(sim, hand, num_grasps, max_num_negative_grasps):
             labels.append(label)
 
         if len(grasps) == num_grasps:
-            return tsdf, grasps, labels
+            return tsdf, grasps, labels, num_negatives
 
         if num_negatives > max_num_negative_grasps:
-            return None, None, None
+            return None, None, None, num_negatives
 
 
 def reconstruct_scene(sim):
