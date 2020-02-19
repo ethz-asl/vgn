@@ -1,5 +1,3 @@
-from __future__ import division
-
 import numpy as np
 import pybullet
 import scipy.stats as stats
@@ -19,7 +17,7 @@ class GraspExperiment(object):
         object_set: The grasping object set. Available options are
             * debug: a single cuboid at a fixed pose
             * cuboid
-            * random
+            * ycb
     """
 
     def __init__(self, urdf_root, object_set, hand, size, gui=True, rtf=-1.0):
@@ -51,8 +49,8 @@ class GraspExperiment(object):
             self.spawn_debug_object()
         if self.object_set == "cuboid":
             self.spawn_cuboid()
-        elif self.object_set == "random":
-            self.spawn_random(test)
+        elif self.object_set == "kappler":
+            self.spawn_kappler(test)
 
     def pause(self):
         self.world.pause()
@@ -132,11 +130,15 @@ class GraspExperiment(object):
         pose = self.sample_pose()
         self.spawn_object(urdf, pose)
 
-    def spawn_random_object(self, test):
+    def spawn_kappler(self, test):
         expected_num_of_objects = 4
         num_objects = np.random.poisson(expected_num_of_objects - 1) + 1
-        for _ in range(num_objects):
-            urdf = self.urdf_root / "toy_blocks/cuboid/cuboid.urdf"
+
+        urdf_dir = self.urdf_root / "kappler" / "urdfs"
+        names = [d.name for d in urdf_dir.iterdir() if d.is_dir()]
+
+        for name in np.random.choice(names, size=num_objects):
+            urdf = urdf_dir / name / (name + ".urdf")
             pose = self.sample_pose()
             self.spawn_object(urdf, pose)
 
