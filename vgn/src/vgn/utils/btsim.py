@@ -34,8 +34,8 @@ class BtWorld(object):
     def set_gravity(self, gravity):
         self.p.setGravity(*gravity)
 
-    def load_urdf(self, urdf_path):
-        body = Body.from_urdf(self.p, urdf_path)
+    def load_urdf(self, urdf_path, scale=1.0):
+        body = Body.from_urdf(self.p, urdf_path, scale)
         return body
 
     def add_constraint(self, *argv, **kwargs):
@@ -111,8 +111,8 @@ class Body(object):
             self.links[link_name] = Link(self.p, self.body_uid, i)
 
     @classmethod
-    def from_urdf(cls, physics_client, urdf_path):
-        body_uid = physics_client.loadURDF(str(urdf_path))
+    def from_urdf(cls, physics_client, urdf_path, scale):
+        body_uid = physics_client.loadURDF(str(urdf_path), globalScaling=scale)
         return cls(physics_client, body_uid)
 
     def get_pose(self):
