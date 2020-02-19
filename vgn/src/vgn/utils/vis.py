@@ -1,11 +1,11 @@
 import numpy as np
 from mayavi import mlab
 
+from vgn.grasp import Grasp
 from vgn.utils.transform import Rotation, Transform
 
 
 def draw_sample(tsdf, qual, rot, width, mask):
-
     tsdf = tsdf.squeeze()
     qual = qual.squeeze()
     rot = rot.squeeze()
@@ -13,7 +13,20 @@ def draw_sample(tsdf, qual, rot, width, mask):
     mask = mask.squeeze()
 
     draw_volume(tsdf.squeeze())
-    draw_grasps(mask, qual, rot, width)
+
+    grasps, qualities = [], []
+    for (i, j, k) in np.argwhere(mask == 1.0):
+        t = Transform(Rotation.from_quat(rot[:, i, j, k]), np.r_[i, j, k])
+        q = qual[i, j, k]
+        w = width[i, j, k]
+        grasps.append(Grasp(t, w))
+        qualities.append(q)
+    draw_grasps(grasps, qualities, 6)
+
+
+def draw_detections(point_cloud, grasps, qualities):
+    draw_point_cloud(point_cloud)
+    draw_grasps(grasps, qualities, 0.05)
 
 
 def draw_volume(vol, tol=0.001):
@@ -45,38 +58,52 @@ def draw_volume(vol, tol=0.001):
     mlab.colorbar(nb_labels=6, orientation="vertical")
 
 
-def draw_grasps(mask, qual, rot, width):
-    indices = np.argwhere(mask == 1.0)
+def draw_point_cloud(point_cloud):
+    points = np.asarray(point_cloud.points)
+    colors = np.array(point_cloud.colors)
 
-    for (i, j, k) in indices:
+    x, y, z = points[:, 0], points[:, 1], points[:, 2]
+    mlab.points3d(x, y, z)
 
-        q = qual[i, j, k]
-        t = Transform(Rotation.from_quat(rot[:, i, j, k]), np.r_[i, j, k])
-        w = width[i, j, k]
-        d = 6  # TODO(mbreyer): use actual finger depth
 
-        if q == 0.0:
-            mlab.points3d(
-                i, j, k, q, color=(0, 0, 1), scale_mode="none", scale_factor=1
-            )
-            continue
+def draw_grasps(grasps, qualities, finger_depth):
+    for grasp, quality in zip(grasps, qualities):
+        draw_grasp(grasp, quality, finger_depth)
 
-        lines = [
-            (
-                [0.0, -0.5 * w, d],
-                [0.0, -0.5 * w, 0.0],
-                [0.0, 0.5 * w, 0.0],
-                [0.0, 0.5 * w, d],
-            ),
-            ([0.0, 0.0, 0.0], [0.0, 0.0, -0.5 * d]),
-        ]
 
-        for line in lines:
-            points = np.array([])
-            for p in line:
-                points = np.concatenate([points, t.transform_point(p)])
-            points = np.reshape(points, (3, -1), order="F")
-            s = q * np.ones_like(points[0])
-            mlab.plot3d(
-                points[0], points[1], points[2], s, vmin=0.0, vmax=1.0, tube_radius=0.2,
-            )
+def draw_grasp(grasp, q, d):
+    if q == 0.0:
+        x, y, z = grasp.pose.translation
+        mlab.points3d(x, y, z, q, color=(0, 0, 1), scale_mode="none", scale_factor=1)
+        return
+
+    w = grasp.width
+    lines = [
+        [
+            [0.0, -0.5 * w, d],
+            [0.0, -0.5 * w, 0.0],
+            [0.0, 0.5 * w, 0.0],
+            [0.0, 0.5 * w, d],
+        ],
+        [[0.0, 0.0, 0.0], [0.0, 0.0, -0.5 * d]],
+    ]
+    radius = 0.033 * d
+
+    for line in lines:
+        points = [grasp.pose.transform_point(p) for p in line]
+        draw_line_strip(points, q, radius)
+
+
+def draw_line_strip(points, s, radius):
+    """Draw a line between every two consecutive points.
+
+    Args:
+        points:  A list of points.
+    """
+    points = np.vstack(points)
+    x, y, z = points[:, 0], points[:, 1], points[:, 2]
+    s = s * np.ones_like(x)
+
+    mlab.plot3d(
+        x, y, z, s, vmin=0.0, vmax=1.0, tube_radius=radius,
+    )

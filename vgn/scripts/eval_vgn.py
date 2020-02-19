@@ -4,7 +4,6 @@ from pathlib import Path
 import open3d
 from mayavi import mlab
 import numpy as np
-from tqdm import tqdm
 import torch
 
 from vgn.hand import Hand
@@ -14,6 +13,7 @@ from vgn.data_generation import reconstruct_scene
 from vgn.simulation import GraspExperiment
 from vgn.utils.io import load_dict
 from vgn.utils.transform import Transform
+from vgn.utils import vis
 
 
 def main(args):
@@ -29,26 +29,34 @@ def main(args):
     size = 4 * hand.max_gripper_width
 
     sim = GraspExperiment(urdf_root, object_set, hand, size, args.sim_gui, args.rtf)
-    detector = GraspDetector(device, network_path, show_detections=False)
+    detector = GraspDetector(device, network_path, show_detections=args.show_vis)
 
     outcomes = np.empty(num_experiments, dtype=np.int)
-    for i in tqdm(range(num_experiments), ascii=True):
-        outcomes[i] = run_trial(sim, detector)
+    for i in range(num_experiments):
+        outcomes[i] = run_trial(sim, detector, args.show_vis)
 
     print_results(outcomes)
 
 
-def run_trial(sim, detector):
+def run_trial(sim, detector, show_vis):
     sim.setup()
     sim.pause()
     tsdf, high_res_tsdf = reconstruct_scene(sim)
+    point_cloud = high_res_tsdf.extract_point_cloud()
 
     grasps, qualities = detector.detect_grasps(tsdf.get_volume())
-    # mlab.show()
+
+    T = Transform.identity()
+    for i, grasp in enumerate(grasps):
+        grasps[i] = from_voxel_coordinates(grasp, T, tsdf.voxel_size)
+
+    if show_vis:
+        mlab.figure()
+        vis.draw_detections(point_cloud, grasps, qualities)
+        mlab.show()
 
     i = np.argmax(qualities)
-    grasp = from_voxel_coordinates(grasps[i], Transform.identity(), tsdf.voxel_size)
-
+    grasp = grasps[i]
     sim.resume()
     outcome, width = sim.test_grasp(grasp.pose)
 
@@ -73,6 +81,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config", type=str, required=True, help="experiment configuration file",
     )
+    parser.add_argument("--show-vis", action="store_true")
     parser.add_argument("--sim-gui", action="store_true", help="disable headless mode")
     parser.add_argument(
         "--rtf", type=float, default=-1.0, help="real time factor of the simulation"
