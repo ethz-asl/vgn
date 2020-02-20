@@ -15,6 +15,7 @@ class GraspDetector(object):
         device,
         network_path,
         threshold=0.9,
+        show_input_tsdf=False,
         show_predicted_qual=False,
         show_filtered_qual=False,
         show_detections=False,
@@ -24,6 +25,7 @@ class GraspDetector(object):
         self.net.load_state_dict(torch.load(network_path, map_location=self.device))
 
         self.threshold = threshold
+        self.show_input_tsdf = show_input_tsdf
         self.show_predicted_qual = show_predicted_qual
         self.show_filtered_qual = show_filtered_qual
         self.show_detections = show_detections
@@ -37,6 +39,9 @@ class GraspDetector(object):
         Returns:
             List of grasp candidates in voxel coordinates and their associated predicted qualities.
         """
+        if self.show_input_tsdf:
+            mlab.figure("Input TSDF")
+            draw_volume(tsdf.squeeze())
 
         qual, rot, width = self._predict(tsdf)
 

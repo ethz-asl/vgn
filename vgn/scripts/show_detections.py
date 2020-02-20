@@ -21,6 +21,7 @@ def main(args):
     detector = GraspDetector(
         device,
         network_path,
+        show_input_tsdf=True,
         show_predicted_qual=True,
         show_filtered_qual=True,
         show_detections=True,
