@@ -54,6 +54,8 @@ class GraspExperiment(object):
             self.spawn_cuboid()
         elif self.object_set == "kappler":
             self.spawn_kappler(test)
+        elif self.object_set == "ycb":
+            self.spawn_ycb(test)
 
     def pause(self):
         self.world.pause()
@@ -108,6 +110,11 @@ class GraspExperiment(object):
         for _ in range(240):
             self.world.step()
 
+    def sample_num_objects(self):
+        expected_num_of_objects = 4
+        num_objects = np.random.poisson(expected_num_of_objects - 1) + 1
+        return num_objects
+
     def sample_pose(self):
         l, u = 0.0, self.size
         mu, sigma = self.size / 2.0, self.size / 4.0
@@ -128,11 +135,19 @@ class GraspExperiment(object):
         self.spawn_object(urdf, pose)
 
     def spawn_kappler(self, test):
-        expected_num_of_objects = 4
-        num_objects = np.random.poisson(expected_num_of_objects - 1) + 1
-
         urdf_dir = self.urdf_root / "kappler"
         names = [d.name for d in urdf_dir.iterdir() if d.is_dir()]
+        num_objects = self.sample_num_objects()
+
+        for name in np.random.choice(names, size=num_objects):
+            urdf = urdf_dir / name / (name + ".urdf")
+            pose = self.sample_pose()
+            self.spawn_object(urdf, pose)
+
+    def spawn_ycb(self, test):
+        urdf_dir = self.urdf_root / "ycb"
+        names = [d.name for d in urdf_dir.iterdir() if d.is_dir()]
+        num_objects = self.sample_num_objects()
 
         for name in np.random.choice(names, size=num_objects):
             urdf = urdf_dir / name / (name + ".urdf")
