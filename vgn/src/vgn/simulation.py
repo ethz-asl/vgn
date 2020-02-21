@@ -131,13 +131,13 @@ class GraspExperiment(object):
         expected_num_of_objects = 4
         num_objects = np.random.poisson(expected_num_of_objects - 1) + 1
 
-        urdf_dir = self.urdf_root / "kappler" / "urdfs"
+        urdf_dir = self.urdf_root / "kappler"
         names = [d.name for d in urdf_dir.iterdir() if d.is_dir()]
 
         for name in np.random.choice(names, size=num_objects):
             urdf = urdf_dir / name / (name + ".urdf")
             pose = self.sample_pose()
-            self.spawn_object(urdf, pose, scale=0.6)
+            self.spawn_object(urdf, pose)
 
 
 class Robot(object):
