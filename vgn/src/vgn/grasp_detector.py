@@ -15,9 +15,8 @@ class GraspDetector(object):
         device,
         network_path,
         threshold=0.9,
-        show_input_tsdf=False,
-        show_predicted_qual=False,
-        show_filtered_qual=False,
+        show_tsdf=False,
+        show_qual=False,
         show_detections=False,
     ):
         self.device = device
@@ -25,9 +24,8 @@ class GraspDetector(object):
         self.net.load_state_dict(torch.load(network_path, map_location=self.device))
 
         self.threshold = threshold
-        self.show_input_tsdf = show_input_tsdf
-        self.show_predicted_qual = show_predicted_qual
-        self.show_filtered_qual = show_filtered_qual
+        self.show_tsdf = show_tsdf
+        self.show_qual = show_qual
         self.show_detections = show_detections
 
     def detect_grasps(self, tsdf):
@@ -39,7 +37,7 @@ class GraspDetector(object):
         Returns:
             List of grasp candidates in voxel coordinates and their associated predicted qualities.
         """
-        if self.show_input_tsdf:
+        if self.show_tsdf:
             mlab.figure("Input TSDF")
             draw_volume(tsdf.squeeze())
 
@@ -67,25 +65,20 @@ class GraspDetector(object):
         rot = rot.cpu().squeeze().numpy()
         width = width.cpu().squeeze().numpy() * 10
 
-        if self.show_predicted_qual:
-            mlab.figure("Predicted grasp quality")
-            draw_volume(qual)
-
         return qual, rot, width
 
     def _filter_grasps(self, tsdf, qual, rot, width):
         qual = qual.copy()
 
-        # qual[tsdf.squeeze() == 0.0] = 0.0
         qual[qual < self.threshold] = 0.0
+
+        if self.show_qual:
+            mlab.figure("Processed grasp quality")
+            draw_volume(qual)
 
         max_vol = ndimage.maximum_filter(qual, size=5)
         qual = np.where(qual == max_vol, qual, 0.0)
         mask = np.where(qual, 1.0, 0.0)
-
-        if self.show_filtered_qual:
-            mlab.figure("Filtered grasp quality")
-            draw_volume(qual)
 
         return mask
 

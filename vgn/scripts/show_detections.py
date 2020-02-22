@@ -19,12 +19,7 @@ def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     network_path = Path(args.model)
     detector = GraspDetector(
-        device,
-        network_path,
-        show_input_tsdf=True,
-        show_predicted_qual=True,
-        show_filtered_qual=True,
-        show_detections=True,
+        device, network_path, show_tsdf=True, show_qual=True, show_detections=True,
     )
 
     grasps, qualities = detector.detect_grasps(tsdf)

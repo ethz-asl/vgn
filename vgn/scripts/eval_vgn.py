@@ -29,7 +29,7 @@ def main(args):
     size = 4 * hand.max_gripper_width
 
     sim = GraspExperiment(urdf_root, object_set, hand, size, args.sim_gui, args.rtf)
-    detector = GraspDetector(device, network_path, show_detections=args.show_vis)
+    detector = GraspDetector(device, network_path, show_qual=args.show_vis)
 
     outcomes = np.empty(num_experiments, dtype=np.int)
     for i in range(num_experiments):
