@@ -24,6 +24,8 @@ class GraspDetector(object):
         self.net.load_state_dict(torch.load(network_path, map_location=self.device))
 
         self.threshold = threshold
+        self.gripper_uncertainty = 1.0
+
         self.show_tsdf = show_tsdf
         self.show_qual = show_qual
         self.show_detections = show_detections
@@ -70,6 +72,7 @@ class GraspDetector(object):
     def _filter_grasps(self, tsdf, qual, rot, width):
         qual = qual.copy()
 
+        qual = ndimage.gaussian_filter(qual, sigma=self.gripper_uncertainty)
         qual[qual < self.threshold] = 0.0
 
         if self.show_qual:
