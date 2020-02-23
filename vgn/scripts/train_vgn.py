@@ -106,7 +106,7 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_argument("--net", choices=["conv"], default="conv", help="network name")
+    parser.add_argument("--net", default="conv", help="network name")
     parser.add_argument(
         "--dataset-dir", type=str, required=True, help="root directory of the dataset"
     )

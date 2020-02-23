@@ -15,34 +15,41 @@ class BaseNet(nn.Module):
 
 
 class ConvNet(BaseNet):
-    def __init__(self):
+    def __init__(
+        self, filters=[16, 32, 64, 64, 32, 16], kernel_sizes=[5, 3, 3, 3, 3, 5]
+    ):
         super().__init__()
 
-        input_channels = 1
-        filter_sizes = [16, 32, 64, 64, 32, 16]
-
         self.conv1 = nn.Conv3d(
-            input_channels, filter_sizes[0], kernel_size=5, stride=2, padding=2,
+            1, filters[0], kernel_sizes[0], stride=2, padding=kernel_sizes[0] // 2
         )
         self.conv2 = nn.Conv3d(
-            filter_sizes[0], filter_sizes[1], kernel_size=3, stride=2, padding=1
+            filters[0],
+            filters[1],
+            kernel_sizes[1],
+            stride=2,
+            padding=kernel_sizes[1] // 2,
         )
         self.conv3 = nn.Conv3d(
-            filter_sizes[1], filter_sizes[2], kernel_size=3, stride=2, padding=1
+            filters[1],
+            filters[2],
+            kernel_sizes[2],
+            stride=2,
+            padding=kernel_sizes[2] // 2,
         )
         self.conv4 = nn.Conv3d(
-            filter_sizes[2], filter_sizes[3], kernel_size=3, padding=1
+            filters[2], filters[3], kernel_sizes[3], padding=kernel_sizes[3] // 2
         )
         self.conv5 = nn.Conv3d(
-            filter_sizes[3], filter_sizes[4], kernel_size=3, padding=1
+            filters[3], filters[4], kernel_sizes[4], padding=kernel_sizes[4] // 2
         )
         self.conv6 = nn.Conv3d(
-            filter_sizes[4], filter_sizes[5], kernel_size=3, padding=1
+            filters[4], filters[5], kernel_sizes[5], padding=kernel_sizes[5] // 2
         )
 
-        self.conv_qual = nn.Conv3d(filter_sizes[5], 1, kernel_size=5, padding=2)
-        self.conv_rot = nn.Conv3d(filter_sizes[5], 4, kernel_size=5, padding=2)
-        self.conv_width = nn.Conv3d(filter_sizes[5], 1, kernel_size=5, padding=2)
+        self.conv_qual = nn.Conv3d(filters[5], 1, kernel_size=5, padding=2)
+        self.conv_rot = nn.Conv3d(filters[5], 4, kernel_size=5, padding=2)
+        self.conv_width = nn.Conv3d(filters[5], 1, kernel_size=5, padding=2)
 
     def forward(self, x):
         # 1 x 40 x 40 x 40
