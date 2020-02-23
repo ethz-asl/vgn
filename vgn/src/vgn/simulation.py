@@ -26,6 +26,7 @@ class GraspExperiment(object):
         self.urdf_root = urdf_root
         self.object_set = object_set
         self.size = size
+        self.vis = gui
 
         self.world = btsim.BtWorld(gui, rtf)
         self.robot = Robot(self.world, hand)
@@ -85,6 +86,12 @@ class GraspExperiment(object):
 
         # Place the gripper at the grasp pose
         self.robot.set_tcp(T_base_grasp, override_dynamics=True)
+
+        if self.vis:
+            self.pause()
+            time.sleep(1.0)
+            self.resume()
+
         if self.robot.detect_collision():
             return Label.COLLISION, 0.0
 
