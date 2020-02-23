@@ -9,9 +9,14 @@ def get_network(name):
     return models[name.lower()]
 
 
-class ConvNet(nn.Module):
+class BaseNet(nn.Module):
+    def count_num_trainable_parameters(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+
+
+class ConvNet(BaseNet):
     def __init__(self):
-        super(ConvNet, self).__init__()
+        super().__init__()
 
         input_channels = 1
         filter_sizes = [16, 32, 64, 64, 32, 16]
