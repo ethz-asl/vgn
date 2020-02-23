@@ -1,6 +1,40 @@
+import numpy as np
 from ignite.engine import Engine
 import torch
 from torch.utils import tensorboard
+
+from vgn.dataset import VgnDataset, Rescale, RandomAffine
+
+
+def create_train_val_loaders(dataset_dir, augment, batch_size, val_split, kwargs):
+    if augment:
+        train_transforms = [Rescale(width_scale=0.1), RandomAffine()]
+    else:
+        train_transforms = [Rescale(width_scale=0.1)]
+
+    val_transforms = [Rescale(width_scale=0.1)]
+
+    train_dataset = VgnDataset(dataset_dir, transforms=train_transforms)
+    val_dataset = VgnDataset(dataset_dir, transforms=val_transforms)
+
+    num_samples = len(train_dataset)
+    indices = list(range(num_samples))
+    val_size = int(val_split * num_samples)
+
+    np.random.shuffle(indices)
+    train_idx, val_idx = indices[val_size:], indices[:val_size]
+    train_sampler = torch.utils.data.SubsetRandomSampler(train_idx)
+    val_sampler = torch.utils.data.SubsetRandomSampler(val_idx)
+
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset, batch_size=batch_size, sampler=train_sampler, **kwargs
+    )
+
+    val_loader = torch.utils.data.DataLoader(
+        val_dataset, batch_size=batch_size, sampler=val_sampler, **kwargs
+    )
+
+    return train_loader, val_loader
 
 
 def prepare_batch(batch, device):
