@@ -20,7 +20,8 @@ class GraspDetector(object):
         show_detections=False,
     ):
         self.device = device
-        self.net = get_network(network_path.name.split("_")[1]).to(self.device)
+        net_name = self._parse_network_path(network_path)
+        self.net = get_network(net_name).to(self.device)
         self.net.load_state_dict(torch.load(network_path, map_location=self.device))
 
         self.threshold = threshold
@@ -56,6 +57,10 @@ class GraspDetector(object):
             draw_sample(tsdf, qual, rot, width, mask)
 
         return grasps, qualities
+
+    def _parse_network_path(self, path):
+        i, j = path.name.find("_") + 1, path.name.rfind("_")
+        return path.name[i:j]
 
     def _predict(self, tsdf):
         tsdf = torch.from_numpy(tsdf).unsqueeze(0).to(self.device)
