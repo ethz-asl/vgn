@@ -14,28 +14,30 @@ class GraspExperiment(object):
     """Simulation of a grasping experiment.
 
     In this simulation, world, task and robot base frames are identical.
-
-    Attributes:
-        object_set: The grasping object set. Available options are
-            * debug: a single cuboid at a fixed pose
-            * cuboid
-            * ycb
     """
 
     def __init__(self, urdf_root, object_set, hand, size, gui=True, rtf=-1.0):
         self.urdf_root = urdf_root
-        self.object_set = object_set
         self.size = size
-        self.vis = gui
+        self.gui = gui
+        self.wait = False
 
         self.world = btsim.BtWorld(gui, rtf)
         self.robot = Robot(self.world, hand)
 
-    def setup(self, test=False):
+        self.object_set = {
+            "debug": DebugObjectSet,
+            "cuboid": CuboidObjectSet,
+            "kappler": KapplerObjectSet,
+            "ycb": YcbObjectSet,
+            "adversarial": AdversarialObjectSet,
+        }[object_set](self)
+
+    def setup(self):
         self.world.reset()
         self.world.set_gravity([0.0, 0.0, -9.81])
 
-        if self.vis:
+        if self.gui:
             self._draw_task_space()
 
         # Load support surface
@@ -52,16 +54,7 @@ class GraspExperiment(object):
         self.camera = self.world.add_camera(intrinsic, 0.1, 2.0)
 
         # Load objects
-        if self.object_set == "debug":
-            self.spawn_debug_object()
-        if self.object_set == "cuboid":
-            self.spawn_cuboid()
-        elif self.object_set == "kappler":
-            self.spawn_kappler(test)
-        elif self.object_set == "ycb":
-            self.spawn_ycb(test)
-        elif self.object_set == "adversarial":
-            self.spawn_adversarial(test)
+        self.object_set.spawn()
 
     def pause(self):
         self.world.pause()
@@ -92,7 +85,7 @@ class GraspExperiment(object):
         # Place the gripper at the grasp pose
         self.robot.set_tcp(T_base_grasp, override_dynamics=True)
 
-        if self.vis:
+        if self.wait:
             self.pause()
             time.sleep(1.0)
             self.resume()
@@ -116,64 +109,11 @@ class GraspExperiment(object):
 
         return Label.SUCCESS, width
 
-    def spawn_object(self, urdf, pose, scale=1.0):
-        obj = self.world.load_urdf(urdf, scale=scale)
-        obj.set_pose(pose)
+    def spawn_object(self, urdf_path, pose, scale=1.0):
+        body = self.world.load_urdf(urdf_path, scale=scale)
+        body.set_pose(pose)
         for _ in range(240):
             self.world.step()
-
-    def sample_num_objects(self):
-        expected_num_of_objects = 4
-        num_objects = np.random.poisson(expected_num_of_objects - 1) + 1
-        return num_objects
-
-    def sample_pose(self):
-        l, u = 0.0, self.size
-        mu, sigma = self.size / 2.0, self.size / 4.0
-        X = stats.truncnorm((l - mu) / sigma, (u - mu) / sigma, loc=mu, scale=sigma)
-        position = np.r_[X.rvs(2), 0.15]
-        orientation = Rotation.random()
-        return Transform(orientation, position)
-
-    def spawn_debug_object(self):
-        urdf = self.urdf_root / "toy_blocks/cuboid/cuboid.urdf"
-        position = np.r_[0.5 * self.size, 0.5 * self.size, 0.15]
-        orientation = Rotation.identity()
-        self.spawn_object(urdf, Transform(orientation, position))
-
-    def spawn_cuboid(self):
-        urdf = self.urdf_root / "toy_blocks/cuboid/cuboid.urdf"
-        pose = self.sample_pose()
-        self.spawn_object(urdf, pose)
-
-    def spawn_kappler(self, test):
-        urdf_dir = self.urdf_root / "kappler"
-        names = [d.name for d in urdf_dir.iterdir() if d.is_dir()]
-        num_objects = self.sample_num_objects()
-
-        for name in np.random.choice(names, size=num_objects):
-            urdf = urdf_dir / name / (name + ".urdf")
-            pose = self.sample_pose()
-            self.spawn_object(urdf, pose)
-
-    def spawn_ycb(self, test):
-        urdf_dir = self.urdf_root / "ycb"
-        names = [d.name for d in urdf_dir.iterdir() if d.is_dir()]
-        num_objects = self.sample_num_objects()
-
-        for name in np.random.choice(names, size=num_objects):
-            urdf = urdf_dir / name / (name + ".urdf")
-            pose = self.sample_pose()
-            self.spawn_object(urdf, pose)
-
-    def spawn_adversarial(self, test):
-        urdf_dir = self.urdf_root / "adversarial"
-        names = [d.name for d in urdf_dir.iterdir() if d.is_dir()]
-
-        name = np.random.choice(names)
-        urdf = urdf_dir / name / (name + ".urdf")
-        pose = self.sample_pose()
-        self.spawn_object(urdf, pose)
 
     def _draw_task_space(self):
         lines = [
@@ -277,3 +217,85 @@ class Robot(object):
 
     def detect_collision(self):
         return self.world.check_collisions(self.body)
+
+
+class ObjectSet(object):
+    def __init__(self, sim):
+        self.sim = sim
+        self.urdf_root = sim.urdf_root
+        self.size = sim.size
+
+    def _discover_urdfs(self, root):
+        urdfs = [d / (d.name + ".urdf") for d in root.iterdir() if d.is_dir()]
+        return urdfs
+
+    def _sample_num_objects(self):
+        expected_num_of_objects = 3
+        num_objects = np.random.poisson(expected_num_of_objects - 1) + 1
+        return num_objects
+
+    def _sample_pose(self):
+        l, u = 0.0, self.size
+        mu, sigma = self.size / 2.0, self.size / 4.0
+        X = stats.truncnorm((l - mu) / sigma, (u - mu) / sigma, loc=mu, scale=sigma)
+        position = np.r_[X.rvs(2), 0.15]
+        orientation = Rotation.random()
+        return Transform(orientation, position)
+
+
+class DebugObjectSet(ObjectSet):
+    def __init__(self, sim):
+        super().__init__(sim)
+
+    def spawn(self):
+        urdf_path = self.urdf_root / "toy_blocks/cuboid/cuboid.urdf"
+        position = np.r_[0.5 * self.size, 0.5 * self.size, 0.15]
+        orientation = Rotation.identity()
+        self.sim.spawn_object(urdf_path, Transform(orientation, position))
+
+
+class CuboidObjectSet(ObjectSet):
+    def __init__(self, sim):
+        super().__init__(sim)
+
+    def spawn(self):
+        urdf_path = self.urdf_root / "toy_blocks/cuboid/cuboid.urdf"
+        pose = self._sample_pose()
+        self.sim.spawn_object(urdf_path, pose)
+
+
+class KapplerObjectSet(ObjectSet):
+    def __init__(self, sim):
+        super().__init__(sim)
+        self.urdfs = self._discover_urdfs(self.urdf_root / "kappler")
+
+    def spawn(self):
+        num_objects = self._sample_num_objects()
+        for urdf_path in np.random.choice(self.urdfs, size=num_objects):
+            pose = self._sample_pose()
+            scale = np.random.uniform(0.8, 1.0)
+            self.sim.spawn_object(urdf_path, pose, scale)
+
+
+class YcbObjectSet(ObjectSet):
+    def __init__(self, sim):
+        super().__init__(sim)
+        self.urdfs = self._discover_urdfs(self.urdf_root / "ycb")
+
+    def spawn(self):
+        num_objects = self._sample_num_objects()
+        for urdf_path in np.random.choice(self.urdfs, size=num_objects):
+            pose = self._sample_pose()
+            scale = np.random.uniform(0.8, 1.0)
+            self.sim.spawn_object(urdf_path, pose, scale)
+
+
+class AdversarialObjectSet(ObjectSet):
+    def __init__(self, sim):
+        super().__init__(sim)
+        self.urdfs = self._discover_urdfs(self.urdf_root / "adversarial")
+
+    def spawn(self):
+        urdf_path = np.random.choice(self.urdfs)
+        pose = self._sample_pose()
+        self.sim.spawn_object(urdf_path, pose)
