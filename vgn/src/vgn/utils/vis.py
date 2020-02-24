@@ -42,7 +42,7 @@ def draw_volume(vol, tol=0.001):
         mode="cube",
         scale_mode="none",
         scale_factor=1,
-        opacity=0.05,
+        opacity=0.1,
     )
 
     # draw a slice through the volume
