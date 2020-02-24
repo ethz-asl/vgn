@@ -8,13 +8,13 @@ from vgn.utils.transform import Rotation, Transform
 
 
 class VgnDataset(torch.utils.data.Dataset):
-    def __init__(self, root_dir, transforms=[]):
+    def __init__(self, data_dir, transforms=[]):
         """Dataset for the volumetric grasping network.
 
         Args:
-            root: Root directory of the dataset.
+            data_dir: Root directory of the dataset.
         """
-        self.root_dir = root_dir
+        self.data_dir = data_dir
         self.transforms = transforms
 
         self._detect_samples()
@@ -23,7 +23,7 @@ class VgnDataset(torch.utils.data.Dataset):
         return len(self.samples)
 
     def __getitem__(self, idx):
-        path = self.root_dir / self.samples[idx]
+        path = self.data_dir / self.samples[idx]
         sample = np.load(path)
         x = sample["tsdf_vol"]
         y = (sample["qual_vol"], sample["rot_vol"], sample["width_vol"])
@@ -35,7 +35,7 @@ class VgnDataset(torch.utils.data.Dataset):
         return x, y, mask
 
     def _detect_samples(self):
-        self.samples = [f.name for f in self.root_dir.iterdir() if f.suffix == ".npz"]
+        self.samples = [f.name for f in self.data_dir.iterdir() if f.suffix == ".npz"]
 
 
 class Rescale(object):

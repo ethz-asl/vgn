@@ -17,15 +17,7 @@ from vgn.utils.training import *
 
 
 def train(
-    network_name,
-    dataset_dir,
-    augment,
-    log_dir,
-    descr,
-    batch_size,
-    lr,
-    epochs,
-    val_split,
+    network_name, data_dir, augment, log_dir, descr, batch_size, lr, epochs, val_split,
 ):
     device = torch.device("cuda")
     kwargs = {"num_workers": 4, "pin_memory": True}
@@ -33,7 +25,7 @@ def train(
     descr = "{},net={},data={},augment={},batch_size={},lr={:.0e},descr={}".format(
         datetime.now().strftime("%b%d_%H-%M-%S"),
         network_name,
-        dataset_dir.name,
+        data_dir.name,
         augment,
         batch_size,
         lr,
@@ -43,7 +35,7 @@ def train(
     assert not log_dir.exists(), "log with this setup already exists"
 
     train_loader, val_loader = create_train_val_loaders(
-        dataset_dir, augment, batch_size, val_split, kwargs
+        data_dir, augment, batch_size, val_split, kwargs
     )
 
     net = get_network(network_name)
@@ -108,7 +100,7 @@ def main():
     )
     parser.add_argument("--net", default="conv", help="network name")
     parser.add_argument(
-        "--dataset-dir", type=str, required=True, help="root directory of the dataset"
+        "--data-dir", type=str, required=True, help="root directory of the dataset"
     )
     parser.add_argument("--augment", action="store_true", help="augment train dataset")
     parser.add_argument(
@@ -136,7 +128,7 @@ def main():
 
     train(
         network_name=args.net,
-        dataset_dir=Path(args.dataset_dir),
+        data_dir=Path(args.data_dir),
         augment=args.augment,
         log_dir=Path(args.log_dir),
         descr=args.descr,

@@ -12,7 +12,7 @@
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
-                "--root_dir=data/debug",
+                "--data-dir=data/debug",
                 "--config=config/data_generation.yaml",
                 "--sim-gui",
                 "--rtf=-1"
@@ -38,7 +38,9 @@
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
-                "--dataset-dir=data/cuboid",
+                "--net=conv",
+                "--data-dir=data/ycb",
+                "--augment"
             ]
         },
         {

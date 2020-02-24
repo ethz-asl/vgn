@@ -23,7 +23,7 @@ def main(args):
         num_scenes=config["num_scenes"] // num_workers,
         num_grasps=config["num_grasps"],
         max_num_negative_grasps=config["max_num_negative_grasps"],
-        root_dir=Path(args.root_dir),
+        data_dir=Path(args.data_dir),
         sim_gui=args.sim_gui,
         rtf=args.rtf,
         rank=rank,
@@ -36,7 +36,7 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "--root_dir", type=str, required=True, help="root directory of the dataset"
+        "--data-dir", type=str, required=True, help="root directory of the dataset"
     )
     parser.add_argument(
         "--config", type=str, required=True, help="data generation configuration file",

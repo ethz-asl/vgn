@@ -21,13 +21,13 @@ def generate_samples(
     num_scenes,
     num_grasps,
     max_num_negative_grasps,
-    root_dir,
+    data_dir,
     sim_gui,
     rtf,
     rank,
 ):
     if rank == 0:
-        root_dir.mkdir(parents=True, exist_ok=True)
+        data_dir.mkdir(parents=True, exist_ok=True)
         list_of_num_negatives = np.zeros(num_scenes)
 
     hand = Hand.from_dict(hand_config)
@@ -40,10 +40,10 @@ def generate_samples(
         )
         if rank == 0:
             list_of_num_negatives[i] = num_negatives
-            np.savetxt(root_dir / "num_negatives.out", list_of_num_negatives)
+            np.savetxt(data_dir / "num_negatives.out", list_of_num_negatives)
 
         if tsdf is not None:
-            store_sample(root_dir, tsdf, grasps, labels)
+            store_sample(data_dir, tsdf, grasps, labels)
 
 
 def generate_sample(sim, hand, num_grasps, max_num_negative_grasps):
@@ -153,8 +153,8 @@ def label2quality(label):
     return quality
 
 
-def store_sample(root_dir, tsdf, grasps, labels):
-    path = root_dir / str(uuid.uuid4().hex)
+def store_sample(data_dir, tsdf, grasps, labels):
+    path = data_dir / str(uuid.uuid4().hex)
 
     tsdf_vol = tsdf.get_volume()
     qual_vol = np.zeros_like(tsdf_vol, dtype=np.float32)

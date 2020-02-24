@@ -6,7 +6,7 @@ from torch.utils import tensorboard
 from vgn.dataset import VgnDataset, Rescale, RandomAffine
 
 
-def create_train_val_loaders(dataset_dir, augment, batch_size, val_split, kwargs):
+def create_train_val_loaders(data_dir, augment, batch_size, val_split, kwargs):
     if augment:
         train_transforms = [Rescale(width_scale=0.1), RandomAffine()]
     else:
@@ -14,8 +14,8 @@ def create_train_val_loaders(dataset_dir, augment, batch_size, val_split, kwargs
 
     val_transforms = [Rescale(width_scale=0.1)]
 
-    train_dataset = VgnDataset(dataset_dir, transforms=train_transforms)
-    val_dataset = VgnDataset(dataset_dir, transforms=val_transforms)
+    train_dataset = VgnDataset(data_dir, transforms=train_transforms)
+    val_dataset = VgnDataset(data_dir, transforms=val_transforms)
 
     num_samples = len(train_dataset)
     indices = list(range(num_samples))
