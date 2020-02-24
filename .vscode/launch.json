@@ -54,10 +54,10 @@
             ]
         },
         {
-            "name": "eval_vgn",
+            "name": "run_sim_eval",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/vgn/scripts/eval_vgn.py",
+            "program": "${workspaceFolder}/vgn/scripts/run_sim_eval.py",
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
