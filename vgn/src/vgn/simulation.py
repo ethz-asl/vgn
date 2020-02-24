@@ -35,6 +35,9 @@ class GraspExperiment(object):
         self.world.reset()
         self.world.set_gravity([0.0, 0.0, -9.81])
 
+        if self.vis:
+            self._draw_task_space()
+
         # Load support surface
         plane = self.world.load_urdf(self.urdf_root / "plane/plane.urdf")
         plane.set_pose(Transform(Rotation.identity(), [0.0, 0.0, 0.0]))
@@ -160,6 +163,27 @@ class GraspExperiment(object):
             urdf = urdf_dir / name / (name + ".urdf")
             pose = self.sample_pose()
             self.spawn_object(urdf, pose)
+
+    def _draw_task_space(self):
+        lines = [
+            [[0.0, 0.0, 0.0], [self.size, 0.0, 0.0]],
+            [[self.size, 0.0, 0.0], [self.size, self.size, 0.0]],
+            [[self.size, self.size, 0.0], [0.0, self.size, 0.0]],
+            [[0.0, self.size, 0.0], [0.0, 0.0, 0.0]],
+            [[0.0, 0.0, self.size], [self.size, 0.0, self.size]],
+            [[self.size, 0.0, self.size], [self.size, self.size, self.size]],
+            [[self.size, self.size, self.size], [0.0, self.size, self.size]],
+            [[0.0, self.size, self.size], [0.0, 0.0, self.size]],
+            [[0.0, 0.0, 0.0], [0.0, 0.0, self.size]],
+            [[self.size, 0.0, 0.0], [self.size, 0.0, self.size]],
+            [[self.size, self.size, 0.0], [self.size, self.size, self.size]],
+            [[0.0, self.size, 0.0], [0.0, self.size, self.size]],
+        ]
+
+        for line in lines:
+            self.world.p.addUserDebugLine(
+                lineFromXYZ=line[0], lineToXYZ=line[1], lineColorRGB=[0.5, 0.5, 0.5],
+            )
 
 
 class Robot(object):
