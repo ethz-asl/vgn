@@ -5,7 +5,10 @@ from scipy import ndimage
 
 
 def get_network(name):
-    models = {"conv": ConvNet()}
+    models = {
+        "conv": ConvNet(),
+        "mtconv": MTConvNet(),
+    }
     return models[name.lower()]
 
 
@@ -37,6 +40,32 @@ class ConvNet(nn.Module):
         qual_out = torch.sigmoid(self.conv_qual(x))
         rot_out = F.normalize(self.conv_rot(x), dim=1)
         width_out = self.conv_width(x)
+
+        return qual_out, rot_out, width_out
+
+
+class MTConvNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.encoder = Encoder(1, [16, 32, 64], [5, 3, 3])
+
+        self.qual_decoder = Decoder(64, [64, 32, 16], [3, 3, 5])
+        self.rot_decoder = Decoder(64, [64, 32, 16], [3, 3, 5])
+        self.width_decoder = Decoder(64, [64, 32, 16], [3, 3, 5])
+
+        self.conv_qual = conv(16, 1, 5)
+        self.conv_rot = conv(16, 4, 5)
+        self.conv_width = conv(16, 1, 5)
+
+    def forward(self, x):
+        x = self.encoder(x)
+        x_qual = self.qual_decoder(x)
+        x_rot = self.rot_decoder(x)
+        x_width = self.width_decoder(x)
+
+        qual_out = torch.sigmoid(self.conv_qual(x_qual))
+        rot_out = F.normalize(self.conv_rot(x_rot), dim=1)
+        width_out = self.conv_width(x_width)
 
         return qual_out, rot_out, width_out
 
