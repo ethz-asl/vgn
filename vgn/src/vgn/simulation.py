@@ -30,6 +30,7 @@ class GraspExperiment(object):
             "cuboid": CuboidObjectSet,
             "kappler": KapplerObjectSet,
             "ycb": YcbObjectSet,
+            "urdf_zoo": UrdfZooObjectSet,
             "adversarial": AdversarialObjectSet,
         }[object_set](self)
 
@@ -290,6 +291,23 @@ class YcbObjectSet(ObjectSet):
             self.sim.spawn_object(urdf_path, pose, scale)
 
 
+class UrdfZooObjectSet(ObjectSet):
+    """Combination of objects from Kappler and YCB."""
+
+    def __init__(self, sim):
+        super().__init__(sim)
+        kappler_urdfs = self._discover_urdfs(self.urdf_root / "kappler")
+        ycb_urdfs = self._discover_urdfs(self.urdf_root / "ycb")
+        self.urdfs = kappler_urdfs + 5 * ycb_urdfs
+
+    def spawn(self):
+        num_objects = self._sample_num_objects()
+        for urdf_path in np.random.choice(self.urdfs, size=num_objects):
+            pose = self._sample_pose()
+            scale = np.random.uniform(0.8, 1.0)
+            self.sim.spawn_object(urdf_path, pose, scale)
+
+
 class AdversarialObjectSet(ObjectSet):
     def __init__(self, sim):
         super().__init__(sim)
@@ -299,3 +317,4 @@ class AdversarialObjectSet(ObjectSet):
         urdf_path = np.random.choice(self.urdfs)
         pose = self._sample_pose()
         self.sim.spawn_object(urdf_path, pose)
+
