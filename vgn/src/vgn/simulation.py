@@ -60,6 +60,8 @@ class GraspExperiment(object):
             self.spawn_kappler(test)
         elif self.object_set == "ycb":
             self.spawn_ycb(test)
+        elif self.object_set == "adversarial":
+            self.spawn_adversarial(test)
 
     def pause(self):
         self.world.pause()
@@ -163,6 +165,15 @@ class GraspExperiment(object):
             urdf = urdf_dir / name / (name + ".urdf")
             pose = self.sample_pose()
             self.spawn_object(urdf, pose)
+
+    def spawn_adversarial(self, test):
+        urdf_dir = self.urdf_root / "adversarial"
+        names = [d.name for d in urdf_dir.iterdir() if d.is_dir()]
+
+        name = np.random.choice(names)
+        urdf = urdf_dir / name / (name + ".urdf")
+        pose = self.sample_pose()
+        self.spawn_object(urdf, pose)
 
     def _draw_task_space(self):
         lines = [
