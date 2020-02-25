@@ -5,7 +5,7 @@ import torch
 
 from vgn.grasp import Grasp
 from vgn.utils.transform import Transform, Rotation
-from vgn.networks import get_network
+from vgn.networks import load_network
 from vgn.utils.vis import draw_volume, draw_sample
 
 
@@ -20,9 +20,7 @@ class GraspDetector(object):
         show_detections=False,
     ):
         self.device = device
-        net_name = self._parse_network_path(network_path)
-        self.net = get_network(net_name).to(self.device)
-        self.net.load_state_dict(torch.load(network_path, map_location=self.device))
+        self.net = load_network(network_path, device)
 
         self.threshold = threshold
         self.gripper_uncertainty = 1.0
@@ -57,10 +55,6 @@ class GraspDetector(object):
             draw_sample(tsdf, qual, rot, width, mask)
 
         return grasps, qualities
-
-    def _parse_network_path(self, path):
-        i, j = path.name.find("_") + 1, path.name.rfind("_")
-        return path.name[i:j]
 
     def _predict(self, tsdf):
         tsdf = torch.from_numpy(tsdf).unsqueeze(0).to(self.device)

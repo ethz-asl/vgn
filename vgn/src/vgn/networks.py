@@ -12,6 +12,14 @@ def get_network(name):
     return models[name.lower()]
 
 
+def load_network(path, device):
+    start, end = path.name.find("_") + 1, path.name.rfind("_")
+    name = path.name[start:end]
+    net = get_network(name).to(device)
+    net.load_state_dict(torch.load(path, map_location=device))
+    return net
+
+
 def conv(in_channels, out_channels, kernel_size):
     return nn.Conv3d(in_channels, out_channels, kernel_size, padding=kernel_size // 2)
 
