@@ -37,6 +37,15 @@ def create_train_val_loaders(data_dir, augment, batch_size, val_split, kwargs):
     return train_loader, val_loader
 
 
+def create_test_loader(data_dir, batch_size, kwargs):
+    transforms = [Rescale(width_scale=0.1)]
+    test_dataset = VgnDataset(data_dir, transforms=transforms)
+    test_loader = torch.utils.data.DataLoader(
+        test_dataset, batch_size=batch_size, shuffle=False, **kwargs
+    )
+    return test_loader
+
+
 def prepare_batch(batch, device):
     tsdf, (qual, rot, width), mask = batch
 
