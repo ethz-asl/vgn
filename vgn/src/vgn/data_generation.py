@@ -28,22 +28,32 @@ def generate_samples(
 ):
     if rank == 0:
         data_dir.mkdir(parents=True, exist_ok=True)
-        list_of_num_negatives = np.zeros(num_scenes)
+        list_of_num_negatives = []
 
     hand = Hand.from_dict(hand_config)
     size = hand.max_gripper_width * 4
     sim = GraspExperiment(urdf_root, object_set, hand, size, sim_gui, rtf)
 
-    for i in tqdm(range(num_scenes), disable=rank is not 0):
+    pbar = tqdm(total=num_scenes, disable=rank is not 0)
+    count = 0
+
+    while count < num_scenes:
         tsdf, grasps, labels, num_negatives = generate_sample(
             sim, hand, num_grasps, max_num_negative_grasps
         )
+
         if rank == 0:
-            list_of_num_negatives[i] = num_negatives
+            list_of_num_negatives.append(num_negatives)
             np.savetxt(data_dir / "num_negatives.out", list_of_num_negatives)
 
-        if tsdf is not None:
-            store_sample(data_dir, tsdf, grasps, labels)
+        if tsdf is None:
+            continue
+
+        store_sample(data_dir, tsdf, grasps, labels)
+        count += 1
+        pbar.update()
+
+    pbar.close()
 
 
 def generate_sample(sim, hand, num_grasps, max_num_negative_grasps):
