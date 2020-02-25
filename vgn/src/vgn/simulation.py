@@ -298,7 +298,7 @@ class UrdfZooObjectSet(ObjectSet):
         super().__init__(sim)
         kappler_urdfs = self._discover_urdfs(self.urdf_root / "kappler")
         ycb_urdfs = self._discover_urdfs(self.urdf_root / "ycb")
-        self.urdfs = kappler_urdfs + 5 * ycb_urdfs
+        self.urdfs = kappler_urdfs + 10 * ycb_urdfs
 
     def spawn(self):
         num_objects = self._sample_num_objects()
