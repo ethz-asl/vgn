@@ -3,6 +3,7 @@ import time
 import numpy as np
 from scipy import ndimage
 import torch.utils.data
+from tqdm import tqdm
 
 from vgn.utils.transform import Rotation, Transform
 
@@ -33,6 +34,18 @@ class VgnDataset(torch.utils.data.Dataset):
             x, y, mask = transform(x, y, mask)
 
         return x, y, mask
+
+    def stats(self):
+        num_positives = 0
+        num_negatives = 0
+
+        for i in tqdm(range(len(self.samples))):
+            x, (qual, rot, width), mask = self.__getitem__(i)
+            num_positives += (mask * np.equal(qual, 1.0)).sum()
+            num_negatives += (mask * np.equal(qual, 0.0)).sum()
+
+        print("Num positives:", num_positives)
+        print("Num negatives:", num_negatives)
 
     def _detect_samples(self):
         self.samples = [f.name for f in self.data_dir.iterdir() if f.suffix == ".npz"]
