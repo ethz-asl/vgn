@@ -20,7 +20,7 @@ def generate_samples(
     object_set,
     num_scenes,
     num_grasps,
-    max_num_negative_grasps,
+    max_num_trials,
     data_dir,
     sim_gui,
     rtf,
@@ -28,7 +28,7 @@ def generate_samples(
 ):
     if rank == 0:
         data_dir.mkdir(parents=True, exist_ok=True)
-        list_of_num_negatives = []
+        list_of_num_trials = []
 
     hand = Hand.from_dict(hand_config)
     size = hand.max_gripper_width * 4
@@ -38,13 +38,13 @@ def generate_samples(
     count = 0
 
     while count < num_scenes:
-        tsdf, grasps, labels, num_negatives = generate_sample(
-            sim, hand, num_grasps, max_num_negative_grasps
+        tsdf, grasps, labels, num_trials = generate_sample(
+            sim, hand, num_grasps, max_num_trials
         )
 
         if rank == 0:
-            list_of_num_negatives.append(num_negatives)
-            np.savetxt(data_dir / "num_negatives.out", list_of_num_negatives)
+            list_of_num_trials.append(num_trials)
+            np.savetxt(data_dir / "num_trials.out", list_of_num_trials)
 
         if tsdf is None:
             continue
@@ -56,7 +56,7 @@ def generate_samples(
     pbar.close()
 
 
-def generate_sample(sim, hand, num_grasps, max_num_negative_grasps):
+def generate_sample(sim, hand, num_grasps, max_num_trials):
     sim.setup()
     sim.save_state()
     tsdf, high_res_tsdf = reconstruct_scene(sim)
@@ -66,24 +66,35 @@ def generate_sample(sim, hand, num_grasps, max_num_negative_grasps):
         logging.warning("Empty point cloud, skipping scene")
         return None, None, None, None
 
-    is_positive = lambda o: o == Label.SUCCESS
     grasps, labels = [], []
+
+    num_trials = 0
+    num_positives = 0
     num_negatives = 0
 
     while True:
-        point, normal = sample_grasp_point(point_cloud, hand.finger_depth)
-        grasp, label = evaluate_grasp_point(sim, point, normal)
-        num_negatives += not is_positive(label)
+        num_trials += 1
 
-        if is_positive(label) or num_negatives < num_grasps // 2:
-            grasps.append(grasp)
-            labels.append(label)
+        if num_trials > max_num_trials:
+            return None, None, None, num_trials
 
         if len(grasps) == num_grasps:
             return tsdf, grasps, labels, num_negatives
 
-        if num_negatives > max_num_negative_grasps:
-            return None, None, None, num_negatives
+        point, normal = sample_grasp_point(point_cloud, hand.finger_depth)
+        grasp, label = evaluate_grasp_point(sim, point, normal)
+        positive = label == Label.SUCCESS
+
+        if positive:
+            num_positives += 1
+        else:
+            num_negatives += 1
+
+        if (positive and num_positives < num_grasps // 2 + 1) or (
+            not positive and num_negatives < num_grasps // 2 + 1
+        ):
+            grasps.append(grasp)
+            labels.append(label)
 
 
 def reconstruct_scene(sim):
