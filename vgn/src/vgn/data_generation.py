@@ -62,6 +62,9 @@ def generate_sample(sim, hand, num_grasps, max_num_trials):
     tsdf, high_res_tsdf = reconstruct_scene(sim)
     point_cloud = high_res_tsdf.extract_point_cloud()
 
+    l, u = 1.0 / 6.0 * sim.size, 5.0 / 6.0 * sim.size
+    point_cloud = point_cloud.crop(np.r_[l, l, 0.0], np.r_[u, u, sim.size])
+
     if point_cloud.is_empty():
         logging.warning("Empty point cloud, skipping scene")
         return None, None, None, None
