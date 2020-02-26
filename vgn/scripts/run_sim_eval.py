@@ -46,6 +46,9 @@ def run_trial(sim, detector, show_vis):
 
     grasps, qualities = detector.detect_grasps(tsdf.get_volume())
 
+    if grasps.size == 0:
+        return 0
+
     T = Transform.identity()
     for i, grasp in enumerate(grasps):
         grasps[i] = from_voxel_coordinates(grasp, T, tsdf.voxel_size)
@@ -65,11 +68,13 @@ def run_trial(sim, detector, show_vis):
 
 def print_results(outcomes):
     num_trials = len(outcomes)
+    num_no_detection = np.sum(outcomes == 0)
     num_collision = np.sum(outcomes == 1)
     num_empty = np.sum(outcomes == 2)
     num_slipped = np.sum(outcomes == 3)
     num_success = np.sum(outcomes == 4)
 
+    print("No detection: {}/{}".format(num_no_detection, num_trials))
     print("Collision: {}/{}".format(num_collision, num_trials))
     print("Empty:     {}/{}".format(num_empty, num_trials))
     print("Slipped:   {}/{}".format(num_slipped, num_trials))

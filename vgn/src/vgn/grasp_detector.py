@@ -14,7 +14,7 @@ class GraspDetector(object):
         self,
         device,
         network_path,
-        threshold=0.9,
+        threshold=0.95,
         show_tsdf=False,
         show_qual=False,
         show_detections=False,
@@ -46,13 +46,12 @@ class GraspDetector(object):
 
         mask = self._filter_grasps(tsdf, qual, rot, width)
         grasps, qualities = self._select_grasps(qual, rot, width, mask)
-        grasps, qualities = self._sort_grasps(grasps, qualities)
 
-        print("Detected {} grasps".format(len(grasps)))
-
-        if self.show_detections:
-            mlab.figure("Detected grasps")
-            draw_sample(tsdf, qual, rot, width, mask)
+        if grasps.size > 0:
+            grasps, qualities = self._sort_grasps(grasps, qualities)
+            if self.show_detections:
+                mlab.figure("Detected grasps")
+                draw_sample(tsdf, qual, rot, width, mask)
 
         return grasps, qualities
 
