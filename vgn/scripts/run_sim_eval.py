@@ -5,6 +5,7 @@ import open3d
 from mayavi import mlab
 import numpy as np
 import torch
+from tqdm import tqdm
 
 from vgn.hand import Hand
 from vgn.grasp import from_voxel_coordinates
@@ -23,7 +24,7 @@ def main(args):
     object_set = config["object_set"]
     network_path = Path(config["model_path"])
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    num_experiments = 20
+    num_trials = args.num_trials
 
     hand = Hand.from_dict(hand_config)
     size = 4 * hand.max_gripper_width
@@ -31,8 +32,8 @@ def main(args):
     sim = GraspExperiment(urdf_root, object_set, hand, size, args.sim_gui, args.rtf)
     detector = GraspDetector(device, network_path, show_qual=args.show_vis)
 
-    outcomes = np.empty(num_experiments, dtype=np.int)
-    for i in range(num_experiments):
+    outcomes = np.empty(num_trials, dtype=np.int)
+    for i in tqdm(range(num_trials)):
         outcomes[i] = run_trial(sim, detector, args.show_vis)
 
     print_results(outcomes)
@@ -85,6 +86,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="evaluate vgn in simulation")
     parser.add_argument(
         "--config", type=str, required=True, help="experiment configuration file",
+    )
+    parser.add_argument(
+        "--num-trials", type=int, default=100, help="number of trials to run"
     )
     parser.add_argument("--show-vis", action="store_true")
     parser.add_argument("--sim-gui", action="store_true", help="disable headless mode")
