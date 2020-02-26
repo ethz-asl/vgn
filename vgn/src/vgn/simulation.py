@@ -236,7 +236,7 @@ class ObjectSet(object):
         return num_objects
 
     def _sample_pose(self):
-        l, u = 1.0 / 6.0 * self.size, 5.0 / 6.0 * self.size
+        l, u = 0.0, self.size
         mu, sigma = self.size / 2.0, self.size / 4.0
         X = stats.truncnorm((l - mu) / sigma, (u - mu) / sigma, loc=mu, scale=sigma)
         position = np.r_[X.rvs(2), 0.15]
