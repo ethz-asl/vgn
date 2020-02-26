@@ -1,0 +1,8 @@
+# path to the object URDF files
+urdf_root: /home/michel/Developer/urdf_zoo
+# path to the hand config file
+hand_config: /home/michel/Developer/catkin_ws/src/grasp_playground/vgn/config/hand.yaml
+# object set to be used
+object_set: adversarial
+# path to model
+model_path:

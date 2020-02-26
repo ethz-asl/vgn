@@ -1,8 +1,0 @@
-# path to the object URDF files
-urdf_root: /home/michel/Developer/urdf_zoo
-# path to the hand config file
-hand_config: /home/michel/Developer/catkin_ws/src/grasp_playground/vgn/config/hand.yaml
-# object set to be used [debug, cuboid]
-object_set: cuboid
-# path to model
-model_path: /home/michel/Developer/catkin_ws/src/grasp_playground/vgn/data/runs/Feb18_20-02-23,net=conv,data=cuboid,batch_size=32,lr=3e-04,descr=/vgn_conv_100.pth

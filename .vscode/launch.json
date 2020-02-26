@@ -63,7 +63,7 @@
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
-                "--config=config/evaluation.yaml",
+                "--config=config/sim_eval.yaml",
                 "--sim-gui",
                 "--rtf=-1.0",
             ]
