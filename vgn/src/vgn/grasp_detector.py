@@ -15,6 +15,8 @@ class GraspDetector(object):
         device,
         network_path,
         threshold=0.95,
+        gaussian_filter_sigma=1.0,
+        max_filter_size=3,
         show_tsdf=False,
         show_qual=False,
         show_detections=False,
@@ -23,7 +25,8 @@ class GraspDetector(object):
         self.net = load_network(network_path, device)
 
         self.threshold = threshold
-        self.gripper_uncertainty = 1.0
+        self.gaussian_filter_sigma = gaussian_filter_sigma
+        self.max_filter_size = max_filter_size
 
         self.show_tsdf = show_tsdf
         self.show_qual = show_qual
@@ -70,14 +73,14 @@ class GraspDetector(object):
     def _filter_grasps(self, tsdf, qual, rot, width):
         qual = qual.copy()
 
-        qual = ndimage.gaussian_filter(qual, sigma=self.gripper_uncertainty)
+        qual = ndimage.gaussian_filter(qual, sigma=self.gaussian_filter_sigma)
         qual[qual < self.threshold] = 0.0
 
         if self.show_qual:
             mlab.figure("Processed grasp quality")
             draw_volume(qual)
 
-        max_vol = ndimage.maximum_filter(qual, size=5)
+        max_vol = ndimage.maximum_filter(qual, size=self.max_filter_size)
         qual = np.where(qual == max_vol, qual, 0.0)
         mask = np.where(qual, 1.0, 0.0)
 
