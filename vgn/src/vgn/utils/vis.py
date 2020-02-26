@@ -63,7 +63,7 @@ def draw_point_cloud(point_cloud):
     colors = np.array(point_cloud.colors)
 
     x, y, z = points[:, 0], points[:, 1], points[:, 2]
-    mlab.points3d(x, y, z)
+    mlab.points3d(x, y, z, scale_mode="none", scale_factor=0.001)
 
 
 def draw_grasps(grasps, qualities, finger_depth):

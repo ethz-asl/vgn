@@ -43,7 +43,7 @@ class GraspExperiment(object):
 
         # Load support surface
         plane = self.world.load_urdf(self.urdf_root / "plane/plane.urdf")
-        plane.set_pose(Transform(Rotation.identity(), [0.0, 0.0, 0.0]))
+        plane.set_pose(Transform(Rotation.identity(), [0.0, 0.0, 0.03]))
 
         # Load robot
         pose = Transform(Rotation.identity(), np.r_[0.0, 0.0, 1.0])
