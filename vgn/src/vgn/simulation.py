@@ -113,7 +113,7 @@ class GraspExperiment(object):
         return self._check_grasp()
 
     def _retrieve_object(self, pregrasp_pose):
-        self.robot.move_tcp_xyz(pregrasp_pose, check_collisions=False)
+        self.robot.move_tcp_xyz(pregrasp_pose)
         return self._check_grasp()
 
     def _check_grasp(self, threshold=0.2):
@@ -174,7 +174,7 @@ class Robot(object):
         return not self.world.check_collisions(self.body)
 
     def move_tcp_xyz(
-        self, target_pose, eef_step=0.002, vel=0.10, check_collisions=True
+        self, target_pose, eef_step=0.002, vel=0.10, collision_threshold=100
     ):
         pose = self.body.get_pose() * self.T_tool0_tcp
 
@@ -188,8 +188,10 @@ class Robot(object):
             self.constraint.change(pose * self.T_tcp_tool0, max_force=300)
             for _ in range(int(dur_step / self.world.dt)):
                 self.world.step()
-            # if check_collisions and self.detect_collision():
-            #     return False
+
+            for collision in self.world.check_collisions(self.body):
+                if collision.force > collision_threshold:
+                    return False
 
         return True
 
