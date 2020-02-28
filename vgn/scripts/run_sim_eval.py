@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+import time
 
 import open3d
 from mayavi import mlab
@@ -35,12 +36,12 @@ def main(args):
 
     outcomes = np.empty(num_trials, dtype=np.int)
     for i in tqdm(range(num_trials)):
-        outcomes[i] = run_trial(sim, detector, args.show_vis)
+        outcomes[i] = run_trial(sim, detector, args.sim_gui, args.show_vis)
 
     print_results(outcomes)
 
 
-def run_trial(sim, detector, show_vis):
+def run_trial(sim, detector, sim_gui, show_vis):
     sim.setup()
     sim.pause()
     tsdf, high_res_tsdf = reconstruct_scene(sim)
@@ -64,6 +65,9 @@ def run_trial(sim, detector, show_vis):
     grasp = grasps[i]
     sim.resume()
     outcome, width = sim.test_grasp(grasp.pose)
+
+    if outcome is not Label.SUCCESS and sim_gui:
+        time.sleep(2.0)
 
     return outcome
 
