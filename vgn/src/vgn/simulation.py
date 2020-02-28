@@ -96,7 +96,7 @@ class GraspExperiment(object):
 
         # Close the gripper
         if not self.robot.grasp(0.0, epsilon):
-            return Label.EMPTY, 0.0
+            return Label.SLIPPED, 0.0
 
         # Retrieve the object
         self.robot.move_tcp_xyz(T_base_pregrasp, check_collisions=False)

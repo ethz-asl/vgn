@@ -7,10 +7,8 @@ class Label(enum.IntEnum):
     """Outcome of a grasping attempt."""
 
     COLLISION = 1
-    EMPTY = 2
-    SLIPPED = 3
-    SUCCESS = 4
-    ROBUST = 5
+    SLIPPED = 2
+    SUCCESS = 3
 
 
 def to_voxel_coordinates(grasp, T_base_task, voxel_size):

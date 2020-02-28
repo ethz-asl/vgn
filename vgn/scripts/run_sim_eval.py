@@ -7,6 +7,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
+from vgn.grasp import Label
 from vgn.hand import Hand
 from vgn.grasp import from_voxel_coordinates
 from vgn.grasp_detector import GraspDetector
@@ -69,17 +70,15 @@ def run_trial(sim, detector, show_vis):
 
 def print_results(outcomes):
     num_trials = len(outcomes)
-    num_no_detection = np.sum(outcomes == 0)
-    num_collision = np.sum(outcomes == 1)
-    num_empty = np.sum(outcomes == 2)
-    num_slipped = np.sum(outcomes == 3)
-    num_success = np.sum(outcomes == 4)
+    num_no_detections = np.sum(outcomes == 0)
+    num_collisions = np.sum(outcomes == Label.COLLISION)
+    num_slipped = np.sum(outcomes == Label.SLIPPED)
+    num_successes = np.sum(outcomes == Label.SUCCESS)
 
-    print("No detection: {}/{}".format(num_no_detection, num_trials))
-    print("Collision: {}/{}".format(num_collision, num_trials))
-    print("Empty:     {}/{}".format(num_empty, num_trials))
+    print("No detections: {}/{}".format(num_no_detections, num_trials))
+    print("Collisions:   {}/{}".format(num_collisions, num_trials))
     print("Slipped:   {}/{}".format(num_slipped, num_trials))
-    print("Success:   {}/{}".format(num_success, num_trials))
+    print("Successes:   {}/{}".format(num_successes, num_trials))
 
 
 if __name__ == "__main__":
@@ -90,10 +89,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num-trials", type=int, default=100, help="number of trials to run"
     )
-    parser.add_argument("--show-vis", action="store_true")
     parser.add_argument("--sim-gui", action="store_true", help="disable headless mode")
     parser.add_argument(
         "--rtf", type=float, default=-1.0, help="real time factor of the simulation"
     )
+    parser.add_argument("--show-vis", action="store_true")
     args = parser.parse_args()
     main(args)
