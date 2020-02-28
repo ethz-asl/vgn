@@ -75,39 +75,49 @@ class GraspExperiment(object):
         for _ in range(240):
             self.world.step()
 
-    def test_grasp(self, T_base_grasp):
+    def test_grasp(self, grasp_pose):
         """Open-loop grasp execution.
         
         Args:
-            T_base_grasp: The grasp pose w.r.t. to the robot base frame.
+            grasp_pose: The grasp pose w.r.t. to the robot base frame.
 
         Return:
             A tuple (label, width) with the grasp outcome and grasp width.
         """
-        epsilon = 0.2  # threshold for detecting grasps
+        pregrasp_pose = grasp_pose * Transform(Rotation.identity(), [0.0, 0.0, -0.05])
+        retrieve_pose = grasp_pose * Transform(Rotation.identity(), [0.0, 0.0, -0.1])
 
-        T_grasp_pregrasp = Transform(Rotation.identity(), [0.0, 0.0, -0.05])
-        T_base_pregrasp = T_base_grasp * T_grasp_pregrasp
-
-        # Place the gripper at the grasp pose
-        self.robot.set_tcp(T_base_pregrasp, override_dynamics=True)
-        if self.robot.detect_collision():
+        if not self._move_to_pregrasp_pose(pregrasp_pose):
             return Label.COLLISION, 0.0
 
-        if not self.robot.move_tcp_xyz(T_base_grasp):
+        if not self._move_to_grasp_pose(grasp_pose):
             return Label.COLLISION, 0.0
 
-        if not self.robot.grasp(0.0, epsilon):
+        if not self._close_hand():
             return Label.SLIPPED, 0.0
 
-        self.robot.move_tcp_xyz(T_base_pregrasp, check_collisions=False)
-
-        if not self.robot.grasp(0.0, epsilon):
+        if not self._retrieve_object(retrieve_pose):
             return Label.SLIPPED, 0.0
 
         width = self.robot.read_gripper() * self.robot.max_gripper_width
-
         return Label.SUCCESS, width
+
+    def _move_to_pregrasp_pose(self, pregrasp_pose):
+        return self.robot.set_tcp(pregrasp_pose)
+
+    def _move_to_grasp_pose(self, grasp_pose):
+        return self.robot.move_tcp_xyz(grasp_pose)
+
+    def _close_hand(self):
+        self.robot.move_gripper(0.0)
+        return self._check_grasp()
+
+    def _retrieve_object(self, pregrasp_pose):
+        self.robot.move_tcp_xyz(pregrasp_pose, check_collisions=False)
+        return self._check_grasp()
+
+    def _check_grasp(self, threshold=0.2):
+        return self.robot.read_gripper() > threshold
 
     def _draw_task_space(self):
         lines = [
@@ -156,61 +166,45 @@ class Robot(object):
             pose,
         )
 
-    def get_tcp(self):
-        """get the pose of TCP w.r.t. world frame."""
-        return self.body.get_pose() * self.T_tool0_tcp
-
-    def set_tcp(self, pose, override_dynamics=False):
-        """Set pose of TCP w.r.t. to world frame."""
+    def set_tcp(self, pose):
         T_world_tool0 = pose * self.T_tcp_tool0
-        if override_dynamics:
-            self.body.set_pose(T_world_tool0)
+        self.body.set_pose(T_world_tool0)
         self.constraint.change(T_world_tool0, max_force=300)
         self.world.step()
-        return self.detect_collision()
+        return not self.world.check_collisions(self.body)
 
     def move_tcp_xyz(
-        self, target_pose, eef_step=0.002, check_collisions=True, vel=0.10
+        self, target_pose, eef_step=0.002, vel=0.10, check_collisions=True
     ):
-        """Move the TCP linearly between two poses."""
-        pose = self.get_tcp()
+        pose = self.body.get_pose() * self.T_tool0_tcp
+
         pos_diff = target_pose.translation - pose.translation
         n_steps = int(np.linalg.norm(pos_diff) / eef_step)
-
         dist_step = pos_diff / n_steps
         dur_step = np.linalg.norm(dist_step) / vel
 
         for _ in range(n_steps):
             pose.translation += dist_step
-            self.set_tcp(pose)
+            self.constraint.change(pose * self.T_tcp_tool0, max_force=300)
             for _ in range(int(dur_step / self.world.dt)):
                 self.world.step()
-            if check_collisions and self.detect_collision():
-                return False
+            # if check_collisions and self.detect_collision():
+            #     return False
 
         return True
 
     def read_gripper(self):
-        """Return current opening width of the gripper (scaled to [0, 1])."""
         pos_l = self.body.joints["finger_l"].get_position()
         pos_r = self.body.joints["finger_r"].get_position()
         width = pos_l + pos_r
         return width / self.max_gripper_width
 
     def move_gripper(self, width):
-        """Move gripper to desired opening width (scaled to [0, 1])."""
         width *= 0.5 * self.max_gripper_width
         self.body.joints["finger_l"].set_position(width)
         self.body.joints["finger_r"].set_position(width)
         for _ in range(int(0.5 / self.world.dt)):
             self.world.step()
-
-    def grasp(self, width, epsilon):
-        self.move_gripper(width)
-        return self.read_gripper() > epsilon
-
-    def detect_collision(self):
-        return self.world.check_collisions(self.body)
 
 
 class ObjectSet(object):
