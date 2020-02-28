@@ -69,6 +69,12 @@ class GraspExperiment(object):
     def restore_state(self):
         self.world.restore_state(self.snapshot_id)
 
+    def spawn_object(self, urdf_path, pose, scale=1.0):
+        body = self.world.load_urdf(urdf_path, scale=scale)
+        body.set_pose(pose)
+        for _ in range(240):
+            self.world.step()
+
     def test_grasp(self, T_base_grasp):
         """Open-loop grasp execution.
         
@@ -84,37 +90,24 @@ class GraspExperiment(object):
         T_base_pregrasp = T_base_grasp * T_grasp_pregrasp
 
         # Place the gripper at the grasp pose
-        self.robot.set_tcp(T_base_grasp, override_dynamics=True)
-
-        if self.wait:
-            self.pause()
-            time.sleep(1.0)
-            self.resume()
-
+        self.robot.set_tcp(T_base_pregrasp, override_dynamics=True)
         if self.robot.detect_collision():
             return Label.COLLISION, 0.0
 
-        # Close the gripper
+        if not self.robot.move_tcp_xyz(T_base_grasp):
+            return Label.COLLISION, 0.0
+
         if not self.robot.grasp(0.0, epsilon):
             return Label.SLIPPED, 0.0
 
-        # Retrieve the object
         self.robot.move_tcp_xyz(T_base_pregrasp, check_collisions=False)
 
         if not self.robot.grasp(0.0, epsilon):
             return Label.SLIPPED, 0.0
 
-        # TODO shake test
-
         width = self.robot.read_gripper() * self.robot.max_gripper_width
 
         return Label.SUCCESS, width
-
-    def spawn_object(self, urdf_path, pose, scale=1.0):
-        body = self.world.load_urdf(urdf_path, scale=scale)
-        body.set_pose(pose)
-        for _ in range(240):
-            self.world.step()
 
     def _draw_task_space(self):
         lines = [
