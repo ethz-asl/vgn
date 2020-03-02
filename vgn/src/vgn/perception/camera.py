@@ -38,10 +38,7 @@ class PinholeCameraIntrinsic(object):
         data = {
             "width": self.width,
             "height": self.height,
-            "fx": self.fx,
-            "fy": self.fy,
-            "cx": self.cx,
-            "cy": self.cy,
+            "K": self.K.flatten().tolist(),
         }
         return data
 
@@ -49,11 +46,11 @@ class PinholeCameraIntrinsic(object):
     def from_dict(cls, data):
         """Deserialize intrinisic parameters from a dict object."""
         intrinsic = cls(
-            data["width"],
-            data["height"],
-            data["fx"],
-            data["fy"],
-            data["cx"],
-            data["cy"],
+            width=data["width"],
+            height=data["height"],
+            fx=data["K"][0],
+            fy=data["K"][4],
+            cx=data["K"][2],
+            cy=data["K"][5],
         )
         return intrinsic
