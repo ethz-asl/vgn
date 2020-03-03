@@ -3,6 +3,9 @@ import numpy as np
 import rospy
 import std_msgs.msg
 from sensor_msgs.msg import PointCloud2, PointField
+import tf2_ros
+
+from vgn.utils.transform import Rotation, Transform
 
 
 def to_point_msg(position):
@@ -23,6 +26,11 @@ def to_vector3_msg(vector3):
     return msg
 
 
+def from_vector3_msg(msg):
+    """Convert a Vector3 message to a numpy array."""
+    return np.r_[msg.x, msg.y, msg.z]
+
+
 def to_quat_msg(orientation):
     """Convert a `Rotation` object to a Quaternion message."""
     quat = orientation.as_quat()
@@ -34,12 +42,24 @@ def to_quat_msg(orientation):
     return msg
 
 
+def from_quat_msg(msg):
+    """Convert a Quaternion message to a Rotation object."""
+    return Rotation.from_quat([msg.x, msg.y, msg.z, msg.w])
+
+
 def to_pose_msg(transform):
     """Convert a `Transform` object to a Pose message."""
     msg = geometry_msgs.msg.Pose()
     msg.position = to_point_msg(transform.translation)
     msg.orientation = to_quat_msg(transform.rotation)
     return msg
+
+
+def from_transform_msg(msg):
+    """Convert a Transform message to a Transform object."""
+    translation = from_vector3_msg(msg.translation)
+    rotation = from_quat_msg(msg.rotation)
+    return Transform(rotation, translation)
 
 
 def to_color_msg(color):
@@ -87,3 +107,15 @@ def to_point_cloud_msg(points, intensities=None, frame=None, stamp=None):
     msg.data = data.astype(np.float32).tostring()
 
     return msg
+
+
+class TransformListener(object):
+    def __init__(self):
+        self._buffer = tf2_ros.Buffer()
+        self._listener = tf2_ros.TransformListener(self._buffer)
+
+    def lookup(self, from_frame, to_frame, time=None, timeout=rospy.Duration(0)):
+        if time is None:
+            time = rospy.Time(0.0)
+        msg = self._buffer.lookup_transform(from_frame, to_frame, time, timeout)
+        return from_transform_msg(msg.transform)
