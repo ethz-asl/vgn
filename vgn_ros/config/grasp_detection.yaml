@@ -1,0 +1,11 @@
+cam:
+  width: 640
+  height: 480
+  K: [540.0, 0.0, 320.0, 0.0, 540.0, 240.0, 0.0, 0.0, 1.0]
+  topic_name: /camera/depth/image_raw
+  frame_id: camera_depth_optical_frame
+
+tsdf_node:
+  frame_id: task_frame
+  size: 2.0
+  publish_rate: 2

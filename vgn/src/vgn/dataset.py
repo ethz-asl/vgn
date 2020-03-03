@@ -84,7 +84,7 @@ class RandomAffine(object):
 
     def _transform_input(self, x, T):
         T_inv = T.inverse()
-        matrix, offset = T_inv.rotation.as_matrix(), T_inv.translation
+        matrix, offset = T_inv.rotation.as_dcm(), T_inv.translation
         x[0] = ndimage.affine_transform(x[0], matrix, offset, order=1)
         return x
 

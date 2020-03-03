@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<launch>
+    <arg name="config" default="$(find vgn_ros)/config/grasp_detection.yaml"/>
+    <rosparam command="load" file="$(arg config)"/>
+
+    <node pkg="vgn_ros" type="tsdf_node.py" name="tsdf_node" output="screen"/>
+</launch>

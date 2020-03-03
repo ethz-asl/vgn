@@ -1,3 +1,2 @@
-catkin_pkg
-pyyaml
+pathlib
 rospkg
