@@ -69,5 +69,18 @@
             ]
         },
         {
+            "name": "tsdf_node",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/vgn_ros/scripts/tsdf_node.py",
+            "console": "integratedTerminal",
+        },
+        {
+            "name": "panda_grasp_controller",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/vgn_ros/scripts/panda_grasp.py",
+            "console": "integratedTerminal",
+        },
     ]
 }

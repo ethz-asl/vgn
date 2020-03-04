@@ -7,5 +7,8 @@ cam:
 
 tsdf_node:
   frame_id: task_frame
-  size: 2.0
+  size: 0.32
   publish_rate: 2
+
+grasp_detector:
+  model_path: /home/michel/Developer/catkin_ws/src/grasp_playground/vgn/data/runs/Feb26_11-23-36,net=conv,data=urdf_zoo,augment=True,batch_size=32,lr=3e-04,descr=/vgn_conv_40.pth

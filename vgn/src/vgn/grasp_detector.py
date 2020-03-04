@@ -14,7 +14,7 @@ class GraspDetector(object):
         self,
         device,
         network_path,
-        threshold=0.95,
+        threshold=0.90,
         gaussian_filter_sigma=1.0,
         max_filter_size=3,
         show_tsdf=False,

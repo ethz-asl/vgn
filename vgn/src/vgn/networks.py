@@ -1,3 +1,5 @@
+from builtins import super
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -16,7 +18,7 @@ def load_network(path, device):
     start, end = path.name.find("_") + 1, path.name.rfind("_")
     name = path.name[start:end]
     net = get_network(name).to(device)
-    net.load_state_dict(torch.load(path, map_location=device))
+    net.load_state_dict(torch.load(str(path), map_location=device))
     return net
 
 
