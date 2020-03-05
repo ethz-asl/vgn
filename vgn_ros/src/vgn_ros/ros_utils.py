@@ -55,6 +55,14 @@ def to_pose_msg(transform):
     return msg
 
 
+def to_transform_msg(transform):
+    """Convert a `Transform` object to a Transform message."""
+    msg = geometry_msgs.msg.Transform()
+    msg.translation = to_vector3_msg(transform.translation)
+    msg.rotation = to_quat_msg(transform.rotation)
+    return msg
+
+
 def from_transform_msg(msg):
     """Convert a Transform message to a Transform object."""
     translation = from_vector3_msg(msg.translation)
@@ -114,8 +122,23 @@ class TransformListener(object):
         self._buffer = tf2_ros.Buffer()
         self._listener = tf2_ros.TransformListener(self._buffer)
 
-    def lookup(self, from_frame, to_frame, time=None, timeout=rospy.Duration(0)):
+    def lookup_transform(
+        self, from_frame, to_frame, time=None, timeout=rospy.Duration(0)
+    ):
         if time is None:
             time = rospy.Time(0.0)
         msg = self._buffer.lookup_transform(from_frame, to_frame, time, timeout)
         return from_transform_msg(msg.transform)
+
+
+class TransformBroadcaster(object):
+    def __init__(self):
+        self._static_broadcaster = tf2_ros.StaticTransformBroadcaster()
+
+    def send_static_transform(self, transform, from_frame, to_frame):
+        msg = geometry_msgs.msg.TransformStamped()
+        msg.header.stamp = rospy.Time.now()
+        msg.header.frame_id = from_frame
+        msg.child_frame_id = to_frame
+        msg.transform = to_transform_msg(transform)
+        self._static_broadcaster.sendTransform(msg)

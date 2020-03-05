@@ -47,7 +47,7 @@ class TSDFNode(object):
         tsdf_config = rospy.get_param("tsdf_node")
         cam_config = rospy.get_param("cam")
 
-        self._frame_id = tsdf_config["frame_id"]
+        self._task_frame_id = tsdf_config["frame_id"]
         self._size = tsdf_config["size"]
         self._publish_rate = tsdf_config["publish_rate"]
 
@@ -78,17 +78,19 @@ class TSDFNode(object):
             return
         depth_img = self._cv_bridge.imgmsg_to_cv2(img_msg)
         depth_img = depth_img.astype(np.float32) * 0.001
-        extrinsic = self._tf_listener.lookup(self._cam_frame_id, self._frame_id)
+        extrinsic = self._tf_listener.lookup_transform(
+            self._cam_frame_id, self._task_frame_id
+        )
         self._tsdf.integrate(depth_img, self._intrinsic, extrinsic)
-        rospy.loginfo("Integrated image")
+        rospy.logdebug("Integrated image")
 
     def _publish_vol(self, _):
         if self._tsdf.extract_point_cloud().is_empty():
-            rospy.loginfo("Empty point cloud")
+            rospy.logdebug("Empty point cloud")
             return
         vol = self._tsdf.get_volume().squeeze()
         points, scalars = vol_to_points(vol, self._tsdf.voxel_size)
-        msg = ros_utils.to_point_cloud_msg(points, scalars, frame=self._frame_id)
+        msg = ros_utils.to_point_cloud_msg(points, scalars, frame=self._task_frame_id)
         self._vol_pub.publish(msg)
 
 

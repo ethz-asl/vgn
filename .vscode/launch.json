@@ -5,6 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+        },
+        {
             "name": "generate_samples",
             "type": "python",
             "request": "launch",
