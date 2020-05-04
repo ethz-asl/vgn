@@ -5,23 +5,17 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Current File",
+            "name": "generate_dataset",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
-        },
-        {
-            "name": "generate_samples",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/vgn/scripts/generate_samples.py",
+            "program": "${workspaceFolder}/vgn/scripts/generate_dataset.py",
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
                 "--data-dir=data/debug",
-                "--config=config/data_generation.yaml",
+                "--num-grasps=2",
                 "--sim-gui",
-                "--rtf=-1"
+                "--rtf=1"
             ]
         },
         {

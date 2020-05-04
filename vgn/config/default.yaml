@@ -1,0 +1,9 @@
+# path to the URDFs
+urdf_root: /home/michel/Developer/urdf_zoo
+# gripper configuration, has to match the gripper URDF
+urdf_path: /home/michel/Developer/urdf_zoo/panda_gripper/hand.urdf
+max_gripper_width: 0.08
+finger_depth: 0.05
+T_tool0_tcp:
+  rotation: [0.0, 0.0, 0.0, 1.0]
+  translation: [0.0, 0.0, 0.04]
