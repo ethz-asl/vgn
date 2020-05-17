@@ -9,9 +9,9 @@ from pandas import DataFrame
 
 class Logger(object):
     def __init__(self, log_dir, descr):
-        descr = "{} {}".format(datetime.now().strftime("%y%m%d-%H%M%S"), descr)
+        descr = "{} {}".format(datetime.now().strftime("%y%m%d-%H%M%S"), descr).strip()
         root = Path(log_dir) / descr
-        root.mkdir(exist_ok=True)
+        root.mkdir()
 
         self.rounds_csv_path = root / "rounds.csv"
         if not self.rounds_csv_path.exists():
@@ -42,15 +42,3 @@ class Logger(object):
             },
             ignore_index=True,
         ).to_csv(self.trials_csv_path, index=False)
-
-    @property
-    def success_rate(self):
-        pass
-
-    @property
-    def percent_cleared(self):
-        pass
-
-    @property
-    def planning_time(self):
-        pass
