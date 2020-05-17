@@ -21,13 +21,13 @@ class BtWorld(object):
         sim_time: Virtual time elpased since the last simulation reset.
     """
 
-    def __init__(self, gui=True, rtf=-1.0):
+    def __init__(self, gui=True):
         connection_mode = pybullet.GUI if gui else pybullet.DIRECT
         self.p = bullet_client.BulletClient(connection_mode)
 
+        self.gui = gui
         self.dt = 1.0 / 240.0
         self.solver_iterations = 150
-        self.rtf = rtf
 
         self.reset()
 
@@ -36,7 +36,12 @@ class BtWorld(object):
 
     def load_urdf(self, urdf_path, scale=1.0):
         body = Body.from_urdf(self.p, urdf_path, scale)
+        self.bodies[body.uid] = body
         return body
+
+    def remove_body(self, body):
+        self.p.removeBody(body.uid)
+        del self.bodies[body.uid]
 
     def add_constraint(self, *argv, **kwargs):
         """See `Constraint` below."""
@@ -47,12 +52,17 @@ class BtWorld(object):
         camera = Camera(self.p, intrinsic, near, far)
         return camera
 
-    def check_collisions(self, bodyA):
-        points = self.p.getContactPoints(bodyA.body_uid)
+    def check_contacts(self, bodyA):
+        points = self.p.getContactPoints(bodyA.uid)
         contacts = []
         for point in points:
             contact = Contact(
-                point=point[5], normal=point[7], depth=point[8], force=point[9]
+                bodyA=self.bodies[point[1]],
+                bodyB=self.bodies[point[2]],
+                point=point[5],
+                normal=point[7],
+                depth=point[8],
+                force=point[9],
             )
             contacts.append(contact)
         return contacts
@@ -62,20 +72,21 @@ class BtWorld(object):
         self.p.setPhysicsEngineParameter(
             fixedTimeStep=self.dt, numSolverIterations=self.solver_iterations
         )
+        self.bodies = {}
         self.sim_time = 0.0
         self.tic = time.time()  # used to measure elapsed time since last reset
 
     def step(self):
         self.p.stepSimulation()
         self.sim_time += self.dt
-        if self.rtf > 0.0:
+        if self.gui:
             toc = time.time() - self.tic
-            time.sleep(max(0.0, self.sim_time - self.rtf * toc))
+            time.sleep(max(0.0, self.sim_time - toc))
 
     def pause(self):
         self.pause_tic = time.time()
 
-    def resume(self):
+    def unpause(self):
         self.tic += time.time() - self.pause_tic
 
     def save_state(self):
@@ -92,7 +103,7 @@ class Body(object):
     """Interface to a multibody simulated in PyBullet.
 
     Attributes:
-        body_uid: The unique id of the body within the physics server.
+        uid: The unique id of the body within the physics server.
         name: The name of the body.
         joints: A dict mapping joint names to Joint objects.
         links: A dict mapping link names to Link objects.
@@ -100,15 +111,15 @@ class Body(object):
 
     def __init__(self, physics_client, body_uid):
         self.p = physics_client
-        self.body_uid = body_uid
-        self.name = self.p.getBodyInfo(self.body_uid)[1].decode("utf-8")
+        self.uid = body_uid
+        self.name = self.p.getBodyInfo(self.uid)[1].decode("utf-8")
         self.joints, self.links = {}, {}
-        for i in range(self.p.getNumJoints(self.body_uid)):
-            joint_info = self.p.getJointInfo(self.body_uid, i)
+        for i in range(self.p.getNumJoints(self.uid)):
+            joint_info = self.p.getJointInfo(self.uid, i)
             joint_name = joint_info[1].decode("utf8")
-            self.joints[joint_name] = Joint(self.p, self.body_uid, i)
+            self.joints[joint_name] = Joint(self.p, self.uid, i)
             link_name = joint_info[12].decode("utf8")
-            self.links[link_name] = Link(self.p, self.body_uid, i)
+            self.links[link_name] = Link(self.p, self.uid, i)
 
     @classmethod
     def from_urdf(cls, physics_client, urdf_path, scale):
@@ -116,12 +127,12 @@ class Body(object):
         return cls(physics_client, body_uid)
 
     def get_pose(self):
-        pos, ori = self.p.getBasePositionAndOrientation(self.body_uid)
+        pos, ori = self.p.getBasePositionAndOrientation(self.uid)
         return Transform(Rotation.from_quat(ori), np.asarray(pos))
 
     def set_pose(self, pose):
         self.p.resetBasePositionAndOrientation(
-            self.body_uid, pose.translation, pose.rotation.as_quat()
+            self.uid, pose.translation, pose.rotation.as_quat()
         )
 
 
@@ -167,7 +178,9 @@ class Joint(object):
         joint_state = self.p.getJointState(self.body_uid, self.joint_index)
         return joint_state[0]
 
-    def set_position(self, position):
+    def set_position(self, position, override_dynamics=False):
+        if override_dynamics:
+            self.p.resetJointState(self.body_uid, self.joint_index, position)
         self.p.setJointMotorControl2(
             self.body_uid,
             self.joint_index,
@@ -181,7 +194,7 @@ class Constraint(object):
     """Interface to a constraint in PyBullet.
 
     Attributes:
-        constraint_uid: The unique id of the constraint within the physics server.
+        uid: The unique id of the constraint within the physics server.
     """
 
     def __init__(
@@ -206,12 +219,12 @@ class Constraint(object):
 
         """
         self.p = physics_client
-        parent_body_uid = parent.body_uid
+        parent_body_uid = parent.uid
         parent_link_index = parent_link.link_index if parent_link else -1
-        child_body_uid = child.body_uid if child else -1
+        child_body_uid = child.uid if child else -1
         child_link_index = child_link if child_link else -1
 
-        self.constraint_uid = self.p.createConstraint(
+        self.uid = self.p.createConstraint(
             parentBodyUniqueId=parent_body_uid,
             parentLinkIndex=parent_link_index,
             childBodyUniqueId=child_body_uid,
@@ -226,7 +239,7 @@ class Constraint(object):
 
     def change(self, child_pose, max_force):
         self.p.changeConstraint(
-            self.constraint_uid,
+            self.uid,
             jointChildPivot=child_pose.translation,
             jointChildFrameOrientation=child_pose.rotation.as_quat(),
             maxForce=max_force,
@@ -243,7 +256,9 @@ class Contact(object):
         force: Contact force acting on body ...
     """
 
-    def __init__(self, point, normal, depth, force):
+    def __init__(self, bodyA, bodyB, point, normal, depth, force):
+        self.bodyA = bodyA
+        self.bodyB = bodyB
         self.point = point
         self.normal = normal
         self.depth = depth
@@ -268,7 +283,7 @@ class Camera(object):
         """Render synthetic RGB and depth images.
 
         Args:
-            extrinsic: Extrinsic parameters, T_eye_ref.
+            extrinsic: Extrinsic parameters, T_cam_ref.
         """
         # Construct OpenGL compatible view and projection matrices.
         gl_view_matrix = extrinsic.as_matrix()

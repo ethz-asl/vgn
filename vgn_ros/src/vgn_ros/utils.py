@@ -1,8 +1,8 @@
 import geometry_msgs.msg
 import numpy as np
 import rospy
-import std_msgs.msg
 from sensor_msgs.msg import PointCloud2, PointField
+import std_msgs.msg
 import tf2_ros
 
 from vgn.utils.transform import Rotation, Transform

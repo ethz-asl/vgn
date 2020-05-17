@@ -5,82 +5,21 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "generate_dataset",
+            "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/vgn/scripts/generate_dataset.py",
+            "program": "${file}",
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
-            "args": [
-                "--data-dir=data/debug",
-                "--num-grasps=2",
-                "--sim-gui",
-                "--rtf=1"
-            ]
         },
         {
-            "name": "show_sample",
+            "name": "Python: Script",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/vgn/scripts/show_sample.py",
+            "program": "${workspaceFolder}/vgn/scripts/<script_name>.py",
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
-            "args": [
-                "data/cuboid/0cfc4bebab3a4c85914d96dd2fce7664.npz",
-                // "--augment",
-            ]
-        },
-        {
-            "name": "train_vgn",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/vgn/scripts/train_vgn.py",
-            "cwd": "${workspaceFolder}/vgn",
-            "console": "integratedTerminal",
-            "args": [
-                "--net=conv",
-                "--data-dir=data/ycb",
-                "--augment"
-            ]
-        },
-        {
-            "name": "show_detections",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/vgn/scripts/show_detections.py",
-            "cwd": "${workspaceFolder}/vgn",
-            "console": "integratedTerminal",
-            "args": [
-                "--model=data/runs/Feb18_20-02-23,net=conv,data=cuboid,batch_size=32,lr=3e-04,descr=/vgn_conv_100.pth",
-                "--sample=data/cuboid/0cfc4bebab3a4c85914d96dd2fce7664.npz",
-            ]
-        },
-        {
-            "name": "run_sim_eval",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/vgn/scripts/run_sim_eval.py",
-            "cwd": "${workspaceFolder}/vgn",
-            "console": "integratedTerminal",
-            "args": [
-                "--config=config/sim_eval.yaml",
-                "--sim-gui",
-                "--rtf=-1.0",
-            ]
-        },
-        {
-            "name": "tsdf_node",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/vgn_ros/scripts/tsdf_node.py",
-            "console": "integratedTerminal",
-        },
-        {
-            "name": "panda_grasp_controller",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/vgn_ros/scripts/panda_grasp.py",
-            "console": "integratedTerminal",
+            "args": []
         },
     ]
 }

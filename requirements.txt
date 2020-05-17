@@ -1,0 +1,13 @@
+future
+pathlib2
+numpy
+scipy
+matplotlib
+mpi4py
+open3d==0.8.0
+opencv-python
+pybullet
+torch
+pytorch-ignite 
+tensorboard
+tqdm

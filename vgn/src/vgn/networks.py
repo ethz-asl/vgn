@@ -1,5 +1,7 @@
 from builtins import super
 
+from pathlib2 import Path
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -15,6 +17,7 @@ def get_network(name):
 
 
 def load_network(path, device):
+    path = Path(path)
     start, end = path.name.find("_") + 1, path.name.rfind("_")
     name = path.name[start:end]
     net = get_network(name).to(device)

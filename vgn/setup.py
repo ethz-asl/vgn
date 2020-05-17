@@ -6,12 +6,7 @@ from catkin_pkg.python_setup import generate_distutils_setup
 
 # Fetch values from package.xml.
 setup_args = generate_distutils_setup(
-    packages=[
-        'vgn',
-        'vgn.perception',
-        'vgn.utils',
-    ],
-    package_dir={'': 'src'},
+    packages=["vgn", "vgn.utils",], package_dir={"": "src"},
 )
 
 setup(**setup_args)

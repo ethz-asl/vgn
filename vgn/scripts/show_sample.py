@@ -22,8 +22,8 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="visualize data from a sample")
-    parser.add_argument("sample_path", type=str, help="path to the sample to be showed")
-    parser.add_argument("--augment", action="store_true", help="augment sample")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("sample_path", type=str)
+    parser.add_argument("--augment", action="store_true")
     args = parser.parse_args()
     main(args)

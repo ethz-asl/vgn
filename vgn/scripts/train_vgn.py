@@ -1,5 +1,5 @@
 import argparse
-from pathlib import Path
+from pathlib2 import Path
 from datetime import datetime
 
 import open3d

@@ -59,5 +59,5 @@ def _save_yaml(data, path):
 
 def _load_yaml(path):
     with path.open("r") as f:
-        data = yaml.load(f, Loader=yaml.FullLoader)
+        data = yaml.load(f)
     return data
