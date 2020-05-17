@@ -1,5 +1,6 @@
 future
 pathlib2
+jupyter
 numpy
 scipy
 matplotlib
