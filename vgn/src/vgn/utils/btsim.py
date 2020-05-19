@@ -34,8 +34,8 @@ class BtWorld(object):
     def set_gravity(self, gravity):
         self.p.setGravity(*gravity)
 
-    def load_urdf(self, urdf_path, scale=1.0):
-        body = Body.from_urdf(self.p, urdf_path, scale)
+    def load_urdf(self, urdf_path, pose, scale=1.0):
+        body = Body.from_urdf(self.p, urdf_path, pose, scale)
         self.bodies[body.uid] = body
         return body
 
@@ -122,8 +122,13 @@ class Body(object):
             self.links[link_name] = Link(self.p, self.uid, i)
 
     @classmethod
-    def from_urdf(cls, physics_client, urdf_path, scale):
-        body_uid = physics_client.loadURDF(str(urdf_path), globalScaling=scale)
+    def from_urdf(cls, physics_client, urdf_path, pose, scale):
+        body_uid = physics_client.loadURDF(
+            str(urdf_path),
+            pose.translation,
+            pose.rotation.as_quat(),
+            globalScaling=scale,
+        )
         return cls(physics_client, body_uid)
 
     def get_pose(self):
@@ -178,8 +183,8 @@ class Joint(object):
         joint_state = self.p.getJointState(self.body_uid, self.joint_index)
         return joint_state[0]
 
-    def set_position(self, position, override_dynamics=False):
-        if override_dynamics:
+    def set_position(self, position, kinematics=False):
+        if kinematics:
             self.p.resetJointState(self.body_uid, self.joint_index, position)
         self.p.setJointMotorControl2(
             self.body_uid,

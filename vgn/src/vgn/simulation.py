@@ -14,16 +14,15 @@ from vgn.utils.transform import Rotation, Transform
 class GraspSimulation(object):
     def __init__(self, object_set, config_path, gui=True):
         assert object_set in ["blocks", "train", "test", "adversarial"]
-        config = io.load_dict(Path(config_path))
+        self._config = io.load_dict(Path(config_path))
 
-        self._urdf_root = Path(config["urdf_root"])
+        self._urdf_root = Path(self._config["urdf_root"])
         self._object_set = object_set
         self._discover_object_urdfs()
-        self._gripper_config = config["gripper"]
         self._test = False if object_set == "train" else True
         self._gui = gui
 
-        self.size = 4 * self._gripper_config["max_opening_width"]
+        self.size = 4 * self._config["gripper"]["max_opening_width"]
         self.world = btsim.BtWorld(self._gui)
 
     @property
@@ -70,24 +69,26 @@ class GraspSimulation(object):
         T_world_pregrasp = T_world_grasp * T_grasp_pregrasp
         T_world_retreat = T_world_grasp * T_grasp_retreat
 
-        robot = Robot(self.world, self._gripper_config, T_world_pregrasp)
-        if robot.detect_collision(threshold=0.0):
+        gripper = Gripper(self.world, self._config["gripper"])
+        gripper.set_tcp(T_world_pregrasp)
+
+        if gripper.detect_collision(threshold=0.0):
             result = Label.FAILURE, 0.0
         else:
-            robot.move_tcp_xyz(T_world_grasp)
-            if robot.detect_collision():
+            gripper.move_tcp_xyz(T_world_grasp)
+            if gripper.detect_collision():
                 result = Label.FAILURE, 0.00
             else:
-                robot.gripper.move(0.0)
-                robot.move_tcp_xyz(T_world_retreat, abort_on_contact=False)
-                if self._check_success(robot):
-                    result = Label.SUCCESS, robot.gripper.read()
+                gripper.move(0.0)
+                gripper.move_tcp_xyz(T_world_retreat, abort_on_contact=False)
+                if self._check_success(gripper):
+                    result = Label.SUCCESS, gripper.read()
                     if remove:
-                        contacts = self.world.check_contacts(robot._body)
+                        contacts = self.world.check_contacts(gripper._body)
                         self.world.remove_body(contacts[0].bodyB)
                 else:
                     result = Label.FAILURE, 0.0
-        del robot
+        del gripper
 
         return result
 
@@ -96,8 +97,10 @@ class GraspSimulation(object):
         self._urdfs = [d / (d.name + ".urdf") for d in root.iterdir() if d.is_dir()]
 
     def _setup_table(self):
-        plane = self.world.load_urdf(self._urdf_root / "plane/plane.urdf")
-        plane.set_pose(Transform(Rotation.identity(), [0.0, 0.0, 0.0]))
+        plane = self.world.load_urdf(
+            self._urdf_root / "plane/plane.urdf",
+            Transform(Rotation.identity(), [0.0, 0.0, 0.0]),
+        )
 
     def _setup_camera(self):
         intrinsic = PinholeCameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)
@@ -118,14 +121,13 @@ class GraspSimulation(object):
         return X.rvs(2)
 
     def _drop_object(self, model_path, pose, scale=1.0):
-        body = self.world.load_urdf(model_path, scale=scale)
-        body.set_pose(pose)
+        body = self.world.load_urdf(model_path, pose, scale=scale)
         for _ in range(240):
             self.world.step()
 
-    def _check_success(self, robot):
+    def _check_success(self, gripper):
         # TODO this can be improved
-        return robot.gripper.read() > 0.1 * robot.gripper.max_opening_width
+        return gripper.read() > 0.1 * gripper.max_opening_width
 
     def _draw_task_space(self):
         points = vis.workspace_lines(self.size)
@@ -136,31 +138,39 @@ class GraspSimulation(object):
             )
 
 
-class Robot(object):
-    def __init__(self, world, config, pose):
+class Gripper(object):
+    def __init__(self, world, config):
         self._world = world
+        self._urdf_path = config["urdf_path"]
+        self._body = None
         self._T_tool0_tcp = Transform.from_dict(config["T_tool0_tcp"])
         self._T_tcp_tool0 = self._T_tool0_tcp.inverse()
-        self._body = self._world.load_urdf(config["urdf_path"])
-        self._constraint = self._world.add_constraint(
-            self._body,
-            None,
-            None,
-            None,
-            pybullet.JOINT_FIXED,
-            [0.0, 0.0, 0.0],
-            Transform.identity(),
-            Transform.identity(),
-        )
-        self.set_tcp(pose)
 
-        self.gripper = Gripper(self._world, self._body, config)
+        self.max_opening_width = config["max_opening_width"]
 
     def __del__(self):
         self._world.remove_body(self._body)
 
     def set_tcp(self, target):
         T_world_tool0 = target * self._T_tcp_tool0
+
+        if self._body is None:  # spawn robot if necessary
+            self._body = self._world.load_urdf(self._urdf_path, T_world_tool0)
+            self._constraint = self._world.add_constraint(
+                self._body,
+                None,
+                None,
+                None,
+                pybullet.JOINT_FIXED,
+                [0.0, 0.0, 0.0],
+                Transform.identity(),
+                Transform.identity(),
+            )
+            self._finger_l = self._body.joints["finger_l"]
+            self._finger_l.set_position(0.5 * self.max_opening_width, kinematics=True)
+            self._finger_r = self._body.joints["finger_r"]
+            self._finger_r.set_position(0.5 * self.max_opening_width, kinematics=True)
+
         self._body.set_pose(T_world_tool0)
         self._constraint.change(T_world_tool0, max_force=300)
         self._world.step()
@@ -188,28 +198,12 @@ class Robot(object):
                 return True
         return False
 
-
-class Gripper(object):
-    def __init__(self, world, body, config):
-        self._world = world
-        self._body = body
-        self._left_joint = self._body.joints["finger_l"]
-        self._right_joint = self._body.joints["finger_r"]
-
-        self.max_opening_width = config["max_opening_width"]
-
-        init_pos = 0.5 * self.max_opening_width
-        self._left_joint.set_position(init_pos, override_dynamics=True)
-        self._right_joint.set_position(init_pos, override_dynamics=True)
-
     def move(self, width):
-        self._left_joint.set_position(0.5 * width)
-        self._right_joint.set_position(0.5 * width)
+        self._finger_l.set_position(0.5 * width)
+        self._finger_r.set_position(0.5 * width)
         for _ in range(int(0.5 / self._world.dt)):
             self._world.step()
 
     def read(self):
-        pos_l = self._left_joint.get_position()
-        pos_r = self._right_joint.get_position()
-        width = pos_l + pos_r
+        width = self._finger_l.get_position() + self._finger_r.get_position()
         return width
