@@ -31,7 +31,7 @@ def main(args):
     logger = Logger(args.log_dir, args.descr)
 
     for round_id in tqdm.tqdm(range(args.num_rounds)):
-        sim.reset()
+        sim.reset(args.object_count)
         logger.add_round(round_id, sim.num_objects)
         consecutive_failures = 1
         last_label = None
@@ -76,6 +76,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="simulated clutter removal benchmark")
     parser.add_argument("--model", type=str, required=True)
     parser.add_argument("--object-set", type=str, default="adversarial")
+    parser.add_argument("--object-count", type=int, default=5)
     parser.add_argument("--num-rounds", type=int, default=10)
     parser.add_argument("--log-dir", type=str, default="data/experiments")
     parser.add_argument("--descr", type=str, default="")

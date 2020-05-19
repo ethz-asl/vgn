@@ -13,23 +13,18 @@ from vgn.utils.transform import Rotation, Transform
 
 class GraspSimulation(object):
     def __init__(self, object_set, config_path, gui=True):
-        assert object_set in ["debug", "train", "test", "adversarial"]
+        assert object_set in ["blocks", "train", "test", "adversarial"]
         config = io.load_dict(Path(config_path))
 
         self._urdf_root = Path(config["urdf_root"])
         self._object_set = object_set
+        self._discover_object_urdfs()
         self._gripper_config = config["gripper"]
-        self._test = False if object_set in ["train"] else True
+        self._test = False if object_set == "train" else True
         self._gui = gui
 
         self.size = 4 * self._gripper_config["max_opening_width"]
         self.world = btsim.BtWorld(self._gui)
-
-        if object_set == "debug":
-            self._place_objects = self._place_cuboid
-        else:
-            self._discover_object_models()
-            self._place_objects = self._generate_heap
 
     @property
     def num_objects(self):
@@ -41,13 +36,13 @@ class GraspSimulation(object):
     def restore_state(self):
         self.world.restore_state(self._snapshot_id)
 
-    def reset(self):
+    def reset(self, object_count):
         self.world.reset()
         self.world.set_gravity([0.0, 0.0, -9.81])
         self._setup_table()
         self._setup_camera()
         self._draw_task_space()
-        self._place_objects()
+        self._generate_heap(object_count)
 
     def acquire_tsdf(self, num_viewpoints=6):
         tsdf = TSDFVolume(self.size, 40)
@@ -96,11 +91,9 @@ class GraspSimulation(object):
 
         return result
 
-    def _discover_object_models(self):
+    def _discover_object_urdfs(self):
         root = self._urdf_root / self._object_set
-        self._model_paths = [
-            d / (d.name + ".urdf") for d in root.iterdir() if d.is_dir()
-        ]
+        self._urdfs = [d / (d.name + ".urdf") for d in root.iterdir() if d.is_dir()]
 
     def _setup_table(self):
         plane = self.world.load_urdf(self._urdf_root / "plane/plane.urdf")
@@ -110,20 +103,13 @@ class GraspSimulation(object):
         intrinsic = PinholeCameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)
         self.camera = self.world.add_camera(intrinsic, 0.1, 2.0)
 
-    def _place_cuboid(self):
-        model_path = self._urdf_root / "cuboid/cuboid.urdf"
-        position = np.r_[0.5 * self.size, 0.5 * self.size, 0.03]
-        orientation = Rotation.identity()
-        self._drop_object(model_path, Transform(orientation, position))
-
-    def _generate_heap(self):
-        object_count = np.random.poisson(4 - 1) + 1
-        model_paths = np.random.choice(self._model_paths, size=object_count)
-        for model_path in model_paths:
+    def _generate_heap(self, object_count):
+        urdfs = np.random.choice(self._urdfs, size=object_count)
+        for urdf in urdfs:
             planar_position = self._sample_planar_position()
             pose = Transform(Rotation.random(), np.r_[planar_position, 0.15])
             scale = 1.0 if self._test else np.random.uniform(0.8, 1.0)
-            self._drop_object(model_path, pose, scale)
+            self._drop_object(urdf, pose, scale)
 
     def _sample_planar_position(self):
         l, u = 0.0, self.size
