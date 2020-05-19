@@ -37,27 +37,33 @@ def main(args):
         last_label = None
 
         while sim.num_objects > 0 and consecutive_failures < 3:
+            # scan the scene
             tsdf, pc = sim.acquire_tsdf(num_viewpoints=3)
-            out = predict(tsdf.get_volume(), net, device)
+            tsdf_vol = tsdf.get_volume()
+
+            # plan grasps
+            tic = time.time()
+            out = predict(tsdf_vol, net, device)
             out = process(out)
             grasps, scores = select(out)
+            grasps = [from_voxel_coordinates(g, tsdf.voxel_size) for g in grasps]
+            toc = time.time() - tic
 
             if len(grasps) == 0:
                 break  # no detections found, abort this round
 
-            grasps = [from_voxel_coordinates(g, tsdf.voxel_size) for g in grasps]
+            # visualize
+            vis.clear()
+            vis.workspace(sim.size)
+            vis.points(np.asarray(pc.points))
+            vis.grasps(grasps, scores, 0.04)
+            vis.tsdf(tsdf_vol.squeeze(), tsdf.voxel_size)
+            vis.quality(out[0], tsdf.voxel_size)
 
-            if args.rviz:
-                vis.clear()
-                vis.workspace(sim.size)
-                vis.points(np.asarray(pc.points))
-                vis.grasps(grasps, scores, 0.04)
-                vis.tsdf(tsdf.get_volume().squeeze(), tsdf.voxel_size)
-                vis.quality(out[0], tsdf.voxel_size)
-
-            grasp, score = grasps[0], scores[0]  # highest scored hypothesis
+            # execute highest scored grasp
+            grasp, score = grasps[0], scores[0]
             label, _ = sim.execute_grasp(grasp, remove=True)
-            logger.log_trial(round_id, 0.0, score, label)  # TODO add planning time
+            logger.log_trial(round_id, toc, score, label)
 
             if last_label == Label.FAILURE and label == Label.FAILURE:
                 consecutive_failures += 1
@@ -75,7 +81,6 @@ if __name__ == "__main__":
     parser.add_argument("--descr", type=str, default="")
     parser.add_argument("--config", type=str, default="config/default.yaml")
     parser.add_argument("--sim-gui", action="store_true")
-    parser.add_argument("--rviz", action="store_true")
     args = parser.parse_args()
 
     main(args)
