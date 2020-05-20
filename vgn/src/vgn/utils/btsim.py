@@ -74,20 +74,12 @@ class BtWorld(object):
         )
         self.bodies = {}
         self.sim_time = 0.0
-        self.tic = time.time()  # used to measure elapsed time since last reset
 
     def step(self):
         self.p.stepSimulation()
         self.sim_time += self.dt
         if self.gui:
-            toc = time.time() - self.tic
-            time.sleep(max(0.0, self.sim_time - toc))
-
-    def pause(self):
-        self.pause_tic = time.time()
-
-    def unpause(self):
-        self.tic += time.time() - self.pause_tic
+            time.sleep(self.dt)
 
     def save_state(self):
         return self.p.saveState()

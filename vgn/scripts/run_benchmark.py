@@ -27,10 +27,10 @@ def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     net = load_network(args.model, device)
 
-    sim = GraspSimulation(args.object_set, args.config, args.sim_gui)
-    logger = Logger(args.log_dir, args.descr)
+    sim = GraspSimulation(args.object_set, "config/default.yaml", args.sim_gui)
+    logger = Logger(args.log_dir, args.description)
 
-    for round_id in tqdm.tqdm(range(args.num_rounds)):
+    for round_id in tqdm.tqdm(range(args.rounds)):
         sim.reset(args.object_count)
         logger.add_round(round_id, sim.num_objects)
         consecutive_failures = 1
@@ -75,12 +75,11 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="simulated clutter removal benchmark")
     parser.add_argument("--model", type=str, required=True)
+    parser.add_argument("--rounds", type=int, default=10)
     parser.add_argument("--object-set", type=str, default="adversarial")
     parser.add_argument("--object-count", type=int, default=5)
-    parser.add_argument("--num-rounds", type=int, default=10)
     parser.add_argument("--log-dir", type=str, default="data/experiments")
-    parser.add_argument("--descr", type=str, default="")
-    parser.add_argument("--config", type=str, default="config/default.yaml")
+    parser.add_argument("--description", type=str, default="")
     parser.add_argument("--sim-gui", action="store_true")
     args = parser.parse_args()
 

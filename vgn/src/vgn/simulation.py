@@ -22,7 +22,7 @@ class GraspSimulation(object):
         self._test = False if object_set == "train" else True
         self._gui = gui
 
-        self.size = 4 * self._config["gripper"]["max_opening_width"]
+        self.size = 4 * self._config["max_opening_width"]
         self.world = btsim.BtWorld(self._gui)
 
     @property
@@ -58,18 +58,19 @@ class GraspSimulation(object):
             depth_img = self.camera.render(extrinsic)[1]
             tsdf.integrate(depth_img, self.camera.intrinsic, extrinsic)
             high_res_tsdf.integrate(depth_img, self.camera.intrinsic, extrinsic)
+        pc = high_res_tsdf.extract_point_cloud()
 
-        return tsdf, high_res_tsdf.extract_point_cloud()
+        return tsdf, pc
 
     def execute_grasp(self, grasp, remove=False):
         T_world_grasp = grasp.pose
 
-        T_grasp_pregrasp = Transform(Rotation.identity(), [0.0, 0.0, -0.1])
+        T_grasp_pregrasp = Transform(Rotation.identity(), [0.0, 0.0, -0.05])
         T_grasp_retreat = Transform(Rotation.identity(), [0.0, 0.0, -0.1])
         T_world_pregrasp = T_world_grasp * T_grasp_pregrasp
         T_world_retreat = T_world_grasp * T_grasp_retreat
 
-        gripper = Gripper(self.world, self._config["gripper"])
+        gripper = Gripper(self.world, self._config)
         gripper.set_tcp(T_world_pregrasp)
 
         if gripper.detect_collision(threshold=0.0):
@@ -141,7 +142,7 @@ class GraspSimulation(object):
 class Gripper(object):
     def __init__(self, world, config):
         self._world = world
-        self._urdf_path = config["urdf_path"]
+        self._urdf_path = Path(config["urdf_root"]) / "panda/hand.urdf"
         self._body = None
         self._T_tool0_tcp = Transform.from_dict(config["T_tool0_tcp"])
         self._T_tcp_tool0 = self._T_tool0_tcp.inverse()
@@ -164,11 +165,11 @@ class Gripper(object):
                 pybullet.JOINT_FIXED,
                 [0.0, 0.0, 0.0],
                 Transform.identity(),
-                Transform.identity(),
+                T_world_tool0,
             )
-            self._finger_l = self._body.joints["finger_l"]
+            self._finger_l = self._body.joints["panda_finger_joint1"]
             self._finger_l.set_position(0.5 * self.max_opening_width, kinematics=True)
-            self._finger_r = self._body.joints["finger_r"]
+            self._finger_r = self._body.joints["panda_finger_joint2"]
             self._finger_r.set_position(0.5 * self.max_opening_width, kinematics=True)
 
         self._body.set_pose(T_world_tool0)

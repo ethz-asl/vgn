@@ -8,9 +8,10 @@ from pandas import DataFrame
 
 
 class Logger(object):
-    def __init__(self, log_dir, descr):
-        descr = "{} {}".format(datetime.now().strftime("%y%m%d-%H%M%S"), descr).strip()
-        root = Path(log_dir) / descr
+    def __init__(self, log_dir, description):
+        time_stamp = datetime.now().strftime("%y%m%d-%H%M%S")
+        description = "{} {}".format(time_stamp, description).strip()
+        root = Path(log_dir) / description
         root.mkdir()
 
         self.rounds_csv_path = root / "rounds.csv"
