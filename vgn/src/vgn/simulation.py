@@ -98,10 +98,9 @@ class GraspSimulation(object):
         self._urdfs = [d / (d.name + ".urdf") for d in root.iterdir() if d.is_dir()]
 
     def _setup_table(self):
-        plane = self.world.load_urdf(
-            self._urdf_root / "plane/plane.urdf",
-            Transform(Rotation.identity(), [0.0, 0.0, 0.0]),
-        )
+        urdf = self._urdf_root / "plane" / "plane.urdf"
+        pose = Transform(Rotation.identity(), [0.0, 0.0, 0.0])
+        self.world.load_urdf(urdf, pose)
 
     def _setup_camera(self):
         intrinsic = PinholeCameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)
@@ -110,20 +109,14 @@ class GraspSimulation(object):
     def _generate_heap(self, object_count):
         urdfs = np.random.choice(self._urdfs, size=object_count)
         for urdf in urdfs:
-            planar_position = self._sample_planar_position()
-            pose = Transform(Rotation.random(), np.r_[planar_position, 0.15])
+            xy = np.random.uniform(self.size / 3.0, 2.0 / 3.0 * self.size, 2)
+            pose = Transform(Rotation.random(), np.r_[xy, 0.15])
             scale = 1.0 if self._test else np.random.uniform(0.8, 1.0)
             self._drop_object(urdf, pose, scale)
 
-    def _sample_planar_position(self):
-        l, u = 0.0, self.size
-        mu, sigma = self.size / 2.0, self.size / 4.0
-        X = stats.truncnorm((l - mu) / sigma, (u - mu) / sigma, loc=mu, scale=sigma)
-        return X.rvs(2)
-
     def _drop_object(self, model_path, pose, scale=1.0):
         body = self.world.load_urdf(model_path, pose, scale=scale)
-        for _ in range(240):
+        for _ in range(240):  # TODO ensure that velocities are zero
             self.world.step()
 
     def _check_success(self, gripper):
