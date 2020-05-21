@@ -90,7 +90,9 @@ class GraspSimulation(object):
                 else:
                     result = Label.FAILURE, 0.0
         del gripper
-        self._remove_objects_outside_workspace()
+
+        self._remove_and_wait()
+
         return result
 
     def _discover_object_urdfs(self):
@@ -106,31 +108,6 @@ class GraspSimulation(object):
         intrinsic = PinholeCameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)
         self.camera = self.world.add_camera(intrinsic, 0.1, 2.0)
 
-    def _generate_heap(self, object_count):
-        urdfs = np.random.choice(self._urdfs, size=object_count)
-        for urdf in urdfs:
-            xy = np.random.uniform(self.size / 3.0, 2.0 / 3.0 * self.size, 2)
-            pose = Transform(Rotation.random(), np.r_[xy, 0.15])
-            scale = 1.0 if self._test else np.random.uniform(0.8, 1.0)
-            self._drop_object(urdf, pose, scale)
-
-    def _drop_object(self, model_path, pose, scale=1.0):
-        body = self.world.load_urdf(model_path, pose, scale=scale)
-        for _ in range(240):  # TODO ensure that velocities are zero
-            self.world.step()
-        self._remove_objects_outside_workspace()
-
-    def _remove_objects_outside_workspace(self):
-        for _, body in self.world.bodies.items():
-            T_world_body = body.get_pose()
-            xy = T_world_body.translation[:2]
-            if np.any(xy < 0.0) or np.any(xy > self.size):
-                self.world.remove_body(body)
-
-    def _check_success(self, gripper):
-        # TODO this can be improved
-        return gripper.read() > 0.1 * gripper.max_opening_width
-
     def _draw_task_space(self):
         points = vis.workspace_lines(self.size)
         color = [0.5, 0.5, 0.5]
@@ -138,6 +115,52 @@ class GraspSimulation(object):
             self.world.p.addUserDebugLine(
                 lineFromXYZ=points[i], lineToXYZ=points[i + 1], lineColorRGB=color
             )
+
+    def _generate_heap(self, object_count):
+        urdfs = np.random.choice(self._urdfs, size=object_count)
+        for urdf in urdfs:
+            xy = np.random.uniform(1.0 / 3.0 * self.size, 2.0 / 3.0 * self.size, 2)
+            pose = Transform(Rotation.random(), np.r_[xy, 0.15])
+            scale = 1.0 if self._test else np.random.uniform(0.8, 1.0)
+            self._drop_object(urdf, pose, scale)
+
+    def _drop_object(self, model_path, pose, scale=1.0):
+        body = self.world.load_urdf(model_path, pose, scale=scale)
+        self._remove_and_wait()
+
+    def _remove_and_wait(self):
+        # wait for objects to rest while removing bodies that fell outside the workspace
+        removed_object = True
+        while removed_object:
+            self._wait_for_objects_to_rest()
+            removed_object = self._remove_objects_outside_workspace()
+
+    def _wait_for_objects_to_rest(self, timeout=2.0, tol=0.01):
+        timeout = self.world.sim_time + timeout
+        objects_resting = False
+        while not objects_resting and self.world.sim_time < timeout:
+            # simulate a quarter of a second
+            for _ in range(60):
+                self.world.step()
+            # check whether all objects are resting
+            objects_resting = True
+            for _, body in self.world.bodies.items():
+                if np.linalg.norm(body.get_velocity()) > tol:
+                    objects_resting = False
+                    break
+
+    def _remove_objects_outside_workspace(self):
+        removed_object = False
+        for _, body in self.world.bodies.items():
+            xy = body.get_pose().translation[:2]
+            if np.any(xy < 0.0) or np.any(xy > self.size):
+                self.world.remove_body(body)
+                removed_object = True
+        return removed_object
+
+    def _check_success(self, gripper):
+        # TODO this could be improved
+        return gripper.read() > 0.1 * gripper.max_opening_width
 
 
 class Gripper(object):
