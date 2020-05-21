@@ -90,7 +90,7 @@ class GraspSimulation(object):
                 else:
                     result = Label.FAILURE, 0.0
         del gripper
-
+        self._remove_objects_outside_workspace()
         return result
 
     def _discover_object_urdfs(self):
@@ -118,6 +118,14 @@ class GraspSimulation(object):
         body = self.world.load_urdf(model_path, pose, scale=scale)
         for _ in range(240):  # TODO ensure that velocities are zero
             self.world.step()
+        self._remove_objects_outside_workspace()
+
+    def _remove_objects_outside_workspace(self):
+        for _, body in self.world.bodies.items():
+            T_world_body = body.get_pose()
+            xy = T_world_body.translation[:2]
+            if np.any(xy < 0.0) or np.any(xy > self.size):
+                self.world.remove_body(body)
 
     def _check_success(self, gripper):
         # TODO this can be improved
