@@ -6,6 +6,7 @@ consecutive failed grasp attempts.
 """
 
 import argparse
+from pathlib2 import Path
 import time
 
 import numpy as np
@@ -78,7 +79,7 @@ if __name__ == "__main__":
     parser.add_argument("--rounds", type=int, default=10)
     parser.add_argument("--object-set", type=str, default="adversarial")
     parser.add_argument("--object-count", type=int, default=5)
-    parser.add_argument("--log-dir", type=str, default="data/experiments")
+    parser.add_argument("--log-dir", type=Path, default="data/experiments")
     parser.add_argument("--description", type=str, default="")
     parser.add_argument("--sim-gui", action="store_true")
     args = parser.parse_args()

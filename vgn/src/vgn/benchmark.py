@@ -1,6 +1,4 @@
 from datetime import datetime
-from pathlib2 import Path
-
 
 import numpy as np
 import pandas
@@ -11,7 +9,7 @@ class Logger(object):
     def __init__(self, log_dir, description):
         time_stamp = datetime.now().strftime("%y%m%d-%H%M%S")
         description = "{} {}".format(time_stamp, description).strip()
-        root = Path(log_dir) / description
+        root = log_dir / description
         root.mkdir()
 
         self.rounds_csv_path = root / "rounds.csv"
