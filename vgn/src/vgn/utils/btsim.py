@@ -132,6 +132,10 @@ class Body(object):
             self.uid, pose.translation, pose.rotation.as_quat()
         )
 
+    def get_velocity(self):
+        linear, angular = self.p.getBaseVelocity(self.uid)
+        return linear, angular
+
 
 class Link(object):
     """Interface to a link simulated in Pybullet.
