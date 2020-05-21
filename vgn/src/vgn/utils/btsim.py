@@ -52,7 +52,7 @@ class BtWorld(object):
         camera = Camera(self.p, intrinsic, near, far)
         return camera
 
-    def check_contacts(self, bodyA):
+    def get_contacts(self, bodyA):
         points = self.p.getContactPoints(bodyA.uid)
         contacts = []
         for point in points:
@@ -219,7 +219,7 @@ class Constraint(object):
         parent_body_uid = parent.uid
         parent_link_index = parent_link.link_index if parent_link else -1
         child_body_uid = child.uid if child else -1
-        child_link_index = child_link if child_link else -1
+        child_link_index = child_link.link_index if child_link else -1
 
         self.uid = self.p.createConstraint(
             parentBodyUniqueId=parent_body_uid,
@@ -234,13 +234,8 @@ class Constraint(object):
             childFrameOrientation=child_frame.rotation.as_quat(),
         )
 
-    def change(self, child_pose, max_force):
-        self.p.changeConstraint(
-            self.uid,
-            jointChildPivot=child_pose.translation,
-            jointChildFrameOrientation=child_pose.rotation.as_quat(),
-            maxForce=max_force,
-        )
+    def change(self, **kwargs):
+        self.p.changeConstraint(self.uid, **kwargs)
 
 
 class Contact(object):

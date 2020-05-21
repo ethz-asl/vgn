@@ -85,7 +85,7 @@ class GraspSimulation(object):
                 if self._check_success(gripper):
                     result = Label.SUCCESS, gripper.read()
                     if remove:
-                        contacts = self.world.check_contacts(gripper._body)
+                        contacts = self.world.get_contacts(gripper.body)
                         self.world.remove_body(contacts[0].bodyB)
                 else:
                     result = Label.FAILURE, 0.0
@@ -134,70 +134,91 @@ class GraspSimulation(object):
 
 class Gripper(object):
     def __init__(self, world, config):
-        self._world = world
-        self._urdf_path = Path(config["urdf_root"]) / "panda/hand.urdf"
-        self._body = None
-        self._T_tool0_tcp = Transform.from_dict(config["T_tool0_tcp"])
-        self._T_tcp_tool0 = self._T_tool0_tcp.inverse()
-
+        self.world = world
+        self.body = None
         self.max_opening_width = config["max_opening_width"]
 
+        self.T_body_tcp = Transform.from_dict(config["T_tool0_tcp"])
+        self.T_tcp_body = self.T_body_tcp.inverse()
+
+        self._urdf_path = Path(config["urdf_root"]) / "panda/hand.urdf"
+
     def __del__(self):
-        self._world.remove_body(self._body)
+        self.world.remove_body(self.body)
 
-    def set_tcp(self, target):
-        T_world_tool0 = target * self._T_tcp_tool0
+    def _load(self, T_world_body):
+        self.body = self.world.load_urdf(self._urdf_path, T_world_body)
+        self.constraint = self.world.add_constraint(
+            self.body,
+            None,
+            None,
+            None,
+            pybullet.JOINT_FIXED,
+            [0.0, 0.0, 0.0],
+            Transform.identity(),
+            T_world_body,
+        )
+        self.world.add_constraint(  # constraint to keep fingers centered
+            self.body,
+            self.body.links["panda_leftfinger"],
+            self.body,
+            self.body.links["panda_rightfinger"],
+            pybullet.JOINT_GEAR,
+            [1.0, 0.0, 0.0],
+            Transform.identity(),
+            Transform.identity(),
+        ).change(gearRatio=-1, erp=0.1, maxForce=50)
 
-        if self._body is None:  # spawn robot if necessary
-            self._body = self._world.load_urdf(self._urdf_path, T_world_tool0)
-            self._constraint = self._world.add_constraint(
-                self._body,
-                None,
-                None,
-                None,
-                pybullet.JOINT_FIXED,
-                [0.0, 0.0, 0.0],
-                Transform.identity(),
-                T_world_tool0,
-            )
-            self._finger_l = self._body.joints["panda_finger_joint1"]
-            self._finger_l.set_position(0.5 * self.max_opening_width, kinematics=True)
-            self._finger_r = self._body.joints["panda_finger_joint2"]
-            self._finger_r.set_position(0.5 * self.max_opening_width, kinematics=True)
+        self.joint1 = self.body.joints["panda_finger_joint1"]
+        self.joint2 = self.body.joints["panda_finger_joint2"]
+        self.joint1.set_position(0.5 * self.max_opening_width, kinematics=True)
+        self.joint2.set_position(0.5 * self.max_opening_width, kinematics=True)
 
-        self._body.set_pose(T_world_tool0)
-        self._constraint.change(T_world_tool0, max_force=300)
-        self._world.step()
+    def _change_tcp_constraint(self, T_world_tcp):
+        T_world_body = T_world_tcp * self.T_tcp_body
+        self.constraint.change(
+            jointChildPivot=T_world_body.translation,
+            jointChildFrameOrientation=T_world_body.rotation.as_quat(),
+            maxForce=300,
+        )
+
+    def set_tcp(self, T_world_tcp):
+        T_word_body = T_world_tcp * self.T_tcp_body
+        if self.body is None:  # spawn robot if necessary
+            self._load(T_word_body)
+        self.body.set_pose(T_word_body)
+        self._change_tcp_constraint(T_world_tcp)
 
     def move_tcp_xyz(self, target, eef_step=0.002, vel=0.10, abort_on_contact=True):
-        pose = self._body.get_pose() * self._T_tool0_tcp
+        T_world_body = self.body.get_pose()
+        T_world_tcp = T_world_body * self.T_body_tcp
 
-        pos_diff = target.translation - pose.translation
-        n_steps = int(np.linalg.norm(pos_diff) / eef_step)
-        dist_step = pos_diff / n_steps
+        diff = target.translation - T_world_tcp.translation
+        n_steps = int(np.linalg.norm(diff) / eef_step)
+        dist_step = diff / n_steps
         dur_step = np.linalg.norm(dist_step) / vel
 
         for _ in range(n_steps):
-            pose.translation += dist_step
-            self._constraint.change(pose * self._T_tcp_tool0, max_force=300)
-            for _ in range(int(dur_step / self._world.dt)):
-                self._world.step()
+            T_world_tcp.translation += dist_step
+            self._change_tcp_constraint(T_world_tcp)
+            for _ in range(int(dur_step / self.world.dt)):
+                self.world.step()
             if abort_on_contact and self.detect_collision():
                 return
 
     def detect_collision(self, threshold=10):
-        contacts = self._world.check_contacts(self._body)
+        contacts = self.world.get_contacts(self.body)
         for contact in contacts:
             if contact.force > threshold:
                 return True
         return False
 
     def move(self, width):
-        self._finger_l.set_position(0.5 * width)
-        self._finger_r.set_position(0.5 * width)
-        for _ in range(int(0.5 / self._world.dt)):
-            self._world.step()
+        self.joint1.set_position(0.5 * width)
+        self.joint2.set_position(0.5 * width)
+        for _ in range(int(0.5 / self.world.dt)):
+            self.world.step()
 
     def read(self):
-        width = self._finger_l.get_position() + self._finger_r.get_position()
+        width = self.joint1.get_position() + self.joint2.get_position()
         return width
