@@ -1,6 +1,5 @@
 import numpy as np
 
-from vgn.grasp import Grasp
 from vgn.simulation import GraspSimulation
 from vgn.utils.transform import Transform, Rotation
 
@@ -15,8 +14,8 @@ def test_grasp():
 
     R_world_grasp = Rotation.from_euler("xyz", [np.pi, 0.0, 0.5 * np.pi])
     t_world_grasp = np.r_[0.5 * sim.size, 0.5 * sim.size, 0.072]
-    grasp = Grasp(Transform(R_world_grasp, t_world_grasp), 0.0)
-    res = sim.execute_grasp(grasp)
+    T_world_grasp = Transform(R_world_grasp, t_world_grasp)
+    res = sim.execute_grasp(T_world_grasp)
 
 
 if __name__ == "__main__":

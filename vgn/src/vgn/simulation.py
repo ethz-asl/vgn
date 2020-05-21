@@ -14,16 +14,16 @@ from vgn.utils.transform import Rotation, Transform
 class GraspSimulation(object):
     def __init__(self, object_set, config_path, gui=True):
         assert object_set in ["blocks", "train", "test", "adversarial"]
-        self._config = io.load_dict(Path(config_path))
+        self.config = io.load_dict(Path(config_path))
 
-        self._urdf_root = Path(self._config["urdf_root"])
+        self._urdf_root = Path(self.config["urdf_root"])
         self._object_set = object_set
         self._discover_object_urdfs()
         self._test = False if object_set == "train" else True
         self._gui = gui
 
-        self.size = 4 * self._config["max_opening_width"]
         self.world = btsim.BtWorld(self._gui)
+        self.size = 6 * self.config["finger_depth"]
 
     @property
     def num_objects(self):
@@ -44,7 +44,7 @@ class GraspSimulation(object):
         self._generate_heap(object_count)
 
     def acquire_tsdf(self, num_viewpoints=6):
-        tsdf = TSDFVolume(self.size, 40)
+        tsdf = TSDFVolume(self.size, 60)
         high_res_tsdf = TSDFVolume(self.size, 120)
 
         t_world_center = np.r_[0.5 * self.size, 0.5 * self.size, 0.0]
@@ -62,15 +62,13 @@ class GraspSimulation(object):
 
         return tsdf, pc
 
-    def execute_grasp(self, grasp, remove=False):
-        T_world_grasp = grasp.pose
-
+    def execute_grasp(self, T_world_grasp, remove=False):
         T_grasp_pregrasp = Transform(Rotation.identity(), [0.0, 0.0, -0.05])
         T_grasp_retreat = Transform(Rotation.identity(), [0.0, 0.0, -0.1])
         T_world_pregrasp = T_world_grasp * T_grasp_pregrasp
         T_world_retreat = T_world_grasp * T_grasp_retreat
 
-        gripper = Gripper(self.world, self._config)
+        gripper = Gripper(self.world, self.config)
         gripper.set_tcp(T_world_pregrasp)
 
         if gripper.detect_collision(threshold=0.0):

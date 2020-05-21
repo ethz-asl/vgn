@@ -62,7 +62,7 @@ def main(args):
 
             # execute highest scored grasp
             grasp, score = grasps[0], scores[0]
-            label, _ = sim.execute_grasp(grasp, remove=True)
+            label, _ = sim.execute_grasp(grasp.pose, remove=True)
             logger.log_trial(round_id, toc, score, label)
 
             if last_label == Label.FAILURE and label == Label.FAILURE:
