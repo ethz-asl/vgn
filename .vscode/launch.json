@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
+            "name": "Current File",
             "type": "python",
             "request": "launch",
             "program": "${file}",
@@ -13,13 +13,33 @@
             "console": "integratedTerminal",
         },
         {
-            "name": "Python: Script",
+            "name": "Dataset",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/vgn/scripts/<script_name>.py",
+            "program": "${workspaceFolder}/vgn/scripts/generate_dataset.py",
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
-            "args": []
+            "args": [
+                "--dataset-dir=data/datasets/blocks",
+                "--object-set=blocks",
+                "--grasps=100",
+                "--sim-gui",
+            ]
+        },
+        {
+            "name": "Benchmark",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/vgn/scripts/run_benchmark.py",
+            "cwd": "${workspaceFolder}/vgn",
+            "console": "integratedTerminal",
+            "args": [
+                "--model=data/models/vgn_conv_100.pth",
+                "--object-set=adversarial",
+                "--object-count=5",
+                "--log-dir=data/experiments",
+                "--sim-gui",
+            ]
         },
     ]
 }

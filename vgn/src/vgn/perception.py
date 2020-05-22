@@ -114,7 +114,6 @@ class TSDFVolume(object):
         return tsdf_vol
 
     def extract_point_cloud(self):
-
         return self._volume.extract_point_cloud()
 
 

@@ -57,13 +57,13 @@ def main(args):
             vis.clear()
             vis.workspace(sim.size)
             vis.points(np.asarray(pc.points))
-            vis.grasps(grasps, scores, 0.04)
+            vis.grasps(grasps, scores, sim.config["finger_depth"])
             vis.tsdf(tsdf_vol.squeeze(), tsdf.voxel_size)
             vis.quality(out[0], tsdf.voxel_size)
 
             # execute highest scored grasp
             grasp, score = grasps[0], scores[0]
-            label, _ = sim.execute_grasp(grasp.pose, remove=True)
+            label, _ = sim.execute_grasp(grasp.pose)
             logger.log_trial(round_id, toc, score, label)
 
             if last_label == Label.FAILURE and label == Label.FAILURE:

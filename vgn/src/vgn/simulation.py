@@ -43,8 +43,8 @@ class GraspSimulation(object):
         self._draw_task_space()
         self._generate_heap(object_count)
 
-    def acquire_tsdf(self, num_viewpoints=6):
-        tsdf = TSDFVolume(self.size, 60)
+    def acquire_tsdf(self, num_viewpoints):
+        tsdf = TSDFVolume(self.size, 40)
         high_res_tsdf = TSDFVolume(self.size, 120)
 
         t_world_center = np.r_[0.5 * self.size, 0.5 * self.size, 0.0]
@@ -62,7 +62,7 @@ class GraspSimulation(object):
 
         return tsdf, pc
 
-    def execute_grasp(self, T_world_grasp, remove=False):
+    def execute_grasp(self, T_world_grasp, remove=True):
         T_grasp_pregrasp = Transform(Rotation.identity(), [0.0, 0.0, -0.05])
         T_grasp_retreat = Transform(Rotation.identity(), [0.0, 0.0, -0.1])
         T_world_pregrasp = T_world_grasp * T_grasp_pregrasp
@@ -72,11 +72,11 @@ class GraspSimulation(object):
         gripper.set_tcp(T_world_pregrasp)
 
         if gripper.detect_collision(threshold=0.0):
-            result = Label.FAILURE, 0.0
+            result = Label.FAILURE, gripper.max_opening_width
         else:
             gripper.move_tcp_xyz(T_world_grasp)
             if gripper.detect_collision():
-                result = Label.FAILURE, 0.00
+                result = Label.FAILURE, gripper.max_opening_width
             else:
                 gripper.move(0.0)
                 gripper.move_tcp_xyz(T_world_retreat, abort_on_contact=False)
@@ -86,10 +86,11 @@ class GraspSimulation(object):
                         contacts = self.world.get_contacts(gripper.body)
                         self.world.remove_body(contacts[0].bodyB)
                 else:
-                    result = Label.FAILURE, 0.0
+                    result = Label.FAILURE, gripper.max_opening_width
         del gripper
 
-        self._remove_and_wait()
+        if remove:
+            self._remove_and_wait()
 
         return result
 

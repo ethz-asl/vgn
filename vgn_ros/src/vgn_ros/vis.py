@@ -42,7 +42,7 @@ def grasps(grasps, scores, finger_depth, radius=0.005):
     for i, (grasp, score) in enumerate(zip(grasps, scores)):
         w, d = grasp.width, finger_depth
         scale = [radius, 0.0, 0.0]
-        color = cmap(score)
+        color = cmap(float(score))
         msg = _create_marker_msg(Marker.LINE_LIST, "task", grasp.pose, scale, color)
         msg.id = i
         msg.points = [utils.to_point_msg(point) for point in vis.gripper_lines(w, d)]
