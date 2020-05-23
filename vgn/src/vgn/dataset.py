@@ -17,12 +17,12 @@ class Dataset(torch.utils.data.Dataset):
     def __getitem__(self, i):
         path = self.df.iloc[i, 0]
         tsdf = np.load(str(self.root / path))["tsdf"]
-        index = self.df.iloc[i, 1:4].to_numpy(dtype=np.int32)
+        index = self.df.iloc[i, 1:4].to_numpy(dtype=np.long)
         rotation = self.df.iloc[i, 4:8].to_numpy(dtype=np.float32)
         width = self.df.iloc[i, 8]
         label = self.df.iloc[i, 9]
 
-        x, y, index = tsdf, (rotation, width, label), index
+        x, y, index = tsdf, (label, rotation, width), index
 
         for transform in self.transforms:
             x, y, index = transform(x, y, index)

@@ -1,11 +1,11 @@
 # Volumetric Grasping Network
 
-- [vgn](vgn/README.md): The core modules and scripts to train and evaluate VGN.
+- [vgn](vgn/README.md): core modules and scripts to train and evaluate VGN.
 - [vgn_ros](vgn_ros/README.md): ROS interface to pre-trained VGN models.
 
 ## Quick Start
 
-The following instructions were tested with ROS Melodic on Ubuntu 18.04 and Python 2.7.
+The following instructions were tested with Python 2.7 and ROS Melodic on Ubuntu 18.04.
 OpenMPI is optionally used to distribute the data generation.
 
 ```

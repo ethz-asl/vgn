@@ -27,6 +27,17 @@
             ]
         },
         {
+            "name": "Training",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/vgn/scripts/train_vgn.py",
+            "cwd": "${workspaceFolder}/vgn",
+            "console": "integratedTerminal",
+            "args": [
+                "--dataset-dir=data/datasets/blocks",
+            ]
+        },
+        {
             "name": "Benchmark",
             "type": "python",
             "request": "launch",

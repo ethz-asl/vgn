@@ -2,58 +2,55 @@ import argparse
 from pathlib2 import Path
 from datetime import datetime
 
-import open3d
 from ignite.contrib.handlers.tqdm_logger import ProgressBar
-from ignite.engine import Events
+from ignite.engine import Engine, Events
 from ignite.handlers import ModelCheckpoint
-from ignite.metrics import Average
+from ignite.metrics import Average, Accuracy
 import torch
+import torch.nn.functional as F
 
-
-from vgn.loss import loss_fn
-from vgn.metrics import Accuracy
+from vgn.dataset import Dataset
 from vgn.networks import get_network
-from vgn.utils.training import *
 
 
-def train(
-    network_name, data_dir, augment, log_dir, descr, batch_size, lr, epochs, val_split,
-):
-    device = torch.device("cuda")
-    kwargs = {"num_workers": 4, "pin_memory": True}
+def main(args):
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
+    kwargs = {"num_workers": 4, "pin_memory": True} if use_cuda else {}
 
-    descr = "{},net={},data={},augment={},batch_size={},lr={:.0e},descr={}".format(
-        datetime.now().strftime("%b%d_%H-%M-%S"),
-        network_name,
-        data_dir.name,
-        augment,
-        batch_size,
-        lr,
-        descr,
+    # create log directory
+    time_stamp = datetime.now().strftime("%y%m%d-%H%M%S")
+    description = "{},net={},dataset={},batch_size={},lr={:.0e},{}".format(
+        time_stamp,
+        args.net,
+        args.dataset_dir.name,
+        args.batch_size,
+        args.lr,
+        args.description,
     )
-    log_dir = log_dir / descr
-    assert not log_dir.exists(), "log with this setup already exists"
+    log_dir = args.log_dir / description
 
+    # create data loaders
     train_loader, val_loader = create_train_val_loaders(
-        data_dir, augment, batch_size, val_split, kwargs
+        args.dataset_dir, args.batch_size, args.split, kwargs
     )
 
-    net = get_network(network_name)
+    # build the network
+    net = get_network(args.net).to(device)
 
-    optimizer = torch.optim.Adam(net.parameters(), lr=lr)
+    # define optimizer and metrics
+    optimizer = torch.optim.Adam(net.parameters(), lr=args.lr)
 
     metrics = {
-        "loss": Average(lambda out: out[4][0]),
-        "loss_qual": Average(lambda out: out[4][1]),
-        "loss_rot": Average(lambda out: out[4][2]),
-        "loss_width": Average(lambda out: out[4][3]),
-        "acc": Accuracy(),
+        "loss": Average(lambda out: out[3]),
+        "accuracy": Accuracy(lambda out: (torch.round(out[1][0]), out[2][0])),
     }
 
-    # create Ignite engines for training and validation
+    # create ignite engines for training and validation
     trainer = create_trainer(net, optimizer, loss_fn, metrics, device)
     evaluator = create_evaluator(net, loss_fn, metrics, device)
 
+    # log training progress to the terminal and tensorboard
     ProgressBar(persist=True, ascii=True).attach(trainer)
 
     train_writer, val_writer = create_summary_writers(net, device, log_dir)
@@ -62,24 +59,18 @@ def train(
     def log_train_results(engine):
         epoch, metrics = trainer.state.epoch, trainer.state.metrics
         train_writer.add_scalar("loss", metrics["loss"], epoch)
-        train_writer.add_scalar("loss_qual", metrics["loss_qual"], epoch)
-        train_writer.add_scalar("loss_rot", metrics["loss_rot"], epoch)
-        train_writer.add_scalar("loss_width", metrics["loss_width"], epoch)
-        train_writer.add_scalar("acc", metrics["acc"], epoch)
+        train_writer.add_scalar("accuracy", metrics["accuracy"], epoch)
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(engine):
         evaluator.run(val_loader)
         epoch, metrics = trainer.state.epoch, evaluator.state.metrics
         val_writer.add_scalar("loss", metrics["loss"], epoch)
-        val_writer.add_scalar("loss_qual", metrics["loss_qual"], epoch)
-        val_writer.add_scalar("loss_rot", metrics["loss_rot"], epoch)
-        val_writer.add_scalar("loss_width", metrics["loss_width"], epoch)
-        val_writer.add_scalar("acc", metrics["acc"], epoch)
+        val_writer.add_scalar("accuracy", metrics["accuracy"], epoch)
 
-    # save the model weights every 10 epochs
+    # checkpoint model
     checkpoint_handler = ModelCheckpoint(
-        log_dir,
+        str(log_dir),
         "vgn",
         save_interval=10,
         n_saved=100,
@@ -87,57 +78,131 @@ def train(
         save_as_state_dict=True,
     )
     evaluator.add_event_handler(
-        Events.EPOCH_COMPLETED, checkpoint_handler, to_save={network_name: net}
+        Events.EPOCH_COMPLETED, checkpoint_handler, to_save={args.net: net}
     )
 
     # run the training loop
-    trainer.run(train_loader, max_epochs=epochs)
+    trainer.run(train_loader, max_epochs=args.epochs)
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    parser.add_argument("--net", default="conv", help="network name")
-    parser.add_argument(
-        "--data-dir", type=str, required=True, help="root directory of the dataset"
-    )
-    parser.add_argument("--augment", action="store_true", help="augment train dataset")
-    parser.add_argument(
-        "--log-dir", type=str, default="data/runs", help="path to log directory"
-    )
-    parser.add_argument(
-        "--descr", type=str, default="", help="description appended to the run dirname"
-    )
-    parser.add_argument(
-        "--batch-size", type=int, default=32, help="input batch size for training"
-    )
-    parser.add_argument("--lr", type=float, default=3e-4, help="learning rate")
-    parser.add_argument(
-        "--epochs", type=int, default=100, help="number of epochs to train"
-    )
-    parser.add_argument(
-        "--val-split",
-        type=float,
-        default=0.2,
-        help="ratio of data used for validation",
-    )
-    args = parser.parse_args()
+def create_train_val_loaders(root, batch_size, split, kwargs):
+    # load the dataset
+    dataset = Dataset(root)
 
-    assert torch.cuda.is_available(), "ERROR: cuda is not available"
+    # split into train and validation sets
+    train_size = int(split * len(dataset))
+    val_size = len(dataset) - train_size
+    train_set, val_set = torch.utils.data.random_split(dataset, [train_size, val_size])
 
-    train(
-        network_name=args.net,
-        data_dir=Path(args.data_dir),
-        augment=args.augment,
-        log_dir=Path(args.log_dir),
-        descr=args.descr,
-        batch_size=args.batch_size,
-        lr=args.lr,
-        epochs=args.epochs,
-        val_split=args.val_split,
+    # create loaders for both datasets
+    train_loader = torch.utils.data.DataLoader(
+        train_set, batch_size=batch_size, shuffle=True, **kwargs
     )
+    val_loader = torch.utils.data.DataLoader(
+        val_set, batch_size=batch_size, shuffle=False, **kwargs
+    )
+
+    return train_loader, val_loader
+
+
+def prepare_batch(batch, device):
+    tsdf, (label, rot, width), index = batch
+    tsdf = tsdf.to(device)
+    label = label.float().to(device)
+    rot = rot.to(device)
+    width = width.to(device)
+    index = index.to(device)
+    return tsdf, (label, rot, width), index
+
+
+def select(out, index):
+    qual_out, rot_out, width_out = out
+    batch_index = torch.arange(qual_out.shape[0])
+    label = qual_out[batch_index, :, index[:, 0], index[:, 1], index[:, 2]]
+    rot = rot_out[batch_index, :, index[:, 0], index[:, 1], index[:, 2]]
+    width = width_out[batch_index, :, index[:, 0], index[:, 1], index[:, 2]]
+    return label, rot, width
+
+
+def loss_fn(y_pred, y):
+    label_pred, rot_pred, width_pred = y_pred
+    label, rot, width = y
+
+    loss_qual = _qual_loss_fn(label_pred, label)
+    # loss_rot = _rot_loss_fn(rot_pred, rot)
+    # loss_width = _width_loss_fn(width_pred, width)
+
+    loss = loss_qual  # + label * (loss_rot + 0.1 * loss_width)
+
+    return loss
+
+
+def _qual_loss_fn(pred, target):
+    loss = F.binary_cross_entropy(pred, target)
+    return loss
+
+
+def create_trainer(net, optimizer, loss_fn, metrics, device):
+    def _update(_, batch):
+        net.train()
+        optimizer.zero_grad()
+
+        # forward
+        x, y, index = prepare_batch(batch, device)
+        y_pred = select(net(x), index)
+        loss = loss_fn(y_pred, y)
+
+        # backward
+        loss.backward()
+        optimizer.step()
+
+        return x, y_pred, y, loss
+
+    trainer = Engine(_update)
+
+    for name, metric in metrics.items():
+        metric.attach(trainer, name)
+
+    return trainer
+
+
+def create_evaluator(net, loss_fn, metrics, device):
+    def _inference(_, batch):
+        net.eval()
+        with torch.no_grad():
+            x, y, index = prepare_batch(batch, device)
+            y_pred = select(net(x), index)
+            loss = loss_fn(y_pred, y)
+        return x, y_pred, y, loss
+
+    evaluator = Engine(_inference)
+
+    for name, metric in metrics.items():
+        metric.attach(evaluator, name)
+
+    return evaluator
+
+
+def create_summary_writers(net, device, log_dir):
+    train_path = log_dir / "train"
+    val_path = log_dir / "validation"
+
+    train_writer = torch.utils.tensorboard.SummaryWriter(train_path, flush_secs=60)
+    val_writer = torch.utils.tensorboard.SummaryWriter(val_path, flush_secs=60)
+
+    return train_writer, val_writer
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset-dir", type=Path, required=True)
+    parser.add_argument("--log-dir", type=Path, default="data/models/logs")
+    parser.add_argument("--description", type=str, default="")
+    parser.add_argument("--net", default="conv")
+    parser.add_argument("--batch-size", type=int, default=32)
+    parser.add_argument("--lr", type=float, default=3e-4)
+    parser.add_argument("--epochs", type=int, default=100)
+    parser.add_argument("--split", type=float, default=0.8)
+    args = parser.parse_args()
+
+    main(args)

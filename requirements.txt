@@ -3,12 +3,13 @@ pathlib2
 jupyter
 numpy
 scipy
+pandas
 matplotlib
 mpi4py
 open3d==0.8.0
 opencv-python
 pybullet
 torch
-pytorch-ignite 
+pytorch-ignite==0.2.1
 tensorboard
 tqdm
