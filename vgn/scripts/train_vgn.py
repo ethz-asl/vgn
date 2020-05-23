@@ -7,6 +7,7 @@ from ignite.engine import Engine, Events
 from ignite.handlers import ModelCheckpoint
 from ignite.metrics import Average, Accuracy
 import torch
+from torch.utils import tensorboard
 import torch.nn.functional as F
 
 from vgn.dataset import Dataset
@@ -187,8 +188,8 @@ def create_summary_writers(net, device, log_dir):
     train_path = log_dir / "train"
     val_path = log_dir / "validation"
 
-    train_writer = torch.utils.tensorboard.SummaryWriter(train_path, flush_secs=60)
-    val_writer = torch.utils.tensorboard.SummaryWriter(val_path, flush_secs=60)
+    train_writer = tensorboard.SummaryWriter(train_path, flush_secs=60)
+    val_writer = tensorboard.SummaryWriter(val_path, flush_secs=60)
 
     return train_writer, val_writer
 
