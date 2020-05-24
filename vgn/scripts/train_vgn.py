@@ -119,9 +119,9 @@ def prepare_batch(batch, device):
 def select(out, index):
     qual_out, rot_out, width_out = out
     batch_index = torch.arange(qual_out.shape[0])
-    label = qual_out[batch_index, :, index[:, 0], index[:, 1], index[:, 2]]
+    label = qual_out[batch_index, :, index[:, 0], index[:, 1], index[:, 2]].squeeze()
     rot = rot_out[batch_index, :, index[:, 0], index[:, 1], index[:, 2]]
-    width = width_out[batch_index, :, index[:, 0], index[:, 1], index[:, 2]]
+    width = width_out[batch_index, :, index[:, 0], index[:, 1], index[:, 2]].squeeze()
     return label, rot, width
 
 
@@ -130,17 +130,26 @@ def loss_fn(y_pred, y):
     label, rot, width = y
 
     loss_qual = _qual_loss_fn(label_pred, label)
-    # loss_rot = _rot_loss_fn(rot_pred, rot)
-    # loss_width = _width_loss_fn(width_pred, width)
+    loss_rot = _rot_loss_fn(rot_pred, rot)
+    loss_width = _width_loss_fn(width_pred, width)
 
-    loss = loss_qual  # + label * (loss_rot + 0.1 * loss_width)
+    loss = loss_qual + label * (loss_rot + 0.01 * loss_width)
 
-    return loss
+    return loss.mean()
 
 
 def _qual_loss_fn(pred, target):
-    loss = F.binary_cross_entropy(pred, target)
+    loss = F.binary_cross_entropy(pred, target, reduction="none")
     return loss
+
+
+def _rot_loss_fn(pred, target):
+    return 0.0
+
+
+def _width_loss_fn(pred, target):
+    loss = F.mse_loss(pred, target, reduction="none")
+    return 0.0
 
 
 def create_trainer(net, optimizer, loss_fn, metrics, device):
