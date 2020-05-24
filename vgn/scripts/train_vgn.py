@@ -33,7 +33,7 @@ def main(args):
 
     # create data loaders
     train_loader, val_loader = create_train_val_loaders(
-        args.dataset_dir, args.batch_size, args.split, kwargs
+        args.dataset_dir, args.batch_size, args.val_split, kwargs
     )
 
     # build the network
@@ -86,15 +86,13 @@ def main(args):
     trainer.run(train_loader, max_epochs=args.epochs)
 
 
-def create_train_val_loaders(root, batch_size, split, kwargs):
+def create_train_val_loaders(root, batch_size, val_split, kwargs):
     # load the dataset
     dataset = Dataset(root)
-
     # split into train and validation sets
-    train_size = int(split * len(dataset))
-    val_size = len(dataset) - train_size
+    val_size = int(val_split * len(dataset))
+    train_size = len(dataset) - val_size
     train_set, val_set = torch.utils.data.random_split(dataset, [train_size, val_size])
-
     # create loaders for both datasets
     train_loader = torch.utils.data.DataLoader(
         train_set, batch_size=batch_size, shuffle=True, **kwargs
@@ -102,18 +100,17 @@ def create_train_val_loaders(root, batch_size, split, kwargs):
     val_loader = torch.utils.data.DataLoader(
         val_set, batch_size=batch_size, shuffle=False, **kwargs
     )
-
     return train_loader, val_loader
 
 
 def prepare_batch(batch, device):
-    tsdf, (label, rot, width), index = batch
+    tsdf, (label, rotations, width), index = batch
     tsdf = tsdf.to(device)
     label = label.float().to(device)
-    rot = rot.to(device)
+    rotations = rotations.to(device)
     width = width.to(device)
     index = index.to(device)
-    return tsdf, (label, rot, width), index
+    return tsdf, (label, rotations, width), index
 
 
 def select(out, index):
@@ -126,30 +123,31 @@ def select(out, index):
 
 
 def loss_fn(y_pred, y):
-    label_pred, rot_pred, width_pred = y_pred
-    label, rot, width = y
-
+    label_pred, rotation_pred, width_pred = y_pred
+    label, rotations, width = y
     loss_qual = _qual_loss_fn(label_pred, label)
-    loss_rot = _rot_loss_fn(rot_pred, rot)
+    loss_rot = _rot_loss_fn(rotation_pred, rotations)
     loss_width = _width_loss_fn(width_pred, width)
-
     loss = loss_qual + label * (loss_rot + 0.01 * loss_width)
-
     return loss.mean()
 
 
 def _qual_loss_fn(pred, target):
-    loss = F.binary_cross_entropy(pred, target, reduction="none")
-    return loss
+    return F.binary_cross_entropy(pred, target, reduction="none")
 
 
 def _rot_loss_fn(pred, target):
-    return 0.0
+    loss0 = _quat_loss_fn(pred, target[:, 0])
+    loss1 = _quat_loss_fn(pred, target[:, 1])
+    return torch.min(loss0, loss1)
+
+
+def _quat_loss_fn(pred, target):
+    return 1.0 - torch.abs(torch.sum(pred * target, dim=1))
 
 
 def _width_loss_fn(pred, target):
-    loss = F.mse_loss(pred, target, reduction="none")
-    return 0.0
+    return F.mse_loss(pred, target, reduction="none")
 
 
 def create_trainer(net, optimizer, loss_fn, metrics, device):
@@ -206,13 +204,13 @@ def create_summary_writers(net, device, log_dir):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset-dir", type=Path, required=True)
-    parser.add_argument("--log-dir", type=Path, default="data/models/logs")
+    parser.add_argument("--log-dir", type=Path, default="data/models")
     parser.add_argument("--description", type=str, default="")
     parser.add_argument("--net", default="conv")
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--epochs", type=int, default=100)
-    parser.add_argument("--split", type=float, default=0.8)
+    parser.add_argument("--val-split", type=float, default=0.2)
     args = parser.parse_args()
 
     main(args)

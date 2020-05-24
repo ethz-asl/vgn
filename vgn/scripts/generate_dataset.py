@@ -15,7 +15,7 @@ from vgn.grasp import Grasp
 from vgn.simulation import GraspSimulation
 from vgn.utils.transform import Rotation, Transform
 
-MAX_OBJECT_COUNT = 4
+MAX_OBJECT_COUNT = 6
 VIEWPOINT_COUNT = 3
 
 
