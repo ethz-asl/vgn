@@ -20,7 +20,7 @@ def predict(tsdf_vol, net, device):
         qual_vol, rot_vol, width_vol = net(tsdf_vol)
     qual_vol = qual_vol.cpu().squeeze().numpy()
     rot_vol = rot_vol.cpu().squeeze().numpy()
-    width_vol = width_vol.cpu().squeeze().numpy() * 10  # TODO properly handle scaling
+    width_vol = width_vol.cpu().squeeze().numpy()
     return qual_vol, rot_vol, width_vol
 
 
