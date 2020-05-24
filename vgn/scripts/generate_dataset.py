@@ -15,7 +15,7 @@ from vgn.grasp import Grasp
 from vgn.simulation import GraspSimulation
 from vgn.utils.transform import Rotation, Transform
 
-MAX_OBJECT_COUNT = 6
+MAX_OBJECT_COUNT = 4
 VIEWPOINT_COUNT = 3
 
 
@@ -34,7 +34,7 @@ def main(args):
 
         # reconstruct and crop surface from point cloud
         tsdf, pc = sim.acquire_tsdf(num_viewpoints=VIEWPOINT_COUNT)
-        l, u = 0.0, sim.size
+        l, u = finger_depth, sim.size - finger_depth
         z = sim.world.bodies[0].get_pose().translation[2] + 0.01
         pc = pc.crop(np.r_[l, l, z], np.r_[u, u, sim.size])
 
