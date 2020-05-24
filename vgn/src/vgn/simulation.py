@@ -100,7 +100,7 @@ class GraspSimulation(object):
 
     def _setup_table(self):
         urdf = self._urdf_root / "plane" / "plane.urdf"
-        pose = Transform(Rotation.identity(), [0.0, 0.0, 0.0])
+        pose = Transform(Rotation.identity(), [0.0, 0.0, 1.0 / 6.0 * self.size])
         self.world.load_urdf(urdf, pose)
 
     def _setup_camera(self):
