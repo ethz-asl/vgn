@@ -23,7 +23,7 @@ def main(args):
     workers, rank = setup_mpi()
     create_dataset_dir(args.dataset_dir, rank)
 
-    sim = GraspSimulation(args.object_set, "config/default.yaml", args.sim_gui)
+    sim = GraspSimulation(args.object_set, "config/default.yaml", gui=args.sim_gui)
     finger_depth = sim.config["finger_depth"]
 
     for _ in tqdm(range(args.grasps // workers), disable=rank is not 0):

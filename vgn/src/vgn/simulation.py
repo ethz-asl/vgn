@@ -12,13 +12,14 @@ from vgn.utils.transform import Rotation, Transform
 
 
 class GraspSimulation(object):
-    def __init__(self, object_set, config_path, gui=True):
+    def __init__(self, object_set, config_path, random_state=None, gui=True):
         assert object_set in ["blocks", "train", "test", "adversarial"]
         self.config = io.load_dict(Path(config_path))
 
         self._urdf_root = Path(self.config["urdf_root"])
         self._object_set = object_set
         self._discover_object_urdfs()
+        self._random_state = random_state if random_state else np.random
         self._test = False if object_set == "train" else True
         self._gui = gui
 
@@ -116,11 +117,14 @@ class GraspSimulation(object):
             )
 
     def _generate_heap(self, object_count):
-        urdfs = np.random.choice(self._urdfs, size=object_count)
+        urdfs = self._random_state.choice(self._urdfs, size=object_count)
         for urdf in urdfs:
-            xy = np.random.uniform(1.0 / 3.0 * self.size, 2.0 / 3.0 * self.size, 2)
-            pose = Transform(Rotation.random(), np.r_[xy, 0.15])
-            scale = 1.0 if self._test else np.random.uniform(0.8, 1.0)
+            rotation = Rotation.random(random_state=self._random_state)
+            xy = self._random_state.uniform(
+                1.0 / 3.0 * self.size, 2.0 / 3.0 * self.size, 2
+            )
+            pose = Transform(rotation, np.r_[xy, 0.15])
+            scale = 1.0 if self._test else self._random_state.uniform(0.8, 1.0)
             self._drop_object(urdf, pose, scale)
 
     def _drop_object(self, model_path, pose, scale=1.0):
