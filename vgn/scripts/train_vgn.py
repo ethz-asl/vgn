@@ -33,7 +33,7 @@ def main(args):
 
     # create data loaders
     train_loader, val_loader = create_train_val_loaders(
-        args.dataset_dir, args.batch_size, args.val_split, kwargs
+        args.dataset_dir, args.batch_size, args.val_split, args.augment, kwargs
     )
 
     # build the network
@@ -86,9 +86,9 @@ def main(args):
     trainer.run(train_loader, max_epochs=args.epochs)
 
 
-def create_train_val_loaders(root, batch_size, val_split, kwargs):
+def create_train_val_loaders(root, batch_size, val_split, augment, kwargs):
     # load the dataset
-    dataset = Dataset(root)
+    dataset = Dataset(root, augment=augment)
     # split into train and validation sets
     val_size = int(val_split * len(dataset))
     train_size = len(dataset) - val_size
@@ -203,14 +203,15 @@ def create_summary_writers(net, device, log_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--net", default="conv")
     parser.add_argument("--dataset-dir", type=Path, required=True)
     parser.add_argument("--log-dir", type=Path, default="data/models")
     parser.add_argument("--description", type=str, default="")
-    parser.add_argument("--net", default="conv")
+    parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=3e-4)
-    parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--val-split", type=float, default=0.2)
+    parser.add_argument("--augment", action="store_true")
     args = parser.parse_args()
 
     main(args)
