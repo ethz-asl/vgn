@@ -145,6 +145,36 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: false
       Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: false
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: false
+      Invert Rainbow: false
+      Max Color: 255; 0; 0
+      Max Intensity: 1
+      Min Color: 0; 0; 255
+      Min Intensity: 0
+      Name: Debug
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Flat Squares
+      Topic: /debug
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: false
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -173,25 +203,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.8640094995498657
+      Distance: 1.0025477409362793
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.033425960689783096
-        Y: 0.05108353868126869
-        Z: 0.03466818854212761
+        X: 0.038591399788856506
+        Y: 0.004979711025953293
+        Z: 0.11007465422153473
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.40539833903312683
+      Pitch: 0.20539742708206177
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.3153943121433258
+      Yaw: 1.135393500328064
     Saved: ~
 Window Geometry:
   Displays:
@@ -209,5 +239,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1217
-  X: 1162
-  Y: 402
+  X: 1343
+  Y: 497

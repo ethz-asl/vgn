@@ -61,6 +61,11 @@ def quality(vol, voxel_size, threshold=0.01):
     pubs["quality"].publish(msg)
 
 
+def debug(vol, voxel_size, threshold=0.01):
+    msg = _create_vol_msg(vol, voxel_size, threshold)
+    pubs["debug"].publish(msg)
+
+
 def _create_marker_msg(marker_type, frame, pose, scale, color):
     msg = Marker()
     msg.header.frame_id = frame
@@ -86,6 +91,7 @@ def _create_publishers():
     pubs["grasps"] = Publisher("/grasps", MarkerArray, queue_size=1, latch=True)
     pubs["tsdf"] = Publisher("/tsdf", PointCloud2, queue_size=1, latch=True)
     pubs["quality"] = Publisher("/quality", PointCloud2, queue_size=1, latch=True)
+    pubs["debug"] = Publisher("/debug", PointCloud2, queue_size=1, latch=True)
     return pubs
 
 
