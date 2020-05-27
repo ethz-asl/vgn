@@ -40,6 +40,10 @@ def main(args):
         z = sim.world.bodies[0].get_pose().translation[2] + 0.005
         pc = pc.crop(np.r_[l, l, z], np.r_[u, u, sim.size])
 
+        if pc.is_empty():
+            print("Point cloud empty, skipping scene")
+            continue
+
         # store the tsdf
         tsdf_path = store_tsdf(args.dataset_dir, tsdf)
 

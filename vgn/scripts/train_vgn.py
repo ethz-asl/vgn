@@ -21,10 +21,11 @@ def main(args):
 
     # create log directory
     time_stamp = datetime.now().strftime("%y%m%d-%H%M%S")
-    description = "{},net={},dataset={},batch_size={},lr={:.0e},{}".format(
+    description = "{},net={},dataset={},augment={},batch_size={},lr={:.0e},{}".format(
         time_stamp,
         args.net,
         args.dataset_dir.name,
+        args.augment,
         args.batch_size,
         args.lr,
         args.description,
