@@ -17,16 +17,18 @@ from vgn.utils.transform import Rotation, Transform
 
 MAX_OBJECT_COUNT = 6
 VIEWPOINT_COUNT = 3
+GRASPS_PER_SCENE = 10
 
 
 def main(args):
     workers, rank = setup_mpi()
     create_dataset_dir(args.dataset_dir, rank)
-
     sim = GraspSimulation(args.object_set, "config/default.yaml", gui=args.sim_gui)
     finger_depth = sim.config["finger_depth"]
+    grasps_per_worker = args.grasps // workers
+    pbar = tqdm(total=grasps_per_worker, disable=rank is not 0)
 
-    for _ in tqdm(range(args.grasps // workers), disable=rank is not 0):
+    for _ in range(grasps_per_worker // GRASPS_PER_SCENE):
         # generate heap
         object_count = np.random.randint(1, MAX_OBJECT_COUNT + 1)
         sim.reset(object_count)
@@ -38,14 +40,20 @@ def main(args):
         z = sim.world.bodies[0].get_pose().translation[2] + 0.005
         pc = pc.crop(np.r_[l, l, z], np.r_[u, u, sim.size])
 
-        # sample grasp point
-        point, normal = sample_grasp_point(pc, finger_depth)
+        # store the tsdf
+        tsdf_path = store_tsdf(args.dataset_dir, tsdf)
 
-        # test grasp point
-        grasp, label = evaluate_grasp_point(sim, point, normal)
+        for _ in range(GRASPS_PER_SCENE):
+            # sample and evaluate a grasp point
+            point, normal = sample_grasp_point(pc, finger_depth)
+            grasp, label = evaluate_grasp_point(sim, point, normal)
 
-        # store sample
-        store_sample(args.dataset_dir, tsdf, grasp, label)
+            # store the sample in voxel coordinates
+            grasp = to_voxel_coordinates(grasp, tsdf.voxel_size)
+            store_sample(args.dataset_dir, tsdf_path, grasp, label)
+            pbar.update()
+
+    pbar.close()
 
 
 def setup_mpi():
@@ -107,19 +115,19 @@ def evaluate_grasp_point(sim, pos, normal, num_rotations=6):
     return Grasp(Transform(ori, pos), width), int(np.max(outcomes))
 
 
-def store_sample(dataset_dir, tsdf, grasp, label):
-    # convert to voxel coordinates
-    tsdf_vol = tsdf.get_volume()
-    grasp = to_voxel_coordinates(grasp, tsdf.voxel_size)
+def store_tsdf(dataset_dir, tsdf):
+    # store TSDF volume in compressed .npz format
+    path = dataset_dir / (uuid.uuid4().hex + ".npz")
+    np.savez_compressed(str(path), tsdf=tsdf.get_volume())
+    return path
+
+
+def store_sample(dataset_dir, tsdf_path, grasp, label):
+    # add a row to the table (TODO concurrent writes could be an issue)
     qx, qy, qz, qw = grasp.pose.rotation.as_quat()
     i, j, k = np.round(grasp.pose.translation).astype(np.int)
     width = grasp.width
-
-    # store TSDF volume in compressed .npz format
-    path = dataset_dir / (uuid.uuid4().hex + ".npz")
-    np.savez_compressed(str(path), tsdf=tsdf_vol)
-    # add a row to the table (TODO concurrent writes could be an issue)
-    values = [str(v) for v in [path.name, i, j, k, qx, qy, qz, qw, width, label]]
+    values = [str(v) for v in [tsdf_path.name, i, j, k, qx, qy, qz, qw, width, label]]
     with open(str(dataset_dir / "grasps.csv"), "a") as f:
         f.write(",".join(values))
         f.write("\n")
