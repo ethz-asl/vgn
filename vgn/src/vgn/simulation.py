@@ -13,14 +13,15 @@ from vgn.utils.transform import Rotation, Transform
 
 class GraspSimulation(object):
     def __init__(self, object_set, config_path, random_state=None, gui=True):
-        assert object_set in ["blocks", "train", "test", "adversarial"]
+        assert object_set in ["blocks", "train", "adversarial"]
         self.config = io.load_dict(Path(config_path))
 
         self._urdf_root = Path(self.config["urdf_root"])
         self._object_set = object_set
         self._discover_object_urdfs()
         self._random_state = random_state if random_state else np.random
-        self._test = False if object_set == "train" else True
+        self._test = False if object_set in ["train"] else True
+        self._global_scaling = {"blocks": 1.67}.get(object_set, 1.0)
         self._gui = gui
 
         self.world = btsim.BtWorld(self._gui)
@@ -97,7 +98,7 @@ class GraspSimulation(object):
 
     def _discover_object_urdfs(self):
         root = self._urdf_root / self._object_set
-        self._urdfs = [d / (d.name + ".urdf") for d in root.iterdir() if d.is_dir()]
+        self._urdfs = [f for f in root.iterdir() if f.suffix == ".urdf"]
 
     def _setup_table(self):
         urdf = self._urdf_root / "plane" / "plane.urdf"
@@ -127,8 +128,8 @@ class GraspSimulation(object):
             scale = 1.0 if self._test else self._random_state.uniform(0.8, 1.0)
             self._drop_object(urdf, pose, scale)
 
-    def _drop_object(self, model_path, pose, scale=1.0):
-        body = self.world.load_urdf(model_path, pose, scale=scale)
+    def _drop_object(self, urdf, pose, scale=1.0):
+        body = self.world.load_urdf(urdf, pose, scale=self._global_scaling * scale)
         self._remove_and_wait()
 
     def _remove_and_wait(self):
