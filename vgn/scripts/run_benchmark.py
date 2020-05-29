@@ -53,9 +53,6 @@ def main(args):
             grasps = [from_voxel_coordinates(g, tsdf.voxel_size) for g in grasps]
             toc = time.time() - tic
 
-            if len(grasps) == 0:
-                break  # no detections found, abort this round
-
             # visualize
             vis.clear()
             vis.workspace(sim.size)
@@ -63,6 +60,9 @@ def main(args):
             vis.grasps(grasps, scores, sim.config["finger_depth"])
             vis.tsdf(tsdf_vol.squeeze(), tsdf.voxel_size)
             vis.quality(out[0], tsdf.voxel_size)
+
+            if len(grasps) == 0:
+                break  # no detections found, abort this round
 
             # execute highest scored grasp
             grasp, score = grasps[0], scores[0]
