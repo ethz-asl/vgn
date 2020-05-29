@@ -124,7 +124,8 @@ class GraspSimulation(object):
             xy = self._random_state.uniform(
                 1.0 / 3.0 * self.size, 2.0 / 3.0 * self.size, 2
             )
-            pose = Transform(rotation, np.r_[xy, 0.15])
+            z = self.world.bodies[0].get_pose().translation[2] + 0.15
+            pose = Transform(rotation, np.r_[xy, z])
             scale = 1.0 if self._test else self._random_state.uniform(0.8, 1.0)
             self._drop_object(urdf, pose, scale)
 
