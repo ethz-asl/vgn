@@ -1,38 +1,33 @@
 from datetime import datetime
 
 import numpy as np
-import pandas
-from pandas import DataFrame
+import pandas as pd
 
 
 class Logger(object):
     def __init__(self, log_dir, description):
         time_stamp = datetime.now().strftime("%y%m%d-%H%M%S")
         description = "{} {}".format(time_stamp, description).strip()
-        root = log_dir / description
-        root.mkdir()
+        self._root = log_dir / description
+        self._root.mkdir()
 
-        self.rounds_csv_path = root / "rounds.csv"
-        if not self.rounds_csv_path.exists():
-            DataFrame(columns=["round_id", "object_count"]).to_csv(
-                self.rounds_csv_path, index=False
-            )
+    def add_round(self, round_id, object_count, model_path):
+        csv_path = self._root / "rounds.csv"
+        df = pd.read_csv(csv_path) if csv_path.exists() else pd.DataFrame()
+        df = df.append(
+            {
+                "round_id": round_id,
+                "object_count": object_count,
+                "model_path": model_path,
+            },
+            ignore_index=True,
+        )
+        df.to_csv(csv_path, index=False)
 
-        self.trials_csv_path = root / "trials.csv"
-        if not self.trials_csv_path.exists():
-            DataFrame(columns=["round_id", "planning_time", "score", "label"]).to_csv(
-                self.trials_csv_path, index=False
-            )
-
-    def add_round(self, round_id, object_count):
-        rounds = pandas.read_csv(self.rounds_csv_path)
-        rounds.append(
-            {"round_id": round_id, "object_count": object_count,}, ignore_index=True,
-        ).to_csv(self.rounds_csv_path, index=False)
-
-    def log_trial(self, round_id, planning_time, score, label):
-        trials = pandas.read_csv(self.trials_csv_path)
-        trials.append(
+    def log_grasp(self, round_id, planning_time, score, label):
+        csv_path = self._root / "grasps.csv"
+        df = pd.read_csv(csv_path) if csv_path.exists() else pd.DataFrame()
+        df = df.append(
             {
                 "round_id": round_id,
                 "planning_time": planning_time,
@@ -40,4 +35,5 @@ class Logger(object):
                 "label": label,
             },
             ignore_index=True,
-        ).to_csv(self.trials_csv_path, index=False)
+        )
+        df.to_csv(csv_path, index=False)
