@@ -24,17 +24,17 @@ def main(args):
     description = "{},net={},dataset={},augment={},batch_size={},lr={:.0e},{}".format(
         time_stamp,
         args.net,
-        args.dataset_dir.name,
+        args.dataset.name,
         args.augment,
         args.batch_size,
         args.lr,
         args.description,
     )
-    log_dir = args.log_dir / description
+    log_dir = args.logdir / description
 
     # create data loaders
     train_loader, val_loader = create_train_val_loaders(
-        args.dataset_dir, args.batch_size, args.val_split, args.augment, kwargs
+        args.dataset, args.batch_size, args.val_split, args.augment, kwargs
     )
 
     # build the network
@@ -205,8 +205,8 @@ def create_summary_writers(net, device, log_dir):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--net", default="conv")
-    parser.add_argument("--dataset-dir", type=Path, required=True)
-    parser.add_argument("--log-dir", type=Path, default="data/models")
+    parser.add_argument("--dataset", type=Path, required=True)
+    parser.add_argument("--logdir", type=Path, default="data/models")
     parser.add_argument("--description", type=str, default="")
     parser.add_argument("--epochs", type=int, default=30)
     parser.add_argument("--batch-size", type=int, default=32)

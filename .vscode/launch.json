@@ -20,7 +20,7 @@
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
-                "--dataset-dir=data/datasets/blocks",
+                "--dataset=data/datasets/blocks",
                 "--object-set=blocks",
                 "--grasps=100",
                 "--sim-gui",

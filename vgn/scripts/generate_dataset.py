@@ -23,7 +23,7 @@ GRASPS_PER_SCENE = 10
 
 def main(args):
     workers, rank = setup_mpi()
-    create_dataset_dir(args.dataset_dir, rank)
+    create_dataset_dir(args.dataset, rank)
     sim = GraspSimulation(args.object_set, "config/default.yaml", gui=args.sim_gui)
     finger_depth = sim.config["finger_depth"]
     grasps_per_worker = args.grasps // workers
@@ -46,7 +46,7 @@ def main(args):
             continue
 
         # store the tsdf
-        tsdf_path = store_tsdf(args.dataset_dir, tsdf)
+        tsdf_path = store_tsdf(args.dataset, tsdf)
 
         for _ in range(GRASPS_PER_SCENE):
             # sample and evaluate a grasp point
@@ -55,7 +55,7 @@ def main(args):
 
             # store the sample in voxel coordinates
             grasp = to_voxel_coordinates(grasp, tsdf.voxel_size)
-            store_sample(args.dataset_dir, tsdf_path, grasp, label)
+            store_sample(args.dataset, tsdf_path, grasp, label)
             pbar.update()
 
     pbar.close()
@@ -137,7 +137,7 @@ def store_sample(dataset_dir, tsdf_path, grasp, label):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset-dir", type=Path, required=True)
+    parser.add_argument("--dataset", type=Path, required=True)
     parser.add_argument("--object-set", type=str, required=True)
     parser.add_argument("--grasps", type=int, default=1000)
     parser.add_argument("--sim-gui", action="store_true")
