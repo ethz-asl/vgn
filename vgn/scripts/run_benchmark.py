@@ -36,7 +36,7 @@ def main(args):
 
     for round_id in tqdm.tqdm(range(args.rounds)):
         sim.reset(args.object_count)
-        logger.add_round(round_id, sim.num_objects, args.model)
+        logger.add_round(round_id, sim.num_objects)
         consecutive_failures = 1
         last_label = None
 
@@ -67,7 +67,9 @@ def main(args):
             # execute highest scored grasp
             grasp, score = grasps[0], scores[0]
             label, _ = sim.execute_grasp(grasp.pose)
-            logger.log_grasp(round_id, toc, score, label)
+
+            # log the grasp
+            logger.log_grasp(round_id, tsdf, toc, grasp, score, label)
 
             if last_label == Label.FAILURE and label == Label.FAILURE:
                 consecutive_failures += 1
