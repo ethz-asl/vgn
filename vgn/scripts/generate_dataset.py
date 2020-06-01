@@ -13,6 +13,7 @@ from tqdm import tqdm
 from vgn import Label, to_voxel_coordinates
 from vgn.grasp import Grasp
 from vgn.simulation import GraspSimulation
+from vgn.utils import io
 from vgn.utils.transform import Rotation, Transform
 
 MAX_OBJECT_COUNT = 6
@@ -72,8 +73,7 @@ def create_dataset_dir(dataset_dir, rank):
     dataset_dir.mkdir(exist_ok=True)
     csv_path = dataset_dir / "grasps.csv"
     if not csv_path.exists():
-        with open(str(csv_path), "w") as f:
-            f.write("tsdf,i,j,k,qx,qy,qz,qw,width,label\n")
+        io.create_csv(csv_path, "tsdf,i,j,k,qx,qy,qz,qw,width,label")
 
 
 def sample_grasp_point(point_cloud, finger_depth, eps=0.1):
@@ -128,13 +128,11 @@ def store_tsdf(dataset_dir, tsdf):
 
 def store_sample(dataset_dir, tsdf_path, grasp, label):
     # add a row to the table (TODO concurrent writes could be an issue)
+    csv_path = dataset_dir / "grasps.csv"
     qx, qy, qz, qw = grasp.pose.rotation.as_quat()
     i, j, k = np.round(grasp.pose.translation).astype(np.int)
     width = grasp.width
-    values = [str(v) for v in [tsdf_path.name, i, j, k, qx, qy, qz, qw, width, label]]
-    with open(str(dataset_dir / "grasps.csv"), "a") as f:
-        f.write(",".join(values))
-        f.write("\n")
+    io.append_csv(csv_path, tsdf_path.name, i, j, k, qx, qy, qz, qw, width, label)
 
 
 if __name__ == "__main__":

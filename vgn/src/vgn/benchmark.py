@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 from vgn import to_voxel_coordinates
+from vgn.utils import io
 
 
 class Logger(object):
@@ -16,37 +17,38 @@ class Logger(object):
 
     def add_round(self, round_id, object_count):
         csv_path = self._root / "rounds.csv"
-        df = pd.read_csv(csv_path) if csv_path.exists() else pd.DataFrame()
-        df = df.append(
-            {"round_id": round_id, "object_count": object_count}, ignore_index=True,
-        )
-        df.to_csv(csv_path, index=False)
+        if not csv_path.exists():
+            io.create_csv(csv_path, "round_id,object_count")
+        io.append_csv(csv_path, round_id, object_count)
 
-    def log_grasp(self, round_id, tsdf, plan_time, grasp, score, label):
+    def log_grasp(self, round_id, tsdf, planning_time, grasp, score, label):
         csv_path = self._root / "grasps.csv"
+
+        if not csv_path.exists():
+            header = "round_id,tsdf,planning_time,i,j,k,qx,qy,qz,qw,width,score,label"
+            io.create_csv(csv_path, header)
+
         tsdf_path = self._root / (uuid.uuid4().hex + ".npz")
         np.savez_compressed(str(tsdf_path), tsdf=tsdf.get_volume())
         grasp = to_voxel_coordinates(grasp, tsdf.voxel_size)
         qx, qy, qz, qw = grasp.pose.rotation.as_quat()
         i, j, k = np.round(grasp.pose.translation).astype(np.int)
         width = grasp.width
-        df = pd.read_csv(csv_path) if csv_path.exists() else pd.DataFrame()
-        df = df.append(
-            {
-                "round_id": round_id,
-                "tsdf": tsdf_path.name,
-                "plan_time": plan_time,
-                "i": i,
-                "j": j,
-                "k": k,
-                "qx": qx,
-                "qy": qy,
-                "qz": qz,
-                "qw": qw,
-                "width": width,
-                "score": score,
-                "label": label,
-            },
-            ignore_index=True,
+        label = int(label)
+
+        io.append_csv(
+            csv_path,
+            round_id,
+            tsdf_path.name,
+            planning_time,
+            i,
+            j,
+            k,
+            qx,
+            qy,
+            qz,
+            qw,
+            width,
+            score,
+            label,
         )
-        df.to_csv(csv_path, index=False)

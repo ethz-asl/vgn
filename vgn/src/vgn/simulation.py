@@ -14,7 +14,7 @@ from vgn.utils.transform import Rotation, Transform
 class GraspSimulation(object):
     def __init__(self, object_set, config_path, random_state=None, gui=True):
         assert object_set in ["blocks", "train", "adversarial"]
-        self.config = io.load_dict(Path(config_path))
+        self.config = io.read_yaml(Path(config_path))
 
         self._urdf_root = Path(self.config["urdf_root"])
         self._object_set = object_set
