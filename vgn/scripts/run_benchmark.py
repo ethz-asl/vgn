@@ -23,7 +23,8 @@ from vgn_ros import vis
 
 
 def main(args):
-    rospy.init_node("run_benchmark")
+    if args.rviz:
+        rospy.init_node("run_benchmark")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     net = load_network(args.model, device)
@@ -54,12 +55,13 @@ def main(args):
             toc = time.time() - tic
 
             # visualize
-            vis.clear()
-            vis.workspace(sim.size)
-            vis.points(np.asarray(pc.points))
-            vis.grasps(grasps, scores, sim.config["finger_depth"])
-            vis.tsdf(tsdf_vol.squeeze(), tsdf.voxel_size)
-            vis.quality(out[0], tsdf.voxel_size)
+            if args.rviz:
+                vis.clear()
+                vis.workspace(sim.size)
+                vis.points(np.asarray(pc.points))
+                vis.grasps(grasps, scores, sim.config["finger_depth"])
+                vis.tsdf(tsdf_vol.squeeze(), tsdf.voxel_size)
+                vis.quality(out[0], tsdf.voxel_size)
 
             if len(grasps) == 0:
                 break  # no detections found, abort this round
@@ -88,6 +90,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--description", type=str, default="")
     parser.add_argument("--sim-gui", action="store_true")
+    parser.add_argument("--rviz", action="store_true")
     args = parser.parse_args()
 
     main(args)
