@@ -29,7 +29,7 @@ def main(args):
     sim = GraspSimulation(
         args.object_set, "config/default.yaml", random_state=rng, gui=args.sim_gui
     )
-    logger = Logger(args.log_dir, args.description)
+    logger = Logger(args.logdir)
 
     for round_id in tqdm.tqdm(range(args.rounds)):
         sim.reset(args.object_count)
@@ -100,11 +100,9 @@ def metrics(log_dir):
 
 
 class Logger(object):
-    def __init__(self, log_dir, description):
-        time_stamp = datetime.now().strftime("%y%m%d-%H%M%S")
-        description = "{} {}".format(time_stamp, description).strip()
-        self._root = log_dir / description
-        self._root.mkdir()
+    def __init__(self, log_dir):
+        self._root = log_dir
+        self._root.mkdir(parents=True)
 
     def add_round(self, round_id, object_count):
         csv_path = self._root / "rounds.csv"

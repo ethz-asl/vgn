@@ -14,13 +14,12 @@ from vgn.benchmark import main
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="simulated clutter removal benchmark")
-    parser.add_argument("--model", type=str, required=True)
+    parser.add_argument("--model", type=Path, required=True)
+    parser.add_argument("--logdir", type=Path, required=True)
     parser.add_argument("--rounds", type=int, default=40)
     parser.add_argument("--object-set", type=str, default="adversarial")
     parser.add_argument("--object-count", type=int, default=5)
-    parser.add_argument("--log-dir", type=Path, default="data/experiments")
     parser.add_argument("--seed", type=int, default=1)
-    parser.add_argument("--description", type=str, default="")
     parser.add_argument("--sim-gui", action="store_true")
     parser.add_argument("--rviz", action="store_true")
     args = parser.parse_args()

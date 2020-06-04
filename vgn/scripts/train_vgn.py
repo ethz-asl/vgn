@@ -20,16 +20,16 @@ def main(args):
     kwargs = {"num_workers": 4, "pin_memory": True} if use_cuda else {}
 
     # create log directory
-    time_stamp = datetime.now().strftime("%y%m%d-%H%M%S")
-    description = "{},net={},dataset={},augment={},batch_size={},lr={:.0e},{}".format(
+    time_stamp = datetime.now().strftime("%y%m%d-%H%M")
+    description = "{},dataset={},augment={},net={},batch_size={},lr={:.0e},{}".format(
         time_stamp,
-        args.net,
         args.dataset.name,
         args.augment,
+        args.net,
         args.batch_size,
         args.lr,
         args.description,
-    )
+    ).strip(",")
     log_dir = args.logdir / description
 
     # create data loaders

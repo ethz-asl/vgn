@@ -13,7 +13,6 @@ from vgn.utils.transform import Rotation, Transform
 
 class GraspSimulation(object):
     def __init__(self, object_set, config_path, random_state=None, gui=True):
-        assert object_set in ["blocks", "train", "adversarial"]
         self.config = io.read_yaml(Path(config_path))
 
         self._urdf_root = Path(self.config["urdf_root"])
@@ -43,7 +42,9 @@ class GraspSimulation(object):
         self._setup_table()
         self._setup_camera()
         self._draw_task_space()
-        self._generate_heap(object_count)
+        self._place_box()
+        self._drop_objects(object_count)
+        self._remove_box()
 
     def acquire_tsdf(self, num_viewpoints):
         tsdf = TSDFVolume(self.size, 40)
@@ -117,7 +118,13 @@ class GraspSimulation(object):
                 lineFromXYZ=points[i], lineToXYZ=points[i + 1], lineColorRGB=color
             )
 
-    def _generate_heap(self, object_count):
+    def _place_box(self):
+        urdf = self._urdf_root / "box/box.urdf"
+        xyz = np.r_[0.05, 0.05, self.world.bodies[0].get_pose().translation[2]]
+        pose = Transform(Rotation.identity(), xyz)
+        self._box = self.world.load_urdf(urdf, pose)
+
+    def _drop_objects(self, object_count):
         urdfs = self._random_state.choice(self._urdfs, size=object_count)
         for urdf in urdfs:
             rotation = Rotation.random(random_state=self._random_state)
@@ -131,6 +138,10 @@ class GraspSimulation(object):
 
     def _drop_object(self, urdf, pose, scale=1.0):
         body = self.world.load_urdf(urdf, pose, scale=self._global_scaling * scale)
+        self._wait_for_objects_to_rest(timeout=1.0)
+
+    def _remove_box(self):
+        self.world.remove_body(self._box)
         self._remove_and_wait()
 
     def _remove_and_wait(self):

@@ -1,4 +1,4 @@
-urdf_root: data/urdfs
+urdf_root: data/models
 # do not change these values
 finger_depth: 0.05
 max_opening_width: 0.08
