@@ -42,9 +42,7 @@ class GraspSimulation(object):
         self._setup_table()
         self._setup_camera()
         self._draw_task_space()
-        self._place_box()
         self._drop_objects(object_count)
-        self._remove_box()
 
     def acquire_tsdf(self, num_viewpoints):
         tsdf = TSDFVolume(self.size, 40)
@@ -103,8 +101,8 @@ class GraspSimulation(object):
 
     def _setup_table(self):
         urdf = self._urdf_root / "plane" / "plane.urdf"
-        pose = Transform(Rotation.identity(), [0.0, 0.0, 1.0 / 6.0 * self.size])
-        self.world.load_urdf(urdf, pose)
+        pose = Transform(Rotation.identity(), [0.15, 0.15, 1.0 / 6.0 * self.size])
+        self.world.load_urdf(urdf, pose, scale=0.6)
 
     def _setup_camera(self):
         intrinsic = PinholeCameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)
@@ -117,12 +115,6 @@ class GraspSimulation(object):
             self.world.p.addUserDebugLine(
                 lineFromXYZ=points[i], lineToXYZ=points[i + 1], lineColorRGB=color
             )
-
-    def _place_box(self):
-        urdf = self._urdf_root / "box/box.urdf"
-        xyz = np.r_[0.05, 0.05, self.world.bodies[0].get_pose().translation[2]]
-        pose = Transform(Rotation.identity(), xyz)
-        self._box = self.world.load_urdf(urdf, pose)
 
     def _drop_objects(self, object_count):
         urdfs = self._random_state.choice(self._urdfs, size=object_count)
@@ -138,10 +130,6 @@ class GraspSimulation(object):
 
     def _drop_object(self, urdf, pose, scale=1.0):
         body = self.world.load_urdf(urdf, pose, scale=self._global_scaling * scale)
-        self._wait_for_objects_to_rest(timeout=1.0)
-
-    def _remove_box(self):
-        self.world.remove_body(self._box)
         self._remove_and_wait()
 
     def _remove_and_wait(self):
