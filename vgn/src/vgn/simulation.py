@@ -18,7 +18,7 @@ class GraspSimulation(object):
         self._urdf_root = Path(self.config["urdf_root"])
         self._object_set = object_set
         self._discover_object_urdfs()
-        self._random_state = random_state if random_state else np.random
+        self._rng = random_state if random_state else np.random
         self._test = False if object_set in ["train"] else True
         self._global_scaling = {"blocks": 1.67}.get(object_set, 1.0)
         self._gui = gui
@@ -100,7 +100,7 @@ class GraspSimulation(object):
         self._urdfs = [f for f in root.iterdir() if f.suffix == ".urdf"]
 
     def _setup_table(self):
-        urdf = self._urdf_root / "plane" / "plane.urdf"
+        urdf = self._urdf_root / "table" / "plane.urdf"
         pose = Transform(Rotation.identity(), [0.15, 0.15, 1.0 / 6.0 * self.size])
         self.world.load_urdf(urdf, pose, scale=0.6)
 
@@ -117,27 +117,26 @@ class GraspSimulation(object):
             )
 
     def _drop_objects(self, object_count):
-        urdfs = self._random_state.choice(self._urdfs, size=object_count)
+        table_height = self.world.bodies[0].get_pose().translation[2]
+
+        # place a box
+        urdf = self._urdf_root / "table" / "box.urdf"
+        pose = Transform(Rotation.identity(), np.r_[0.02, 0.02, table_height])
+        box = self.world.load_urdf(urdf, pose, scale=1.3)
+
+        # drop objects
+        urdfs = self._rng.choice(self._urdfs, size=object_count)
         for urdf in urdfs:
-            rotation = Rotation.random(random_state=self._random_state)
-            xy = self._random_state.uniform(
-                1.0 / 3.0 * self.size, 2.0 / 3.0 * self.size, 2
-            )
-            z = self.world.bodies[0].get_pose().translation[2] + 0.15
-            pose = Transform(rotation, np.r_[xy, z])
-            scale = 1.0 if self._test else self._random_state.uniform(0.8, 1.0)
-            self._drop_object(urdf, pose, scale)
+            rotation = Rotation.random(random_state=self._rng)
+            xy = self._rng.uniform(1.0 / 3.0 * self.size, 2.0 / 3.0 * self.size, 2)
+            pose = Transform(rotation, np.r_[xy, table_height + 0.2])
+            scale = 1.0 if self._test else self._rng.uniform(0.8, 1.0)
+            body = self.world.load_urdf(urdf, pose, scale=self._global_scaling * scale)
+            self._wait_for_objects_to_rest(timeout=1.0)
 
-    def _drop_object(self, urdf, pose, scale=1.0):
-        body = self.world.load_urdf(urdf, pose, scale=self._global_scaling * scale)
+        # remove box
+        self.world.remove_body(box)
         self._remove_and_wait()
-
-    def _remove_and_wait(self):
-        # wait for objects to rest while removing bodies that fell outside the workspace
-        removed_object = True
-        while removed_object:
-            self._wait_for_objects_to_rest()
-            removed_object = self._remove_objects_outside_workspace()
 
     def _wait_for_objects_to_rest(self, timeout=2.0, tol=0.01):
         timeout = self.world.sim_time + timeout
@@ -161,6 +160,13 @@ class GraspSimulation(object):
                 self.world.remove_body(body)
                 removed_object = True
         return removed_object
+
+    def _remove_and_wait(self):
+        # wait for objects to rest while removing bodies that fell outside the workspace
+        removed_object = True
+        while removed_object:
+            self._wait_for_objects_to_rest()
+            removed_object = self._remove_objects_outside_workspace()
 
     def _check_success(self, gripper):
         # TODO this could be improved
