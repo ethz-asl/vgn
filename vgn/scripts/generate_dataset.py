@@ -16,9 +16,9 @@ from vgn.simulation import GraspSimulation
 from vgn.utils import io
 from vgn.utils.transform import Rotation, Transform
 
-MAX_OBJECT_COUNT = 6
-VIEWPOINT_COUNT = 3
-GRASPS_PER_SCENE = 10
+OBJECT_COUNT_LAMBDA = 4
+VIEWPOINT_COUNT = 5
+GRASPS_PER_SCENE = 40
 
 
 def main(args):
@@ -31,7 +31,7 @@ def main(args):
 
     for _ in range(grasps_per_worker // GRASPS_PER_SCENE):
         # generate heap
-        object_count = np.random.randint(1, MAX_OBJECT_COUNT + 1)
+        object_count = np.random.poisson(OBJECT_COUNT_LAMBDA) + 1
         sim.reset(object_count)
         sim.save_state()
 

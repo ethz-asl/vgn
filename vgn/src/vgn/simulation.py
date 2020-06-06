@@ -19,7 +19,7 @@ class GraspSimulation(object):
         self._object_set = object_set
         self._discover_object_urdfs()
         self._rng = random_state if random_state else np.random
-        self._test = False if object_set in ["train"] else True
+        self._train = True if object_set in ["train"] else False
         self._global_scaling = {"blocks": 1.67}.get(object_set, 1.0)
         self._gui = gui
 
@@ -130,7 +130,7 @@ class GraspSimulation(object):
             rotation = Rotation.random(random_state=self._rng)
             xy = self._rng.uniform(1.0 / 3.0 * self.size, 2.0 / 3.0 * self.size, 2)
             pose = Transform(rotation, np.r_[xy, table_height + 0.2])
-            scale = 1.0 if self._test else self._rng.uniform(0.8, 1.0)
+            scale = self._rng.uniform(0.8, 1.0) if self._train else 1.0
             body = self.world.load_urdf(urdf, pose, scale=self._global_scaling * scale)
             self._wait_for_objects_to_rest(timeout=1.0)
 
