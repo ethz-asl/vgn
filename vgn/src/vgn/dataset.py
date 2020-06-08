@@ -16,8 +16,8 @@ class Dataset(torch.utils.data.Dataset):
         return len(self.df.index)
 
     def __getitem__(self, i):
-        path = self.df.iloc[i, 0]
-        tsdf = np.load(str(self.root / path))["tsdf"]
+        name = self.df.iloc[i, 0]
+        tsdf = np.load(str(self.root / "tsdfs" / name))["tsdf"]
         index = self.df.iloc[i, 1:4].to_numpy(dtype=np.long)
         rotation = Rotation.from_quat(self.df.iloc[i, 4:8].to_numpy())
         width = self.df.iloc[i, 8]
