@@ -168,8 +168,8 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.009999999776482582
-      Style: Flat Squares
+      Size (m): 8
+      Style: Boxes
       Topic: /debug
       Unreliable: false
       Use Fixed Frame: true
@@ -203,25 +203,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.7813408374786377
+      Distance: 0.6494464874267578
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.10317140817642212
-        Y: 0.16891002655029297
-        Z: 0.12657032907009125
+        X: 0.12883377075195312
+        Y: 0.17235343158245087
+        Z: 0.10223820805549622
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4647960066795349
+      Pitch: 0.4397972524166107
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.173557758331299
+      Yaw: 5.893614292144775
     Saved: ~
 Window Geometry:
   Displays:
@@ -239,5 +239,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1319
-  X: 131
-  Y: 211
+  X: 497
+  Y: 29
