@@ -6,7 +6,6 @@ import uuid
 
 import numpy as np
 import pandas as pd
-import rospy
 import torch
 import tqdm
 
@@ -19,9 +18,6 @@ from vgn_ros import vis
 
 
 def main(args):
-    if args.rviz:
-        rospy.init_node("run_benchmark")
-
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     net = load_network(args.model, device)
 

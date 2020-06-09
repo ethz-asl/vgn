@@ -8,6 +8,7 @@ consecutive failed grasp attempts.
 import argparse
 from pathlib2 import Path
 
+import rospy
 
 from vgn.benchmark import main
 
@@ -23,5 +24,8 @@ if __name__ == "__main__":
     parser.add_argument("--sim-gui", action="store_true")
     parser.add_argument("--rviz", action="store_true")
     args = parser.parse_args()
+
+    if args.rviz:
+        rospy.init_node("benchmark", anonymous=True)
 
     main(args)
