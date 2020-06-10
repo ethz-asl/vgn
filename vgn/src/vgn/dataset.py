@@ -41,7 +41,7 @@ class Dataset(torch.utils.data.Dataset):
         # sample random transform
         angle = np.random.uniform(0.0, 2.0 * np.pi)
         R_augment = Rotation.from_rotvec(np.r_[0.0, 0.0, angle])
-        t_augment = 20 - index + np.random.uniform(-14, 14, size=(3,))
+        t_augment = 20.0 - index + np.random.uniform(-16, 16, size=(3,))
         T_augment = Transform(R_augment, t_augment)
         T = T_center * T_augment * T_center.inverse()
         # transform tsdf
