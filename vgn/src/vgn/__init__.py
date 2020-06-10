@@ -26,6 +26,13 @@ def predict(tsdf_vol, net, device):
 
 def process(out, threshold=0.90, gaussian_filter_sigma=1.0):
     qual_vol, rot_vol, width_vol = out
+    # TODO figure out a more elegant way to handle the borders
+    qual_vol[:5, :, :] = 0.0
+    qual_vol[-5:, :, :] = 0.0
+    qual_vol[:, :5, :] = 0.0
+    qual_vol[:, -5:, :] = 0.0
+    qual_vol[:, :, :5] = 0.0
+    qual_vol[:, :, -5:] = 0.0
     # smooth with Gaussian
     qual_vol = ndimage.gaussian_filter(
         qual_vol, sigma=gaussian_filter_sigma, mode="nearest"
