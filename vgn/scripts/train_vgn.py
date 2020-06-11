@@ -74,7 +74,7 @@ def main(args):
     checkpoint_handler = ModelCheckpoint(
         str(log_dir),
         "vgn",
-        save_interval=5,
+        save_interval=1,
         n_saved=100,
         require_empty=True,
         save_as_state_dict=True,
@@ -206,12 +206,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--net", default="conv")
     parser.add_argument("--dataset", type=Path, required=True)
-    parser.add_argument("--logdir", type=Path, default="data/models")
+    parser.add_argument("--logdir", type=Path, default="data/runs")
     parser.add_argument("--description", type=str, default="")
     parser.add_argument("--epochs", type=int, default=30)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=3e-4)
-    parser.add_argument("--val-split", type=float, default=0.2)
+    parser.add_argument("--val-split", type=float, default=0.1)
     parser.add_argument("--augment", action="store_true")
     args = parser.parse_args()
 
