@@ -45,8 +45,8 @@ def main(args):
             print("Point cloud empty, skipping scene")
             continue
 
-        # store the tsdf
-        tsdf_path = store_tsdf(args.dataset, tsdf)
+        # store the reconstruction
+        scene_id = store_scene(args.dataset, tsdf)
 
         for _ in range(GRASPS_PER_SCENE):
             # sample and evaluate a grasp point
@@ -55,7 +55,7 @@ def main(args):
 
             # store the sample in voxel coordinates
             grasp = to_voxel_coordinates(grasp, tsdf.voxel_size)
-            store_sample(args.dataset, tsdf_path, grasp, label)
+            store_sample(args.dataset, scene_id, grasp, label)
             pbar.update()
 
     pbar.close()
@@ -70,10 +70,11 @@ def setup_mpi():
 def create_dataset_dir(dataset_dir, rank):
     if rank != 0:
         return
-    dataset_dir.mkdir(exist_ok=True)
+    tsdfs_dir = dataset_dir / "tsdfs"
+    tsdfs_dir.mkdir(parents=True, exist_ok=True)
     csv_path = dataset_dir / "grasps.csv"
     if not csv_path.exists():
-        io.create_csv(csv_path, "tsdf,i,j,k,qx,qy,qz,qw,width,label")
+        io.create_csv(csv_path, "scene_id,i,j,k,qx,qy,qz,qw,width,label")
 
 
 def sample_grasp_point(point_cloud, finger_depth, eps=0.1):
@@ -119,20 +120,21 @@ def evaluate_grasp_point(sim, pos, normal, num_rotations=6):
     return Grasp(Transform(ori, pos), width), int(np.max(outcomes))
 
 
-def store_tsdf(dataset_dir, tsdf):
-    # store TSDF volume in compressed .npz format
-    path = dataset_dir / (uuid.uuid4().hex + ".npz")
-    np.savez_compressed(str(path), tsdf=tsdf.get_volume())
-    return path
+def store_scene(dataset_dir, tsdf):
+    # store TSDF of the scene in compressed .npz format
+    scene_id = uuid.uuid4().hex
+    tsdf_path = dataset_dir / "tsdfs" / (scene_id + ".npz")
+    np.savez_compressed(str(tsdf_path), tsdf=tsdf.get_volume())
+    return scene_id
 
 
-def store_sample(dataset_dir, tsdf_path, grasp, label):
+def store_sample(dataset_dir, scene_id, grasp, label):
     # add a row to the table (TODO concurrent writes could be an issue)
     csv_path = dataset_dir / "grasps.csv"
     qx, qy, qz, qw = grasp.pose.rotation.as_quat()
     i, j, k = np.round(grasp.pose.translation).astype(np.int)
     width = grasp.width
-    io.append_csv(csv_path, tsdf_path.name, i, j, k, qx, qy, qz, qw, width, label)
+    io.append_csv(csv_path, scene_id, i, j, k, qx, qy, qz, qw, width, label)
 
 
 if __name__ == "__main__":
