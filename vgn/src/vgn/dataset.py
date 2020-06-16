@@ -16,12 +16,12 @@ class Dataset(torch.utils.data.Dataset):
         return len(self.df.index)
 
     def __getitem__(self, i):
-        scene_id = self.df.iloc[i, 0]
+        scene_id = self.df.loc[i, "scene_id"]
         tsdf = np.load(str(self.root / "tsdfs" / (scene_id + ".npz")))["tsdf"]
-        index = self.df.iloc[i, 1:4].to_numpy(dtype=np.long)
-        rotation = Rotation.from_quat(self.df.iloc[i, 4:8].to_numpy())
-        width = self.df.iloc[i, 8]
-        label = self.df.iloc[i, 9]
+        index = self.df.loc[i, "i":"k"].to_numpy(dtype=np.long)
+        rotation = Rotation.from_quat(self.df.loc[i, "qx":"qw"].to_numpy())
+        width = self.df.loc[i, "width"]
+        label = self.df.loc[i, "label"]
 
         if self._augment:
             tsdf, index, rotation = self._apply_random_transform(tsdf, index, rotation)
