@@ -3,7 +3,10 @@ import pandas
 from scipy import ndimage
 import torch.utils.data
 
+from vgn import from_voxel_coordinates
+from vgn.grasp import Grasp
 from vgn.utils.transform import Rotation, Transform
+from vgn_ros import vis
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -16,12 +19,7 @@ class Dataset(torch.utils.data.Dataset):
         return len(self.df.index)
 
     def __getitem__(self, i):
-        scene_id = self.df.loc[i, "scene_id"]
-        tsdf = np.load(str(self.root / "tsdfs" / (scene_id + ".npz")))["tsdf"]
-        index = self.df.loc[i, "i":"k"].to_numpy(dtype=np.long)
-        rotation = Rotation.from_quat(self.df.loc[i, "qx":"qw"].to_numpy())
-        width = self.df.loc[i, "width"]
-        label = self.df.loc[i, "label"]
+        tsdf, index, rotation, width, label = self._load(i)
 
         if self._augment:
             tsdf, index, rotation = self._apply_random_transform(tsdf, index, rotation)
@@ -34,6 +32,29 @@ class Dataset(torch.utils.data.Dataset):
         x, y, index = tsdf, (label, rotations, width), index
 
         return x, y, index
+
+    def draw(self, i, finger_depth):
+        size = 6.0 * finger_depth
+        voxel_size = size / 40.0
+
+        tsdf, index, rotation, width, label = self._load(i)
+        grasp = Grasp(Transform(rotation, index), width)
+        grasp = from_voxel_coordinates(grasp, voxel_size)
+
+        vis.clear()
+        vis.workspace(size)
+        vis.tsdf(tsdf.squeeze(), voxel_size)
+        vis.grasps([grasp], [float(label)], finger_depth)
+
+    def _load(self, i):
+        scene_id = self.df.loc[i, "scene_id"]
+        tsdf = np.load(str(self.root / "tsdfs" / (scene_id + ".npz")))["tsdf"]
+        index = self.df.loc[i, "i":"k"].to_numpy(dtype=np.long)
+        rotation = Rotation.from_quat(self.df.loc[i, "qx":"qw"].to_numpy())
+        width = self.df.loc[i, "width"]
+        label = self.df.loc[i, "label"]
+
+        return tsdf, index, rotation, width, label
 
     def _apply_random_transform(self, tsdf, index, rotation):
         # center sample at grasp point
