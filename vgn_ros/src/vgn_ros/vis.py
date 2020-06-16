@@ -21,6 +21,8 @@ def clear():
     pubs["workspace"].publish(delete_all_msg)
     pubs["points"].publish(utils.to_point_cloud_msg(np.array([]), frame="task"))
     pubs["grasps"].publish(MarkerArray(markers=[delete_all_msg]))
+    pubs["tsdf"].publish(utils.to_point_cloud_msg(np.array([]), frame="task"))
+    pubs["quality"].publish(utils.to_point_cloud_msg(np.array([]), frame="task"))
 
 
 def workspace(size, scale=0.002):
