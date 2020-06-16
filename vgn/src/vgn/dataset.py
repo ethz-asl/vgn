@@ -19,7 +19,8 @@ class Dataset(torch.utils.data.Dataset):
         return len(self.df.index)
 
     def __getitem__(self, i):
-        tsdf, index, rotation, width, label = self._load(i)
+        scene_id, index, rotation, width, label = self._lookup(i)
+        tsdf = self._read_tsdf(scene_id)
 
         if self._augment:
             tsdf, index, rotation = self._apply_random_transform(tsdf, index, rotation)
@@ -37,7 +38,8 @@ class Dataset(torch.utils.data.Dataset):
         size = 6.0 * finger_depth
         voxel_size = size / 40.0
 
-        tsdf, index, rotation, width, label = self._load(i)
+        scene_id, index, rotation, width, label = self._lookup(i)
+        tsdf = self._read_tsdf(scene_id)
         grasp = Grasp(Transform(rotation, index), width)
         grasp = from_voxel_coordinates(grasp, voxel_size)
 
@@ -46,15 +48,22 @@ class Dataset(torch.utils.data.Dataset):
         vis.tsdf(tsdf.squeeze(), voxel_size)
         vis.grasps([grasp], [float(label)], finger_depth)
 
-    def _load(self, i):
+        cloud_path = self.root / "clouds" / (scene_id + ".npz")
+        if cloud_path.exists():
+            points = np.load(str(cloud_path))["points"]
+            vis.points(points)
+
+    def _lookup(self, i):
         scene_id = self.df.loc[i, "scene_id"]
-        tsdf = np.load(str(self.root / "tsdfs" / (scene_id + ".npz")))["tsdf"]
         index = self.df.loc[i, "i":"k"].to_numpy(dtype=np.long)
         rotation = Rotation.from_quat(self.df.loc[i, "qx":"qw"].to_numpy())
         width = self.df.loc[i, "width"]
         label = self.df.loc[i, "label"]
+        return scene_id, index, rotation, width, label
 
-        return tsdf, index, rotation, width, label
+    def _read_tsdf(self, scene_id):
+        tsdf_path = self.root / "tsdfs" / (scene_id + ".npz")
+        return np.load(str(tsdf_path))["tsdf"]
 
     def _apply_random_transform(self, tsdf, index, rotation):
         # center sample at grasp point

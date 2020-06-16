@@ -3,7 +3,8 @@ Panels:
     Help Height: 78
     Name: Displays
     Property Tree Widget:
-      Expanded: ~
+      Expanded:
+        - /TSDF1
       Splitter Ratio: 0.5
     Tree Height: 676
   - Class: rviz/Selection
@@ -70,7 +71,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.004999999888241291
+      Size (m): 0.0010000000474974513
       Style: Spheres
       Topic: /points
       Unreliable: false
@@ -85,7 +86,7 @@ Visualization Manager:
         "": true
       Queue Size: 100
       Value: true
-    - Alpha: 0.05000000074505806
+    - Alpha: 0.10000000149011612
       Autocompute Intensity Bounds: false
       Autocompute Value Bounds:
         Max Value: 10
@@ -203,7 +204,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.6494464874267578
+      Distance: 0.6798423528671265
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -218,10 +219,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4397972524166107
+      Pitch: 0.4047982692718506
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.893614292144775
+      Yaw: 5.1486053466796875
     Saved: ~
 Window Geometry:
   Displays:
@@ -239,5 +240,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1319
-  X: 497
-  Y: 29
+  X: 801
+  Y: 102
