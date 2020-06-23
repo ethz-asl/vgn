@@ -61,8 +61,9 @@ def main(args):
             if len(grasps) == 0:
                 break  # no detections found, abort this round
 
-            # select highest scored grasp
-            grasp, score = grasps[0], scores[0]
+            # execute a random grasp candidate
+            i = np.random.randint(len(grasps))
+            grasp, score = grasps[i], scores[i]
 
             # visualize
             if args.rviz:

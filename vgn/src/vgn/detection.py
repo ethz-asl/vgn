@@ -53,5 +53,5 @@ def select(out, max_filter_size=3):
         width = width_vol[i, j, k]
         grasps.append(Grasp(Transform(ori, pos), width))
         scores.append(qual)
-    grasps, scores = np.asarray(grasps), np.asarray(scores)
+
     return grasps, scores
