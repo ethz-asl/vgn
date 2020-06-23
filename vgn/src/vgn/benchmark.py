@@ -1,80 +1,13 @@
 from __future__ import division, print_function
 
-from datetime import datetime
-import time
 import uuid
 
 import numpy as np
 import pandas as pd
-import torch
-import tqdm
 
 
-from vgn import *
-from vgn.networks import load_network
-from vgn.simulation import GraspSimulation
+from vgn.grasp import to_voxel_coordinates
 from vgn.utils import io
-from vgn_ros import vis
-
-
-def main(args):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    net = load_network(args.model, device)
-
-    rng = np.random.RandomState(args.seed)
-    sim = GraspSimulation(
-        args.object_set, "config/default.yaml", random_state=rng, gui=args.sim_gui
-    )
-    logger = Logger(args.logdir)
-
-    for round_id in tqdm.tqdm(range(args.rounds)):
-        sim.reset(args.object_count)
-        logger.add_round(round_id, sim.num_objects)
-        consecutive_failures = 1
-        last_label = None
-
-        while sim.num_objects > 0 and consecutive_failures < 3:
-            # scan the scene
-            tsdf, pc = sim.acquire_tsdf(num_viewpoints=3)
-            tsdf_vol = tsdf.get_volume()
-            points = np.asarray(pc.points, dtype=np.float32)
-
-            if args.rviz:
-                vis.clear()
-                vis.workspace(sim.size)
-                vis.tsdf(tsdf_vol.squeeze(), tsdf.voxel_size)
-                vis.points(points)
-
-            # plan grasps
-            tic = time.time()
-            out = predict(tsdf_vol, net, device)
-            out = process(out)
-            grasps, scores = select(out)
-            grasps = [from_voxel_coordinates(g, tsdf.voxel_size) for g in grasps]
-            toc = time.time() - tic
-
-            if len(grasps) == 0:
-                break  # no detections found, abort this round
-
-            # select highest scored grasp
-            grasp, score = grasps[0], scores[0]
-
-            # visualize
-            if args.rviz:
-                vis.grasps(grasps, scores, sim.config["finger_depth"])
-                vis.quality(out[0], tsdf.voxel_size)
-
-            # execute grasp
-            label, _ = sim.execute_grasp(grasp.pose)
-
-            # log the grasp
-            logger.log_grasp(round_id, tsdf, points, toc, grasp, score, label)
-
-            if last_label == Label.FAILURE and label == Label.FAILURE:
-                consecutive_failures += 1
-            else:
-                consecutive_failures = 1
-            last_label = label
 
 
 def metrics(log_dir):

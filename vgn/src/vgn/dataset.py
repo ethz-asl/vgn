@@ -3,8 +3,7 @@ import pandas
 from scipy import ndimage
 import torch.utils.data
 
-from vgn import from_voxel_coordinates
-from vgn.grasp import Grasp
+from vgn.grasp import Grasp, from_voxel_coordinates
 from vgn.utils.transform import Rotation, Transform
 from vgn_ros import vis
 

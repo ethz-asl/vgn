@@ -1,11 +1,10 @@
 from pathlib2 import Path
-import time
 
 import numpy as np
 import pybullet
 import scipy.stats as stats
 
-from vgn import Label
+from vgn.grasp import Label
 from vgn.perception import *
 from vgn.utils import btsim, io, vis
 from vgn.utils.transform import Rotation, Transform

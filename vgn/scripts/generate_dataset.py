@@ -10,8 +10,7 @@ import open3d as o3d
 import scipy.signal as signal
 from tqdm import tqdm
 
-from vgn import Label, to_voxel_coordinates
-from vgn.grasp import Grasp
+from vgn.grasp import Grasp, Label, to_voxel_coordinates
 from vgn.simulation import GraspSimulation
 from vgn.utils import io
 from vgn.utils.transform import Rotation, Transform
