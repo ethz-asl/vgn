@@ -1,16 +1,77 @@
-from __future__ import division, print_function
+"""Clutter removal benchmark.
+
+Each round, N objects are randomly placed in a tray. Then, the system is run until
+(a) no objects remain, (b) the planner failed to find a grasp hypothesis, or (c)
+three consecutive failed grasp attempts.
+
+Measured metrics are
+  * grasp success rate
+  * percent cleared
+  * planning time
+"""
+
+from __future__ import division
 
 import uuid
 
 import numpy as np
 import pandas as pd
+import tqdm
 
-
-from vgn.grasp import to_voxel_coordinates
+from vgn.grasp import *
+from vgn.simulation import GraspSimulation
 from vgn.utils import io
+from vgn_ros import vis
 
 
-def metrics(log_dir):
+def run(planner, object_set, object_count, rounds, log_dir, sim_gui, seed):
+    sim = GraspSimulation(object_set, "config/default.yaml", gui=sim_gui, seed=seed)
+    logger = Logger(log_dir)
+
+    for round_id in tqdm.tqdm(range(rounds)):
+        sim.reset(object_count)
+        logger.add_round(round_id, sim.num_objects)
+        consecutive_failures = 1
+        last_label = None
+
+        while sim.num_objects > 0 and consecutive_failures < 3:
+            # scan the scene
+            tsdf, pc = sim.acquire_tsdf(num_viewpoints=5)
+            tsdf_vol = tsdf.get_volume()
+            points = np.asarray(pc.points, dtype=np.float32)
+
+            # visualize
+            vis.clear()
+            vis.workspace(sim.size)
+            vis.tsdf(tsdf_vol.squeeze(), tsdf.voxel_size)
+            vis.points(points)
+
+            # plan grasps
+            grasps, scores, time = planner(tsdf, pc)
+            if len(grasps) == 0:
+                break  # no detections found, abort this round
+
+            # execute a random grasp candidate
+            i = np.random.randint(len(grasps))
+            grasp, score = grasps[i], scores[i]
+
+            # visualize
+            vis.grasps(grasps, scores, sim.config["finger_depth"])
+
+            # execute grasp
+            label, _ = sim.execute_grasp(grasp.pose)
+
+            # log the grasp
+            logger.log_grasp(round_id, tsdf, points, time, grasp, score, label)
+
+            if last_label == Label.FAILURE and label == Label.FAILURE:
+                consecutive_failures += 1
+            else:
+                consecutive_failures = 1
+            last_label = label
+
+
+def compute_metrics(log_dir):
     rounds = pd.read_csv(log_dir / "rounds.csv")
     trials = pd.read_csv(log_dir / "grasps.csv")
 

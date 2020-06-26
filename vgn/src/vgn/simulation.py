@@ -11,13 +11,13 @@ from vgn.utils.transform import Rotation, Transform
 
 
 class GraspSimulation(object):
-    def __init__(self, object_set, config_path, random_state=None, gui=True):
+    def __init__(self, object_set, config_path, gui=True, seed=None):
         self.config = io.read_yaml(Path(config_path))
 
         self._urdf_root = Path(self.config["urdf_root"])
         self._object_set = object_set
         self._discover_object_urdfs()
-        self._rng = random_state if random_state else np.random
+        self._rng = np.random.RandomState(seed) if seed else np.random
         self._train = True if object_set in ["train"] else False
         self._global_scaling = {"blocks": 1.67}.get(object_set, 1.0)
         self._gui = gui
