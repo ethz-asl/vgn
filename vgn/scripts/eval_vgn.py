@@ -5,7 +5,7 @@ import rospy
 import time
 import torch
 
-from vgn.benchmark import run
+from vgn import benchmark
 from vgn.grasp import *
 from vgn.detection import *
 from vgn.networks import load_network
@@ -18,7 +18,7 @@ def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     net = load_network(args.model, device)
 
-    def _plan(tsdf, pc):
+    def grasp_planning_fn(tsdf, pc):
         tsdf_vol = tsdf.get_volume()
 
         tic = time.time()
@@ -32,8 +32,8 @@ def main(args):
 
         return grasps, scores, toc
 
-    run(
-        _plan,
+    benchmark.run(
+        grasp_planning_fn,
         args.object_set,
         args.object_count,
         args.rounds,

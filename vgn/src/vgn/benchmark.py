@@ -24,7 +24,7 @@ from vgn.utils import io
 from vgn_ros import vis
 
 
-def run(planner, object_set, object_count, rounds, log_dir, sim_gui, seed):
+def run(grasp_planning_fn, object_set, object_count, rounds, log_dir, sim_gui, seed):
     sim = GraspSimulation(object_set, "config/default.yaml", gui=sim_gui, seed=seed)
     logger = Logger(log_dir)
 
@@ -47,7 +47,7 @@ def run(planner, object_set, object_count, rounds, log_dir, sim_gui, seed):
             vis.points(points)
 
             # plan grasps
-            grasps, scores, time = planner(tsdf, pc)
+            grasps, scores, time = grasp_planning_fn(tsdf, pc)
             if len(grasps) == 0:
                 break  # no detections found, abort this round
 

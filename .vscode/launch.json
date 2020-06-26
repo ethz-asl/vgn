@@ -20,7 +20,7 @@
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
-                "--dataset=data/datasets/train",
+                "--dataset=data/datasets/meh",
                 "--object-set=train",
                 "--sim-gui",
             ]
@@ -33,21 +33,35 @@
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
-                "--dataset-dir=data/datasets/blocks",
+                "--dataset-dir=data/datasets/train",
+                "--batch-size=32",
+                "--description=meh",
             ]
         },
         {
-            "name": "Benchmark",
+            "name": "Evaluation (VGN)",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/vgn/scripts/run_benchmark.py",
+            "program": "${workspaceFolder}/vgn/scripts/eval_vgn.py",
             "cwd": "${workspaceFolder}/vgn",
             "console": "integratedTerminal",
             "args": [
-                "--model=data/models/vgn_conv_100.pth",
-                "--object-set=adversarial",
-                "--object-count=5",
-                "--log-dir=data/experiments",
+                "--model=",
+                "--object-set=blocks",
+                "--logdir=data/experiments/meh/vgn",
+                "--sim-gui",
+            ]
+        },
+        {
+            "name": "Evaluation (GPD)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/vgn/scripts/eval_gpd.py",
+            "cwd": "${workspaceFolder}/vgn",
+            "console": "integratedTerminal",
+            "args": [
+                "--object-set=blocks",
+                "--logdir=data/experiments/meh/gpd",
                 "--sim-gui",
             ]
         },
