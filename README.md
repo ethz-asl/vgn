@@ -1,12 +1,14 @@
 # Volumetric Grasping Network
 
-- [vgn](vgn/README.md): core modules and scripts to train and evaluate VGN.
-- [vgn_ros](vgn_ros/README.md): ROS interface to pre-trained VGN models.
+- [Quick Start](#quick-start)
+- [Data Generation](#data-generation)
+- [Training](#training)
 
 ## Quick Start
 
 The following instructions were tested with Python 2.7 and ROS Melodic on Ubuntu 18.04.
-OpenMPI is optionally used to distribute the data generation.
+
+First, install some additonal system dependencies. OpenMPI is optionally used to distribute the data generation.
 
 ```
 sudo apt install libopenmpi-dev
@@ -37,3 +39,7 @@ Install the Python dependencies within the activated virtual environment.
 ```
 pip install -r requirements.txt
 ```
+
+## Data Generation
+
+## Training

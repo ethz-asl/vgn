@@ -5,7 +5,7 @@ import torch.utils.data
 
 from vgn.grasp import Grasp, from_voxel_coordinates
 from vgn.utils.transform import Rotation, Transform
-from vgn_ros import vis
+from vgn import vis
 
 
 class Dataset(torch.utils.data.Dataset):

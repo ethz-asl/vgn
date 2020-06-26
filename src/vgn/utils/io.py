@@ -12,9 +12,9 @@ def write_yaml(data, path):
         yaml.dump(data, f)
 
 
-def create_csv(path, header):
+def create_csv(path, columns):
     with path.open("wb") as f:
-        f.write(header)
+        f.write(",".join(columns))
         f.write("\n")
 
 

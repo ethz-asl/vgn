@@ -6,7 +6,7 @@ import scipy.stats as stats
 
 from vgn.grasp import Label
 from vgn.perception import *
-from vgn.utils import btsim, io, vis
+from vgn.utils import btsim, io, workspace_lines
 from vgn.utils.transform import Rotation, Transform
 
 
@@ -40,7 +40,7 @@ class GraspSimulation(object):
         self.world.set_gravity([0.0, 0.0, -9.81])
         self._setup_table()
         self._setup_camera()
-        self._draw_task_space()
+        self._draw_workspace()
         self._drop_objects(object_count)
 
     def acquire_tsdf(self, num_viewpoints):
@@ -107,8 +107,8 @@ class GraspSimulation(object):
         intrinsic = PinholeCameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)
         self.camera = self.world.add_camera(intrinsic, 0.1, 2.0)
 
-    def _draw_task_space(self):
-        points = vis.workspace_lines(self.size)
+    def _draw_workspace(self):
+        points = workspace_lines(self.size)
         color = [0.5, 0.5, 0.5]
         for i in range(0, len(points), 2):
             self.world.p.addUserDebugLine(

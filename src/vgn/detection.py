@@ -1,10 +1,34 @@
+import time
+
 import numpy as np
 from scipy import ndimage
 import torch
 
-from vgn.grasp import Grasp
+from vgn import vis
+from vgn.grasp import *
 from vgn.utils.transform import Transform, Rotation
 from vgn.networks import load_network
+
+
+class VGN(object):
+    def __init__(self, model_path):
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.net = load_network(model_path, self.device)
+        self.vis = vis
+
+    def __call__(self, state):
+        tsdf = state.tsdf
+
+        tic = time.time()
+        out = predict(tsdf.get_volume(), self.net, self.device)
+        out = process(out)
+        grasps, scores = select(out)
+        grasps = [from_voxel_coordinates(g, tsdf.voxel_size) for g in grasps]
+        toc = time.time() - tic
+
+        vis.quality(out[0], tsdf.voxel_size)
+
+        return grasps, scores, toc
 
 
 def predict(tsdf_vol, net, device):

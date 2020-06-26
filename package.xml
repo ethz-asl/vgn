@@ -5,7 +5,6 @@
     <description>Volumetric Grasping Network.</description>
 
     <author email="michel.breyer@mavt.ethz.ch">Michel Breyer</author>
-
     <maintainer email="michel.breyer@mavt.ethz.ch">Michel Breyer</maintainer>
 
     <license>TODO</license>
@@ -14,4 +13,5 @@
     <buildtool_depend>catkin</buildtool_depend>
     <buildtool_depend>catkin_simple</buildtool_depend>
 
+    <depend>rospy</depend>
 </package>

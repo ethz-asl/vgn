@@ -23,7 +23,7 @@ GRASPS_PER_SCENE = 40
 def main(args):
     workers, rank = setup_mpi()
     create_dataset_dir(args.dataset, rank)
-    sim = GraspSimulation(args.object_set, "config/default.yaml", gui=args.sim_gui)
+    sim = GraspSimulation(args.object_set, "config/simulation.yaml", gui=args.sim_gui)
     finger_depth = sim.config["finger_depth"]
     grasps_per_worker = args.grasps // workers
     pbar = tqdm(total=grasps_per_worker, disable=rank is not 0)
