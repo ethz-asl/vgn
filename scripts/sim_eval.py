@@ -64,9 +64,8 @@ def main(args):
             if len(grasps) == 0:
                 break  # no detections found, abort this round
 
-            # execute a random grasp candidate
-            i = np.random.randint(min(5, len(grasps)))
-            grasp, score = grasps[i], scores[i]
+            # execute grasp
+            grasp, score = grasps[0], scores[0]
 
             # visualize
             vis.grasps(grasps, scores, sim.config["finger_depth"])
