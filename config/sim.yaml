@@ -1,5 +1,7 @@
-# simulation
+# Path to URDF models
 urdf_root: data/urdfs
+
+# Gripper geometry
 finger_depth: 0.05
 max_opening_width: 0.08
 T_tool0_tcp: {rotation: [0.0, 0.0, 0.0, 1.0], translation: [0.0, 0.0, 0.022]}

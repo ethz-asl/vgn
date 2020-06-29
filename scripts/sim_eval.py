@@ -28,7 +28,7 @@ from vgn.simulation import GraspSimulation
 def main(args):
     rospy.init_node("sim_eval")
 
-    config = Path("config/simulation.yaml")
+    config = Path("config/sim.yaml")
     sim = GraspSimulation(args.object_set, config, gui=args.sim_gui, seed=args.seed)
     logger = Logger(args.logdir)
 

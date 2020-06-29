@@ -3,8 +3,7 @@ Panels:
     Help Height: 78
     Name: Displays
     Property Tree Widget:
-      Expanded:
-        - /TSDF1
+      Expanded: ~
       Splitter Ratio: 0.5
     Tree Height: 676
   - Class: rviz/Selection
@@ -25,7 +24,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: Points
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -45,7 +44,7 @@ Visualization Manager:
       Marker Topic: /workspace
       Name: Workspace
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -83,7 +82,7 @@ Visualization Manager:
       Marker Topic: /grasps
       Name: Grasps
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 0.10000000149011612
@@ -240,5 +239,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1319
-  X: 801
-  Y: 102
+  X: 591
+  Y: 212
