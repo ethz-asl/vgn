@@ -61,7 +61,7 @@ def main(args):
                 break  # no detections found, abort this round
 
             # execute a random grasp candidate
-            i = np.random.randint(len(grasps))
+            i = np.random.randint(min(5, len(grasps)))
             grasp, score = grasps[i], scores[i]
 
             # visualize
