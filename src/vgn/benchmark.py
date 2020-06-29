@@ -80,7 +80,7 @@ class Logger(object):
                 "i",
                 "j",
                 "k",
-                "qd",
+                "qx",
                 "qy",
                 "qz",
                 "qw",
@@ -109,6 +109,9 @@ def compute_metrics(log_dir):
     percent_cleared = df["cleared_count"].sum() / df["object_count"].sum() * 100
 
     # planning time
-    planning_time = trials["planning_time"].mean()
+    planning_time = {
+        "mean": trials["planning_time"].mean(),
+        "std": trials["planning_time"].std(),
+    }
 
     return success_rate, percent_cleared, planning_time
