@@ -71,7 +71,7 @@ def main(args):
             vis.grasps(grasps, scores, sim.config["finger_depth"])
 
             # execute grasp
-            label, _ = sim.execute_grasp(grasp.pose)
+            label, _ = sim.execute_grasp(grasp.pose, abort_on_contact=True)
 
             # log the grasp
             logger.log_grasp(state, planning_time, grasp, score, label)

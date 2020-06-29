@@ -62,7 +62,7 @@ class GraspSimulation(object):
 
         return tsdf, pc
 
-    def execute_grasp(self, T_world_grasp, remove=True):
+    def execute_grasp(self, T_world_grasp, remove=True, abort_on_contact=True):
         T_grasp_pregrasp = Transform(Rotation.identity(), [0.0, 0.0, -0.05])
         T_grasp_retreat = Transform(Rotation.identity(), [0.0, 0.0, -0.1])
         T_world_pregrasp = T_world_grasp * T_grasp_pregrasp
@@ -74,8 +74,8 @@ class GraspSimulation(object):
         if gripper.detect_collision(threshold=0.0):
             result = Label.FAILURE, gripper.max_opening_width
         else:
-            gripper.move_tcp_xyz(T_world_grasp)
-            if gripper.detect_collision():
+            gripper.move_tcp_xyz(T_world_grasp, abort_on_contact=True)
+            if gripper.detect_collision() and abort_on_contact:
                 result = Label.FAILURE, gripper.max_opening_width
             else:
                 gripper.move(0.0)
