@@ -28,7 +28,7 @@ def workspace(size, scale=0.002):
 
 def points(points):
     """Draw point cloud."""
-    msg = ros_utils.to_point_cloud_msg(points, frame="task")
+    msg = ros_utils.to_cloud_msg(points, frame="task")
     pubs["points"].publish(msg)
 
 
@@ -64,9 +64,9 @@ def clear():
     """Clear all markers."""
     delete_all_msg = Marker(action=Marker.DELETEALL)
     pubs["workspace"].publish(delete_all_msg)
-    pubs["points"].publish(ros_utils.to_point_cloud_msg(np.array([]), frame="task"))
-    pubs["tsdf"].publish(ros_utils.to_point_cloud_msg(np.array([]), frame="task"))
-    pubs["quality"].publish(ros_utils.to_point_cloud_msg(np.array([]), frame="task"))
+    pubs["points"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
+    pubs["tsdf"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
+    pubs["quality"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
     pubs["grasps"].publish(MarkerArray(markers=[delete_all_msg]))
 
 
@@ -90,7 +90,7 @@ def _create_marker_msg(marker_type, frame, pose, scale, color):
 def _create_vol_msg(vol, voxel_size, threshold):
     points = np.argwhere(vol > threshold) * voxel_size
     values = np.expand_dims(vol[vol > threshold], 1)
-    return ros_utils.to_point_cloud_msg(points, values, frame="task")
+    return ros_utils.to_cloud_msg(points, values, frame="task")
 
 
 def _create_publishers():

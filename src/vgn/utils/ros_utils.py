@@ -17,6 +17,11 @@ def to_point_msg(position):
     return msg
 
 
+def from_point_msg(msg):
+    """Convert a Point message to a numpy array."""
+    return np.r_[msg.x, msg.y, msg.z]
+
+
 def to_vector3_msg(vector3):
     """Convert numpy array to a Vector3 message."""
     msg = geometry_msgs.msg.Vector3()
@@ -80,7 +85,7 @@ def to_color_msg(color):
     return msg
 
 
-def to_point_cloud_msg(points, intensities=None, frame=None, stamp=None):
+def to_cloud_msg(points, intensities=None, frame=None, stamp=None):
     """Convert list of unstructured points to a PointCloud2 message.
 
     Args:

@@ -19,6 +19,7 @@ import rospy
 import tqdm
 
 from vgn import vis
+from vgn.baselines import GPD
 from vgn.benchmark import Logger, State
 from vgn.detection import VGN
 from vgn.grasp import Label
@@ -34,6 +35,8 @@ def main(args):
 
     if args.method == "vgn":
         plan_grasps = VGN(args.model)
+    elif args.method == "gpd":
+        plan_grasps = GPD()
     else:
         raise ValueError
 
