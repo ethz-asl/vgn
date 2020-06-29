@@ -46,8 +46,8 @@ class GPD(object):
             # score
             score = grasp_config.score.data
 
-            if score < 0.0:
-                continue  # negative score is larger than positive score (https://github.com/atenpas/gpd/issues/32#issuecomment-387846534)
+            # if score < 0.0:
+            #     continue  # negative score is larger than positive score (https://github.com/atenpas/gpd/issues/32#issuecomment-387846534)
 
             grasps.append(Grasp(Transform(orientation, position), width))
             scores.append(score)
