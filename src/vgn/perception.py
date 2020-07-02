@@ -7,7 +7,7 @@ import open3d as o3d
 from vgn.utils.transform import Transform
 
 
-class PinholeCameraIntrinsic(object):
+class CameraIntrinsic(object):
     """Intrinsic parameters of a pinhole camera model.
 
     Attributes:
@@ -117,10 +117,15 @@ class TSDFVolume(object):
         return self._volume.extract_point_cloud()
 
 
-def compute_viewpoint_on_hemisphere(T_ref_center, phi, theta, r):
-    """Compute T_cam_ref for a camera located on a hemisphere pointing towards its center."""
-    eye = np.r_[r * sin(theta) * cos(phi), r * sin(theta) * sin(phi), r * cos(theta)]
+def camera_on_sphere(origin, radius, theta, phi):
+    """Compute extrinsic of a camera located at the given spherical coordinates
+    pointing towards the center of a sphere at the specified origin.
+    """
+    eye = np.r_[
+        radius * sin(theta) * cos(phi),
+        radius * sin(theta) * sin(phi),
+        radius * cos(theta),
+    ]
     target = np.array([0.0, 0.0, 0.0])
     up = np.array([0.0, 0.0, 1.0])  # this breaks when looking straight down
-    T_cam_center = Transform.look_at(eye, target, up)
-    return T_cam_center * T_ref_center.inverse()
+    return Transform.look_at(eye, target, up) * origin.inverse()

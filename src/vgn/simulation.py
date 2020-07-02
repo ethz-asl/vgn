@@ -43,24 +43,22 @@ class GraspSimulation(object):
         self._draw_workspace()
         self._drop_objects(object_count)
 
-    def acquire_tsdf(self, num_viewpoints):
+    def acquire_tsdf(self, n):
         tsdf = TSDFVolume(self.size, 40)
         high_res_tsdf = TSDFVolume(self.size, 120)
 
-        t_world_center = np.r_[0.5 * self.size, 0.5 * self.size, 0.0]
-        T_world_center = Transform(Rotation.identity(), t_world_center)
+        origin = Transform(Rotation.identity(), np.r_[self.size / 2, self.size / 2, 0])
+        r = 1.5 * self.size
+        theta = np.pi / 4.0
+        phi_list = 2.0 * np.pi * np.arange(n) / n
+        extrinsics = [camera_on_sphere(origin, r, theta, phi) for phi in phi_list]
 
-        for i in range(num_viewpoints):
-            phi = 2.0 * np.pi * i / num_viewpoints
-            theta = np.pi / 4.0
-            r = 1.5 * self.size
-            extrinsic = compute_viewpoint_on_hemisphere(T_world_center, phi, theta, r)
+        for extrinsic in extrinsics:
             depth_img = self.camera.render(extrinsic)[1]
             tsdf.integrate(depth_img, self.camera.intrinsic, extrinsic)
             high_res_tsdf.integrate(depth_img, self.camera.intrinsic, extrinsic)
-        pc = high_res_tsdf.extract_point_cloud()
 
-        return tsdf, pc
+        return tsdf, high_res_tsdf.extract_point_cloud()
 
     def execute_grasp(self, T_world_grasp, remove=True, abort_on_contact=True):
         T_grasp_pregrasp = Transform(Rotation.identity(), [0.0, 0.0, -0.05])
@@ -104,7 +102,7 @@ class GraspSimulation(object):
         self.world.load_urdf(urdf, pose, scale=0.6)
 
     def _setup_camera(self):
-        intrinsic = PinholeCameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)
+        intrinsic = CameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)
         self.camera = self.world.add_camera(intrinsic, 0.1, 2.0)
 
     def _draw_workspace(self):

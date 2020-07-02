@@ -1,0 +1,26 @@
+<?xml version="1.0" ?>
+<launch>
+    <!-- parameters -->
+    <arg name="method" default="vgn" />
+    <arg name="logdir" default="data/experiments/meh" />
+
+    <!-- configuration -->
+    <rosparam command="load" file="$(find vgn)/config/panda.yaml" />
+
+    <!-- tag detection -->
+    <node name="apriltag_ros" pkg="apriltag_ros" type="apriltag_ros_continuous_node" clear_params="true" output="screen">
+        <remap from="image_rect" to="/camera/rgb/image_rect_color" />
+        <remap from="camera_info" to="/camera/rgb/camera_info" />
+        <param name="camera_frame" type="str" value="camera_rgb_optical_frame" />
+        <param name="publish_tag_detections_image" type="bool" value="false" />
+    </node>
+
+    <!-- panda -->
+    <include file="$(find panda_moveit_config)/launch/demo.launch" />
+
+    <!-- gpd -->
+    <include file="$(find vgn)/launch/gpd.launch" if="$(eval method == 'gpd')" />
+
+    <!-- dualshock controller -->
+    <node name="ds4_teleop" pkg="joy" type="joy_node" />
+</launch>

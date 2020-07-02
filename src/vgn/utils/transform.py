@@ -21,7 +21,7 @@ class Transform(object):
         assert isinstance(translation, (np.ndarray, list))
 
         self.rotation = rotation
-        self.translation = np.asarray(translation, np.float32)
+        self.translation = np.asarray(translation, np.double)
 
     def as_matrix(self):
         """Represent as a 4x4 matrix."""

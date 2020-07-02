@@ -35,7 +35,7 @@ def main(args):
         sim.save_state()
 
         # reconstruct and crop surface from point cloud
-        tsdf, pc = sim.acquire_tsdf(num_viewpoints=VIEWPOINT_COUNT)
+        tsdf, pc = sim.acquire_tsdf(n=VIEWPOINT_COUNT)
         l, u = 1.2 * finger_depth, sim.size - 1.2 * finger_depth
         z = sim.world.bodies[0].get_pose().translation[2] + 0.005
         pc = pc.crop(np.r_[l, l, z], np.r_[u, u, sim.size])

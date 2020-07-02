@@ -1,0 +1,24 @@
+# panda grasp
+panda_grasp:
+  finger_depth: 0.05
+  max_opening_width: 0.08
+  T_tool0_tcp: {rotation: [0.000, 0.000, -0.382, 0.924], translation: [0.000, 0.000, 0.103]}
+  T_tool0_cam: {rotation: [0.001, -0.000, 0.399, 0.917], translation: [0.063, -0.090, 0.041]}
+  cam_intrinsic:
+    width: 640
+    height: 480
+    K: [540, 0, 320, 0, 540, 240, 0, 0, 1]
+  vgn:
+    model_path: /path/to/model
+
+# apriltag 3
+apriltag_ros:
+  tag_family:        'tag36h11' # options: tagStandard52h13, tagStandard41h12, tag36h11, tag25h9, tag16h5, tagCustom48h12, tagCircle21h7, tagCircle49h12
+  tag_threads:       2          # default: 2
+  tag_decimate:      1.0        # default: 1.0
+  tag_blur:          0.0        # default: 0.0
+  tag_refine_edges:  1          # default: 1
+  tag_debug:         0          # default: 0
+  publish_tf:        true       # default: false
+  standalone_tags: [{id: 0, size: 0.092}]
+  tag_bundles: []

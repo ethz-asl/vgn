@@ -1,10 +1,12 @@
 # Volumetric Grasping Network
 
-- [Quick Start](#quick-start)
+- [Setup](#setup)
 - [Data Generation](#data-generation)
 - [Training](#training)
+- [Simulated Grasping](#simulated-grasping)
+- [Robot Grasping](#robot-grasping)
 
-## Quick Start
+## Setup
 
 The following instructions were tested with Python 2.7 and ROS Melodic on Ubuntu 18.04.
 
@@ -43,3 +45,11 @@ pip install -r requirements.txt
 ## Data Generation
 
 ## Training
+
+## Simulated Grasping
+
+## Robot Grasping
+
+```
+sudo apt install ros-melodic-apriltag-ros
+```

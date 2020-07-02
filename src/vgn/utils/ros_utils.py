@@ -122,28 +122,20 @@ def to_cloud_msg(points, intensities=None, frame=None, stamp=None):
     return msg
 
 
-class TransformListener(object):
+class TransformTree(object):
     def __init__(self):
         self._buffer = tf2_ros.Buffer()
         self._listener = tf2_ros.TransformListener(self._buffer)
-
-    def lookup_transform(
-        self, from_frame, to_frame, time=None, timeout=rospy.Duration(0)
-    ):
-        if time is None:
-            time = rospy.Time(0.0)
-        msg = self._buffer.lookup_transform(from_frame, to_frame, time, timeout)
-        return from_transform_msg(msg.transform)
-
-
-class TransformBroadcaster(object):
-    def __init__(self):
         self._static_broadcaster = tf2_ros.StaticTransformBroadcaster()
 
-    def send_static_transform(self, transform, from_frame, to_frame):
+    def lookup(self, target_frame, source_frame, time, timeout=rospy.Duration(0)):
+        msg = self._buffer.lookup_transform(target_frame, source_frame, time, timeout)
+        return from_transform_msg(msg.transform)
+
+    def broadcast_static(self, transform, target_frame, source_frame):
         msg = geometry_msgs.msg.TransformStamped()
         msg.header.stamp = rospy.Time.now()
-        msg.header.frame_id = from_frame
-        msg.child_frame_id = to_frame
+        msg.header.frame_id = target_frame
+        msg.child_frame_id = source_frame
         msg.transform = to_transform_msg(transform)
         self._static_broadcaster.sendTransform(msg)

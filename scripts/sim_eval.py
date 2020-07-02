@@ -64,7 +64,7 @@ def main(args):
             if len(grasps) == 0:
                 break  # no detections found, abort this round
 
-            # execute grasp
+            # select grasp
             grasp, score = grasps[0], scores[0]
 
             # visualize
