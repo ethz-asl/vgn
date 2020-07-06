@@ -49,7 +49,7 @@ def main(args):
 
         while sim.num_objects > 0 and consecutive_failures < 3:
             # scan the scene
-            tsdf, pc = sim.acquire_tsdf(num_viewpoints=5)
+            tsdf, pc = sim.acquire_tsdf(n=5)
 
             # visualize
             vis.clear()
