@@ -30,7 +30,7 @@ def main(args):
     rospy.init_node("sim_eval")
 
     config = Path("config/sim.yaml")
-    abort_on_contact = not args.allow_contact
+    abort_on_contact = args.no_contact
     sim = GraspSimulation(args.object_set, config, gui=args.sim_gui, seed=args.seed)
     logger = Logger(args.logdir)
 
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     parser.add_argument("--object-set", type=str, default="test")
     parser.add_argument("--object-count", type=int, default=5)
     parser.add_argument("--rounds", type=int, default=40)
-    parser.add_argument("--allow-contact", action="store_true")
+    parser.add_argument("--no-contact", action="store_true")
     parser.add_argument("--sim-gui", action="store_true")
     parser.add_argument("--seed", type=int, default=1)
 
