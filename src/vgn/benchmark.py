@@ -93,14 +93,17 @@ class Logger(object):
 
 def compute_metrics(log_dir):
     rounds = pd.read_csv(log_dir / "rounds.csv")
-    trials = pd.read_csv(log_dir / "grasps.csv")
+    grasps = pd.read_csv(log_dir / "grasps.csv")
+
+    # number of grasps
+    n_grasps = len(grasps.index)
 
     # success rate
-    success_rate = trials["label"].mean() * 100
+    success_rate = grasps["label"].mean() * 100
 
     # percent cleared
     df = (
-        trials[["round_id", "label"]]
+        grasps[["round_id", "label"]]
         .groupby("round_id")
         .sum()
         .rename(columns={"label": "cleared_count"})
@@ -110,8 +113,8 @@ def compute_metrics(log_dir):
 
     # planning time
     planning_time = {
-        "mean": trials["planning_time"].mean(),
-        "std": trials["planning_time"].std(),
+        "mean": grasps["planning_time"].mean(),
+        "std": grasps["planning_time"].std(),
     }
 
-    return success_rate, percent_cleared, planning_time
+    return n_grasps, success_rate, percent_cleared, planning_time
