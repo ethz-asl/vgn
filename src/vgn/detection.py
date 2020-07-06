@@ -23,8 +23,9 @@ class VGN(object):
         out = predict(tsdf.get_volume(), self.net, self.device)
         out = process(out)
         grasps, scores = select(out)
-        scores, grasps = zip(*sorted(zip(scores, grasps), reverse=True))
-        grasps = [from_voxel_coordinates(g, tsdf.voxel_size) for g in grasps]
+        if len(grasps) > 0:
+            scores, grasps = zip(*sorted(zip(scores, grasps), reverse=True))
+            grasps = [from_voxel_coordinates(g, tsdf.voxel_size) for g in grasps]
         toc = time.time() - tic
 
         vis.quality(out[0], tsdf.voxel_size)
