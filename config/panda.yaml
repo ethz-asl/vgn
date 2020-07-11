@@ -20,5 +20,5 @@ apriltag_ros:
   tag_refine_edges:  1          # default: 1
   tag_debug:         0          # default: 0
   publish_tf:        true       # default: false
-  standalone_tags: [{id: 0, size: 0.092}]
+  standalone_tags: [{id: 0, size: 0.135}]
   tag_bundles: []

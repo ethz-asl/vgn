@@ -4,23 +4,34 @@
     <arg name="method" default="vgn" />
     <arg name="logdir" default="data/experiments/meh" />
 
-    <!-- configuration -->
+    <!-- load configuration -->
     <rosparam command="load" file="$(find vgn)/config/panda.yaml" />
 
-    <!-- tag detection -->
+    <!-- launch panda control node -->
+    <include file="$(find panda_control)/launch/panda_control.launch"/>
+
+    <!-- spawn a joint trajectory controller -->
+    <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="position_joint_trajectory_controller"/>
+
+    <!-- launch moveit -->
+    <include file="$(find panda_moveit_config)/launch/move_group.launch"/>
+
+    <!-- launch camera driver -->
+    <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+        <arg name="enable_pointcloud" value="true"/>
+    </include>
+
+    <!-- launch tag detection -->
     <node name="apriltag_ros" pkg="apriltag_ros" type="apriltag_ros_continuous_node" clear_params="true" output="screen">
-        <remap from="image_rect" to="/camera/rgb/image_rect_color" />
-        <remap from="camera_info" to="/camera/rgb/camera_info" />
-        <param name="camera_frame" type="str" value="camera_rgb_optical_frame" />
+        <remap from="image_rect" to="/camera/color/image_raw" />
+        <remap from="camera_info" to="/camera/color/camera_info" />
+        <param name="camera_frame" type="str" value="camera_color_optical_frame" />
         <param name="publish_tag_detections_image" type="bool" value="false" />
     </node>
-
-    <!-- panda -->
-    <include file="$(find panda_moveit_config)/launch/demo.launch" />
 
     <!-- gpd -->
     <include file="$(find vgn)/launch/gpd.launch" if="$(eval method == 'gpd')" />
 
     <!-- dualshock controller -->
-    <node name="ds4_teleop" pkg="joy" type="joy_node" />
+    <!-- <node name="ds4_teleop" pkg="joy" type="joy_node" /> -->
 </launch>
