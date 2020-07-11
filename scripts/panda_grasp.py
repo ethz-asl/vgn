@@ -56,9 +56,14 @@ class PandaGraspController(object):
 
     def calibrate_workspace(self):
         self.robot.home()
-        # self.T_base_task = self.tf_tree.lookup("panda_link0", "tag_0", rospy.Time(0))
-        self.T_base_task = Transform(Rotation.identity(), np.r_[0.3, -0.15, 0.2])
+        T_base_tag = self.tf_tree.lookup("panda_link0", "tag_0", rospy.Time(0))
+        T_tag_task = Transform(
+            Rotation.identity(), [-0.5 * self.size, -0.5 * self.size, -0.05]
+        )
+        self.T_base_task = T_base_tag * T_tag_task
         self.tf_tree.broadcast_static(self.T_base_task, "panda_link0", "task")
+        rospy.sleep(1.0)
+        vis.workspace(self.size)
         rospy.loginfo("Workspace calibrated")
 
     def run(self):
