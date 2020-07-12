@@ -32,43 +32,83 @@ from vgn.utils import ros_utils
 from vgn.utils.transform import Rotation, Transform
 
 
+scan_joint_positions = [
+    [
+        -0.43108035333952316,
+        -0.9870793052137942,
+        0.6965837768545206,
+        -2.0120709856722176,
+        0.12508303126065481,
+        1.3463392878108555,
+        0.8366453268933625,
+    ],
+    [
+        -0.1351051290959735,
+        0.11679895606962587,
+        0.3614310921786124,
+        -1.175866540273047,
+        0.10791277298602031,
+        0.946452884727054,
+        1.0446157227800703,
+    ],
+    [
+        -0.7980986830856897,
+        0.0072509909150631794,
+        0.3052539200105668,
+        -1.4125830988298362,
+        0.35131070071250914,
+        0.9115777040304364,
+        0.8701020664779676,
+    ],
+]
+
+
 class PandaGraspController(object):
     def __init__(self, args):
-        self.finger_depth = rospy.get_param("~finger_depth")
-        self.T_tool0_tcp = Transform.from_dict(rospy.get_param("~T_tool0_tcp"))
-        self.T_tool0_cam = Transform.from_dict(rospy.get_param("~T_tool0_cam"))
-        self.intrinsic = CameraIntrinsic.from_dict(rospy.get_param("~cam_intrinsic"))
-        self.size = 6.0 * self.finger_depth
-        self.logger = Logger(args.logdir)
-        self.tf_tree = ros_utils.TransformTree()
-        self.cv_bridge = cv_bridge.CvBridge()
+        self.base_frame_id = rospy.get_param("~base_frame_id")
+        self.tool0_frame_id = rospy.get_param("~tool0_frame_id")
+        self.T_tool0_tcp = Transform.from_dict(rospy.get_param("~T_tool0_tcp"))  # check
+        self.size = 6.0 * rospy.get_param("~finger_depth")
+
         self.robot = PandaCommander()
-        self.setup_grasp_planner(args.method)
+        self.tf_tree = ros_utils.TransformTree()
+        self.tsdf_server = TSDFServer()
+        self.grasp_planner = self.select_grasp_planner(args.method)
+        self.logger = Logger(args.logdir)
+
         rospy.loginfo("Ready to take action")
 
-    def setup_grasp_planner(self, method):
+    def select_grasp_planner(self, method):
         if method == "vgn":
-            self.grasp_planner = VGN(rospy.get_param("~vgn/model_path"))
+            return VGN(rospy.get_param("~vgn/model_path"))
         elif method == "gpd":
-            self.grasp_planner = GPD()
+            return GPD()
         else:
             raise ValueError
 
     def calibrate_workspace(self):
+        vis.clear_workspace()
         self.robot.home()
-        T_base_tag = self.tf_tree.lookup("panda_link0", "tag_0", rospy.Time(0))
-        T_tag_task = Transform(
-            Rotation.identity(), [-0.5 * self.size, -0.5 * self.size, -0.05]
-        )
+
+        # T_base_tag = self.tf_tree.lookup(self.base_frame_id, "tag_0", rospy.Time(0))
+        R_base_tag = Rotation.from_quat([-0.00889, -0.01100, -0.71420, 0.69979])
+        t_base_tag = [0.38075931, 0.00874077, 0.03670042]
+        T_base_tag = Transform(R_base_tag, t_base_tag)
+
+        t_tag_task = np.r_[[-0.5 * self.size, -0.5 * self.size, -0.05]]
+        T_tag_task = Transform(Rotation.identity(), t_tag_task)
         self.T_base_task = T_base_tag * T_tag_task
-        self.tf_tree.broadcast_static(self.T_base_task, "panda_link0", "task")
-        rospy.sleep(1.0)
+
+        self.tf_tree.broadcast_static(self.T_base_task, self.base_frame_id, "task")
+        rospy.sleep(1.0)  # wait for the TF to be broadcasted
+
         vis.workspace(self.size)
         rospy.loginfo("Workspace calibrated")
 
     def run(self):
         vis.clear()
         self.robot.home()
+
         tsdf, pc = self.acquire_tsdf()
         state = State(tsdf, pc)
         grasps, scores, planning_time = self.plan_grasps(state)
@@ -76,51 +116,24 @@ class PandaGraspController(object):
             return
         grasp, score = self.select_grasp(grasps, scores)
         label = self.execute_grasp(grasp)
+
         self.logger.log_grasp(state, planning_time, grasp, score, label)
 
     def acquire_tsdf(self):
-        tsdf = TSDFVolume(self.size, 40)
-        high_res_tsdf = TSDFVolume(self.size, 120)
+        self.tsdf_server.reset()
+        self.tsdf_server.integrate = True
 
-        def cb(msg):
-            img = self.cv_bridge.imgmsg_to_cv2(msg).astype(np.float32) * 0.001
-            stamp = msg.header.stamp
-            T_base_tool0 = self.tf_tree.lookup("panda_link0", "panda_link8", stamp)
-            T_cam_task = (T_base_tool0 * self.T_tool0_cam).inverse()
-            tsdf.integrate(img, self.intrinsic, T_cam_task)
-            high_res_tsdf = TSDFVolume(self.size, 120)
+        for joint_target in scan_joint_positions:
+            self.robot.goto_joint_target(joint_target)
 
-        waypoints = self.generate_scan_trajectory()
-        self.robot.goto_pose_target(waypoints[0], 0.4, 0.4)
+        self.tsdf_server.integrate = False
+        tsdf = self.tsdf_server.low_res_tsdf
+        pc = self.tsdf_server.high_res_tsdf.extract_point_cloud()
 
-        sub = rospy.Subscriber("/camera", sensor_msgs.msg.Image, cb)
-        rospy.sleep(1.0)
-        self.robot.follow_cartesian_waypoints(waypoints, 0.1, 0.1)
-        sub.unregister()
-        rospy.sleep(1.0)
-
-        pc = high_res_tsdf.extract_point_cloud()
-
-        vis.workspace(self.size)
         vis.tsdf(tsdf.get_volume().squeeze(), tsdf.voxel_size)
         vis.points(np.asarray(pc.points))
 
         return tsdf, pc
-
-    def generate_scan_trajectory(self):
-        identity = Rotation.identity()
-        T_task_origin = Transform(identity, [self.size / 2.0, self.size / 2.0, 0.2])
-        origin = self.T_base_task * T_task_origin
-        radius = 0.05
-        theta = np.pi / 8.0
-
-        waypoints = []
-        for phi in np.linspace(-3.0 * np.pi / 5.0, 3 * np.pi / 5.0, 6):
-            T_cam_base = camera_on_sphere(origin, radius, theta, phi)
-            T_base_tool0 = (self.T_tool0_cam * T_cam_base).inverse()
-            waypoints.append(ros_utils.to_pose_msg(T_base_tool0))
-
-        return waypoints
 
     def plan_grasps(self, state):
         grasps, scores, planning_time = self.grasp_planner.plan(state)
@@ -150,9 +163,39 @@ class PandaGraspController(object):
         return True
 
 
+class TSDFServer(object):
+    def __init__(self):
+        self.cam_frame_id = rospy.get_param("~cam/frame_id")
+        self.cam_topic_name = rospy.get_param("~cam/topic_name")
+        self.intrinsic = CameraIntrinsic.from_dict(rospy.get_param("~cam/intrinsic"))
+        self.size = 6.0 * rospy.get_param("~finger_depth")
+
+        self.cv_bridge = cv_bridge.CvBridge()
+        self.tf_tree = ros_utils.TransformTree()
+        self.integrate = False
+        rospy.Subscriber(self.cam_topic_name, sensor_msgs.msg.Image, self.sensor_cb)
+
+    def reset(self):
+        self.low_res_tsdf = TSDFVolume(self.size, 40)
+        self.high_res_tsdf = TSDFVolume(self.size, 120)
+
+    def sensor_cb(self, msg):
+        if not self.integrate:
+            return
+
+        img = self.cv_bridge.imgmsg_to_cv2(msg).astype(np.float32) * 0.001
+        T_cam_task = self.tf_tree.lookup(self.cam_frame_id, "task", msg.header.stamp)
+
+        self.low_res_tsdf.integrate(img, self.intrinsic, T_cam_task)
+        self.high_res_tsdf.integrate(img, self.intrinsic, T_cam_task)
+
+
 def main(args):
     rospy.init_node("panda_grasp")
     panda_grasp = PandaGraspController(args)
+
+    panda_grasp.calibrate_workspace()
+    panda_grasp.run()
 
     def joy_cb(msg):
         if msg.buttons[0]:  #   x
@@ -162,7 +205,7 @@ def main(args):
         elif msg.buttons[2]:  # △
             pass
         elif msg.buttons[3]:  # □
-            panda_grasp.calibrate_workspace()
+            pass
 
     rospy.Subscriber("/joy", sensor_msgs.msg.Joy, joy_cb)
     rospy.spin()

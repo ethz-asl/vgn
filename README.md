@@ -53,3 +53,9 @@ pip install -r requirements.txt
 ```
 sudo apt install ros-melodic-apriltag-ros
 ```
+
+Launch the grasp controller.
+
+```
+mon launch vgn panda_grasp.launch
+```
