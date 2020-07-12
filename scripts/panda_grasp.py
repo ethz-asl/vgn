@@ -69,10 +69,12 @@ class PandaGraspController(object):
         self.base_frame_id = rospy.get_param("~base_frame_id")
         self.tool0_frame_id = rospy.get_param("~tool0_frame_id")
         self.T_tool0_tcp = Transform.from_dict(rospy.get_param("~T_tool0_tcp"))  # TODO
+        self.T_tcp_tool0 = self.T_tool0_tcp.inverse()
         self.finger_depth = rospy.get_param("~finger_depth")
         self.size = 6.0 * self.finger_depth
 
         self.robot = PandaCommander()
+        self.robot.move_group.set_end_effector_link(self.tool0_frame_id)
         self.tf_tree = ros_utils.TransformTree()
         self.tsdf_server = TSDFServer()
         self.plan_grasps = self.select_grasp_planner(args.method)
@@ -109,8 +111,8 @@ class PandaGraspController(object):
         msg.header.frame_id = "task"
         msg.pose.position.x = 0.15
         msg.pose.position.y = 0.15
-        msg.pose.position.z = -z_offset - 0.01
-        self.robot.scene.add_box("table", msg, size=(0.5, 0.5, 0.02))
+        msg.pose.position.z = -z_offset  # - 0.01
+        self.robot.scene.add_box("table", msg, size=(0.6, 0.6, 0.02))
         rospy.sleep(1.0)  # wait for the scene to be updated
 
         vis.workspace(self.size)
@@ -118,11 +120,12 @@ class PandaGraspController(object):
 
     def run(self):
         vis.clear()
+        self.robot.move_gripper(0.08, max_effort=10.0)
         self.robot.home()
 
         tsdf, pc = self.acquire_tsdf()
         vis.tsdf(tsdf.get_volume().squeeze(), tsdf.voxel_size)
-        vis.points(points)
+        vis.points(np.asarray(pc.points))
         rospy.loginfo("Reconstructed scene")
 
         state = State(tsdf, pc)
@@ -158,21 +161,29 @@ class PandaGraspController(object):
 
     def select_grasp(self, grasps, scores):
         grasp, score = grasps[0], scores[0]
+
+        # ensure that the camera mount points upwards to avoid collisions with the table
+        rot = grasp.pose.rotation
+        axis = rot.as_dcm()[:, 0]
+        if axis[2] < 0.0:
+            grasp.pose.rotation = rot * from_euler("z", 180, degrees=True)
+
         return grasp, score
 
     def execute_grasp(self, grasp):
         T_task_grasp = grasp.pose
         T_base_grasp = self.T_base_task * T_task_grasp
+
         T_grasp_pregrasp = Transform(Rotation.identity(), [0.0, 0.0, -0.05])
         T_grasp_retreat = Transform(Rotation.identity(), [0.0, 0.0, -0.05])
         T_base_pregrasp = T_base_grasp * T_grasp_pregrasp
         T_base_retreat = T_base_grasp * T_grasp_retreat
 
-        msg = ros_utils.to_pose_msg(T_base_pregrasp)
+        msg = ros_utils.to_pose_msg(T_base_pregrasp * self.T_tcp_tool0)
         self.robot.goto_pose_target(msg)
         self.approach_grasp(T_base_grasp)
-        self.robot.grasp()
-        msg = ros_utils.to_pose_msg(T_base_retreat)
+        self.robot.move_gripper(0.0, max_effort=20.0)
+        msg = ros_utils.to_pose_msg(T_base_retreat * self.T_tcp_tool0)
         self.robot.goto_pose_target(msg)
         # self.drop()
 
@@ -181,7 +192,7 @@ class PandaGraspController(object):
         return True
 
     def approach_grasp(self, T_base_grasp):
-        msg = ros_utils.to_pose_msg(T_base_grasp)
+        msg = ros_utils.to_pose_msg(T_base_grasp * self.T_tcp_tool0)
         self.robot.goto_pose_target(msg)
 
 
