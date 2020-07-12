@@ -193,7 +193,7 @@ Visualization Manager:
       Value: true
       Visual Enabled: true
     - Class: moveit_rviz_plugin/PlanningScene
-      Enabled: true
+      Enabled: false
       Move Group Namespace: ""
       Name: PlanningScene
       Planning Scene Topic: move_group/monitored_planning_scene
@@ -328,7 +328,7 @@ Visualization Manager:
         Robot Alpha: 1
         Show Robot Collision: false
         Show Robot Visual: true
-      Value: true
+      Value: false
     - Acceleration_Scaling_Factor: 0.2
       Class: moveit_rviz_plugin/MotionPlanning
       Enabled: false
@@ -783,7 +783,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: RGB8
       Decay Time: 0
-      Enabled: true
+      Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 4096
@@ -800,7 +800,7 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
+      Value: false
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /workspace
@@ -812,8 +812,8 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 0.1736275553703308
-        Min Value: 0.0254825372248888
+        Max Value: 0.17315959930419922
+        Min Value: 0.04226813465356827
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -851,7 +851,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: Intensity
       Decay Time: 0
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 0.9899860620498657
@@ -868,7 +868,23 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /grasps
+      Name: GraspCandidates
+      Namespaces:
+        "": true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /grasp
+      Name: SelectedGrasp
+      Namespaces:
+        "": true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -897,25 +913,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.8240875005722046
+      Distance: 1.6736599206924438
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.157326802611351
-        Y: 0.32080063223838806
-        Z: 0.26167529821395874
+        X: 0.05788325518369675
+        Y: 0.2706112563610077
+        Z: 0.2546541392803192
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.2203969657421112
+      Pitch: 0.2303980588912964
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.058567523956299
+      Yaw: 5.263576030731201
     Saved: ~
 Window Geometry:
   Displays:
