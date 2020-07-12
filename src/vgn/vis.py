@@ -16,6 +16,20 @@ from vgn.utils import ros_utils, workspace_lines
 from vgn.utils.transform import Transform, Rotation
 
 
+def clear():
+    """Clear all markers."""
+    delete_all_msg = Marker(action=Marker.DELETEALL)
+    pubs["points"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
+    pubs["tsdf"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
+    pubs["quality"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
+    pubs["grasps"].publish(MarkerArray(markers=[delete_all_msg]))
+    pubs["grasp"].publish(delete_all_msg)
+
+
+def clear_workspace():
+    pubs["workspace"].publish(Marker(action=Marker.DELETEALL))
+
+
 def workspace(size, scale=0.002):
     """Draw edges of the workspace."""
     pose = Transform.identity()
@@ -26,16 +40,16 @@ def workspace(size, scale=0.002):
     pubs["workspace"].publish(msg)
 
 
-def points(points):
-    """Draw point cloud."""
-    msg = ros_utils.to_cloud_msg(points, frame="task")
-    pubs["points"].publish(msg)
-
-
 def tsdf(vol, voxel_size, threshold=0.01):
     """Draw TSDF volume."""
     msg = _create_vol_msg(vol, voxel_size, threshold)
     pubs["tsdf"].publish(msg)
+
+
+def points(points):
+    """Draw point cloud."""
+    msg = ros_utils.to_cloud_msg(points, frame="task")
+    pubs["points"].publish(msg)
 
 
 def quality(vol, voxel_size, threshold=0.01):
@@ -60,17 +74,15 @@ def grasps(grasps, scores, finger_depth, radius=0.005):
     pubs["grasps"].publish(msg)
 
 
-def clear():
-    """Clear all markers."""
-    delete_all_msg = Marker(action=Marker.DELETEALL)
-    pubs["points"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
-    pubs["tsdf"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
-    pubs["quality"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
-    pubs["grasps"].publish(MarkerArray(markers=[delete_all_msg]))
-
-
-def clear_workspace():
-    pubs["workspace"].publish(Marker(action=Marker.DELETEALL))
+def grasp(grasp, score, finger_depth, radius=0.01):
+    """Draw single grasp."""
+    cmap = matplotlib.colors.LinearSegmentedColormap.from_list("BluRe", ["b", "r"])
+    w, d = grasp.width, finger_depth
+    scale = [radius, 0.0, 0.0]
+    color = cmap(float(score))
+    msg = _create_marker_msg(Marker.LINE_LIST, "task", grasp.pose, scale, color)
+    msg.points = [ros_utils.to_point_msg(point) for point in _gripper_lines(w, d)]
+    pubs["grasp"].publish(msg)
 
 
 def debug(vol, voxel_size, threshold=0.01):
@@ -99,10 +111,11 @@ def _create_vol_msg(vol, voxel_size, threshold):
 def _create_publishers():
     pubs = dict()
     pubs["workspace"] = Publisher("/workspace", Marker, queue_size=1, latch=True)
-    pubs["points"] = Publisher("/points", PointCloud2, queue_size=1, latch=True)
-    pubs["grasps"] = Publisher("/grasps", MarkerArray, queue_size=1, latch=True)
     pubs["tsdf"] = Publisher("/tsdf", PointCloud2, queue_size=1, latch=True)
+    pubs["points"] = Publisher("/points", PointCloud2, queue_size=1, latch=True)
     pubs["quality"] = Publisher("/quality", PointCloud2, queue_size=1, latch=True)
+    pubs["grasps"] = Publisher("/grasps", MarkerArray, queue_size=1, latch=True)
+    pubs["grasp"] = Publisher("/grasp", Marker, queue_size=1, latch=True)
     pubs["debug"] = Publisher("/debug", PointCloud2, queue_size=1, latch=True)
     return pubs
 
