@@ -63,11 +63,14 @@ def grasps(grasps, scores, finger_depth, radius=0.005):
 def clear():
     """Clear all markers."""
     delete_all_msg = Marker(action=Marker.DELETEALL)
-    pubs["workspace"].publish(delete_all_msg)
     pubs["points"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
     pubs["tsdf"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
     pubs["quality"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
     pubs["grasps"].publish(MarkerArray(markers=[delete_all_msg]))
+
+
+def clear_workspace():
+    pubs["workspace"].publish(Marker(action=Marker.DELETEALL))
 
 
 def debug(vol, voxel_size, threshold=0.01):
