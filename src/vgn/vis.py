@@ -60,7 +60,7 @@ def quality(vol, voxel_size, threshold=0.01):
 
 def grasps(grasps, scores, finger_depth, radius=0.005):
     """Draw grasp candidates."""
-    cmap = matplotlib.colors.LinearSegmentedColormap.from_list("BluRe", ["b", "r"])
+    cmap = matplotlib.colors.LinearSegmentedColormap.from_list("RedGreen", ["r", "g"])
     markers = []
     for i, (grasp, score) in enumerate(zip(grasps, scores)):
         w, d = grasp.width, finger_depth
@@ -76,7 +76,7 @@ def grasps(grasps, scores, finger_depth, radius=0.005):
 
 def grasp(grasp, score, finger_depth, radius=0.01):
     """Draw single grasp."""
-    cmap = matplotlib.colors.LinearSegmentedColormap.from_list("BluRe", ["b", "r"])
+    cmap = matplotlib.colors.LinearSegmentedColormap.from_list("RedGreen", ["r", "g"])
     w, d = grasp.width, finger_depth
     scale = [radius, 0.0, 0.0]
     color = cmap(float(score))
