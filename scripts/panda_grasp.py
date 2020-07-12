@@ -12,7 +12,7 @@ from __future__ import division, print_function
 
 import argparse
 from pathlib2 import Path
-import copy
+import pickle
 
 
 import cv_bridge
@@ -68,13 +68,14 @@ class PandaGraspController(object):
     def __init__(self, args):
         self.base_frame_id = rospy.get_param("~base_frame_id")
         self.tool0_frame_id = rospy.get_param("~tool0_frame_id")
-        self.T_tool0_tcp = Transform.from_dict(rospy.get_param("~T_tool0_tcp"))  # check
-        self.size = 6.0 * rospy.get_param("~finger_depth")
+        self.T_tool0_tcp = Transform.from_dict(rospy.get_param("~T_tool0_tcp"))  # TODO
+        self.finger_depth = rospy.get_param("~finger_depth")
+        self.size = 6.0 * self.finger_depth
 
         self.robot = PandaCommander()
         self.tf_tree = ros_utils.TransformTree()
         self.tsdf_server = TSDFServer()
-        self.grasp_planner = self.select_grasp_planner(args.method)
+        self.plan_grasps = self.select_grasp_planner(args.method)
         self.logger = Logger(args.logdir)
 
         rospy.loginfo("Ready to take action")
@@ -113,19 +114,32 @@ class PandaGraspController(object):
         rospy.sleep(1.0)  # wait for the scene to be updated
 
         vis.workspace(self.size)
-        rospy.loginfo("Workspace calibrated")
+        rospy.loginfo("Calibrated workspace")
 
     def run(self):
         vis.clear()
         self.robot.home()
 
         tsdf, pc = self.acquire_tsdf()
+        vis.tsdf(tsdf.get_volume().squeeze(), tsdf.voxel_size)
+        vis.points(points)
+        rospy.loginfo("Reconstructed scene")
+
         state = State(tsdf, pc)
         grasps, scores, planning_time = self.plan_grasps(state)
+        vis.grasps(grasps, scores, self.finger_depth)
+        rospy.loginfo("Planned grasps")
+
         if len(grasps) == 0:
+            rospy.loginfo("No grasps detected")
             return
+
         grasp, score = self.select_grasp(grasps, scores)
+        vis.grasp(grasp, score, self.finger_depth)
+        rospy.loginfo("Selected grasp")
+
         label = self.execute_grasp(grasp)
+        rospy.loginfo("Grasp execution", label)
 
         self.logger.log_grasp(state, planning_time, grasp, score, label)
 
@@ -140,15 +154,7 @@ class PandaGraspController(object):
         tsdf = self.tsdf_server.low_res_tsdf
         pc = self.tsdf_server.high_res_tsdf.extract_point_cloud()
 
-        vis.tsdf(tsdf.get_volume().squeeze(), tsdf.voxel_size)
-        vis.points(np.asarray(pc.points))
-
         return tsdf, pc
-
-    def plan_grasps(self, state):
-        grasps, scores, planning_time = self.grasp_planner.plan(state)
-        vis.grasps(grasps, scores, self.finger_depth)
-        return grasps, scores, planning_time
 
     def select_grasp(self, grasps, scores):
         grasp, score = grasps[0], scores[0]
@@ -158,19 +164,25 @@ class PandaGraspController(object):
         T_task_grasp = grasp.pose
         T_base_grasp = self.T_base_task * T_task_grasp
         T_grasp_pregrasp = Transform(Rotation.identity(), [0.0, 0.0, -0.05])
-        T_grasp_retreat = Transform(Rotation.identity(), [0.0, 0.0, -0.1])
+        T_grasp_retreat = Transform(Rotation.identity(), [0.0, 0.0, -0.05])
         T_base_pregrasp = T_base_grasp * T_grasp_pregrasp
         T_base_retreat = T_base_grasp * T_grasp_retreat
 
-        self.robot.goto_pose_target(T_base_pregrasp)
+        msg = ros_utils.to_pose_msg(T_base_pregrasp)
+        self.robot.goto_pose_target(msg)
         self.approach_grasp(T_base_grasp)
         self.robot.grasp()
-        self.robot.goto_pose_target(T_base_retreat)
-        self.drop()
+        msg = ros_utils.to_pose_msg(T_base_retreat)
+        self.robot.goto_pose_target(msg)
+        # self.drop()
 
         # check success
 
         return True
+
+    def approach_grasp(self, T_base_grasp):
+        msg = ros_utils.to_pose_msg(T_base_grasp)
+        self.robot.goto_pose_target(msg)
 
 
 class TSDFServer(object):
@@ -207,17 +219,6 @@ def main(args):
     panda_grasp.calibrate_workspace()
     panda_grasp.run()
 
-    def joy_cb(msg):
-        if msg.buttons[0]:  #   x
-            panda_grasp.run()
-        elif msg.buttons[1]:  # ○
-            pass
-        elif msg.buttons[2]:  # △
-            pass
-        elif msg.buttons[3]:  # □
-            pass
-
-    rospy.Subscriber("/joy", sensor_msgs.msg.Joy, joy_cb)
     rospy.spin()
 
 
