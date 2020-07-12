@@ -33,7 +33,7 @@ from vgn.utils import ros_utils
 from vgn.utils.transform import Rotation, Transform
 
 
-scan_joint_positions = [
+scan_joints = [
     [
         -0.43108035333952316,
         -0.9870793052137942,
@@ -120,7 +120,7 @@ class PandaGraspController(object):
 
     def run(self):
         vis.clear()
-        self.robot.move_gripper(0.08, max_effort=10.0)
+        self.robot.move_gripper(0.04)
         self.robot.home()
 
         tsdf, pc = self.acquire_tsdf()
@@ -142,7 +142,7 @@ class PandaGraspController(object):
         rospy.loginfo("Selected grasp")
 
         label = self.execute_grasp(grasp)
-        rospy.loginfo("Grasp execution", label)
+        rospy.loginfo("Grasp execution")
 
         self.logger.log_grasp(state, planning_time, grasp, score, label)
 
@@ -150,7 +150,7 @@ class PandaGraspController(object):
         self.tsdf_server.reset()
         self.tsdf_server.integrate = True
 
-        for joint_target in scan_joint_positions:
+        for joint_target in scan_joints:
             self.robot.goto_joint_target(joint_target)
 
         self.tsdf_server.integrate = False
@@ -166,7 +166,7 @@ class PandaGraspController(object):
         rot = grasp.pose.rotation
         axis = rot.as_dcm()[:, 0]
         if axis[2] < 0.0:
-            grasp.pose.rotation = rot * from_euler("z", 180, degrees=True)
+            grasp.pose.rotation = rot * Rotation.from_euler("z", np.pi)
 
         return grasp, score
 
@@ -182,10 +182,10 @@ class PandaGraspController(object):
         msg = ros_utils.to_pose_msg(T_base_pregrasp * self.T_tcp_tool0)
         self.robot.goto_pose_target(msg)
         self.approach_grasp(T_base_grasp)
-        self.robot.move_gripper(0.0, max_effort=20.0)
+        self.robot.move_gripper(0.0, max_effort=100.0)
         msg = ros_utils.to_pose_msg(T_base_retreat * self.T_tcp_tool0)
         self.robot.goto_pose_target(msg)
-        # self.drop()
+        self.drop()
 
         # check success
 
@@ -194,6 +194,11 @@ class PandaGraspController(object):
     def approach_grasp(self, T_base_grasp):
         msg = ros_utils.to_pose_msg(T_base_grasp * self.T_tcp_tool0)
         self.robot.goto_pose_target(msg)
+
+    def drop(self):
+        self.robot.goto_joint_target([0, -0.785, 0, -2.356, 0, 1.57, 0.785], 0.2, 0.2)
+        self.robot.goto_joint_target([-0.9, -0.5, 1.6, -2.1, 0.55, 2.1, 0.75], 0.2, 0.2)
+        self.robot.move_gripper(0.04)
 
 
 class TSDFServer(object):
