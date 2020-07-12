@@ -16,6 +16,7 @@ import copy
 
 
 import cv_bridge
+import geometry_msgs.msg
 import numpy as np
 from panda_control.panda_commander import PandaCommander
 import rospy
@@ -95,12 +96,21 @@ class PandaGraspController(object):
         t_base_tag = [0.38075931, 0.00874077, 0.03670042]
         T_base_tag = Transform(R_base_tag, t_base_tag)
 
-        t_tag_task = np.r_[[-0.5 * self.size, -0.5 * self.size, -0.05]]
+        z_offset = -0.05
+        t_tag_task = np.r_[[-0.5 * self.size, -0.5 * self.size, z_offset]]
         T_tag_task = Transform(Rotation.identity(), t_tag_task)
         self.T_base_task = T_base_tag * T_tag_task
 
         self.tf_tree.broadcast_static(self.T_base_task, self.base_frame_id, "task")
         rospy.sleep(1.0)  # wait for the TF to be broadcasted
+
+        msg = geometry_msgs.msg.PoseStamped()
+        msg.header.frame_id = "task"
+        msg.pose.position.x = 0.15
+        msg.pose.position.y = 0.15
+        msg.pose.position.z = -z_offset - 0.01
+        self.robot.scene.add_box("table", msg, size=(0.5, 0.5, 0.02))
+        rospy.sleep(1.0)  # wait for the scene to be updated
 
         vis.workspace(self.size)
         rospy.loginfo("Workspace calibrated")
