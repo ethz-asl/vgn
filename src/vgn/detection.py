@@ -17,18 +17,19 @@ class VGN(object):
         self.vis = vis
 
     def __call__(self, state):
-        tsdf = state.tsdf
+        tsdf_vol = state.tsdf.get_volume()
+        voxel_size = state.tsdf.voxel_size
 
         tic = time.time()
-        out = predict(tsdf.get_volume(), self.net, self.device)
-        out = process(out)
+        out = predict(tsdf_vol, self.net, self.device)
+        out = process(tsdf_vol, out)
         grasps, scores = select(out)
         if len(grasps) > 0:
             scores, grasps = zip(*sorted(zip(scores, grasps), reverse=True))
-            grasps = [from_voxel_coordinates(g, tsdf.voxel_size) for g in grasps]
+            grasps = [from_voxel_coordinates(g, voxel_size) for g in grasps]
         toc = time.time() - tic
 
-        vis.quality(out[0], tsdf.voxel_size)
+        vis.quality(out[0], voxel_size)
 
         return grasps, scores, toc
 
@@ -43,20 +44,25 @@ def predict(tsdf_vol, net, device):
     return qual_vol, rot_vol, width_vol
 
 
-def process(out, threshold=0.90, gaussian_filter_sigma=1.0):
+def process(tsdf_vol, out, threshold=0.90, gaussian_filter_sigma=1.0):
+    tsdf_vol = tsdf_vol.squeeze()
     qual_vol, rot_vol, width_vol = out
-    # TODO figure out a more elegant way to handle the borders
-    qual_vol[:5, :, :] = 0.0
-    qual_vol[-5:, :, :] = 0.0
-    qual_vol[:, :5, :] = 0.0
-    qual_vol[:, -5:, :] = 0.0
-    qual_vol[:, :, :5] = 0.0
-    qual_vol[:, :, -5:] = 0.0
+
     # smooth with Gaussian
     qual_vol = ndimage.gaussian_filter(
         qual_vol, sigma=gaussian_filter_sigma, mode="nearest"
     )
-    # threshold
+
+    # mask out voxels too far away from the surface
+    outside_voxels = tsdf_vol > 0.5
+    inside_voxels = np.logical_and(1e-3 < tsdf_vol, tsdf_vol < 0.5)
+    valid_voxels = ndimage.morphology.binary_dilation(
+        outside_voxels, iterations=2, mask=np.logical_not(inside_voxels)
+    )
+    # vis.debug(valid_voxels.astype(np.float32), 0.0075)
+    qual_vol[valid_voxels == False] = 0.0
+
+    # threshold on grasp quality
     qual_vol[qual_vol < threshold] = 0.0
 
     return qual_vol, rot_vol, width_vol
