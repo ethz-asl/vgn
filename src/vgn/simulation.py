@@ -43,14 +43,22 @@ class GraspSimulation(object):
         self._draw_workspace()
         self._drop_objects(object_count)
 
-    def acquire_tsdf(self, n):
+    def acquire_tsdf(self, n, N=None):
+        """Render synthetic depth images from n viewpoints and integrate into a TSDF.
+        
+        If N is None, the n viewpoints are equally distributed on circular trajectory.
+
+        If N is given, the first n viewpoints on a circular trajectory consisting of N points are rendered.
+        """
         tsdf = TSDFVolume(self.size, 40)
         high_res_tsdf = TSDFVolume(self.size, 120)
 
         origin = Transform(Rotation.identity(), np.r_[self.size / 2, self.size / 2, 0])
         r = 1.5 * self.size
         theta = np.pi / 4.0
-        phi_list = 2.0 * np.pi * np.arange(n) / n
+
+        N = N if N else n
+        phi_list = 2.0 * np.pi * np.arange(n) / N
         extrinsics = [camera_on_sphere(origin, r, theta, phi) for phi in phi_list]
 
         for extrinsic in extrinsics:

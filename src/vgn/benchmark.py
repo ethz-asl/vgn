@@ -30,9 +30,17 @@ State = collections.namedtuple("State", ["tsdf", "pc"])
 
 
 def run(
-    grasp_plan_fn, log_dir, object_set, object_count, rounds, no_contact, sim_gui, seed,
+    grasp_plan_fn,
+    log_dir,
+    object_set="test",
+    object_count=5,
+    rounds=40,
+    no_contact=False,
+    sim_gui=False,
+    seed=1,
+    n=5,
+    N=None,
 ):
-
     config = Path("config/sim.yaml")
     sim = GraspSimulation(object_set, config, gui=sim_gui, seed=seed)
     logger = Logger(log_dir)
@@ -45,7 +53,7 @@ def run(
 
         while sim.num_objects > 0 and consecutive_failures < 3:
             # scan the scene
-            tsdf, pc = sim.acquire_tsdf(n=5)
+            tsdf, pc = sim.acquire_tsdf(n=n, N=N)
 
             # visualize
             vis.clear()
