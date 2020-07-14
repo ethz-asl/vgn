@@ -1,16 +1,82 @@
+"""Simulated grasping in clutter.
+
+Each round, N objects are randomly placed in a tray. Then, the system is run until
+(a) no objects remain, (b) the planner failed to find a grasp hypothesis, or (c)
+three consecutive failed grasp attempts.
+
+Measured metrics are
+  * grasp success rate
+  * percent cleared
+  * planning time
+"""
+
 from __future__ import division
 
 import collections
+from pathlib2 import Path
 import uuid
 
 import numpy as np
 import pandas as pd
+import tqdm
 
+from vgn import vis
 from vgn.grasp import *
+from vgn.simulation import GraspSimulation
 from vgn.utils import io
 
 
 State = collections.namedtuple("State", ["tsdf", "pc"])
+
+
+def run(
+    grasp_plan_fn, log_dir, object_set, object_count, rounds, no_contact, sim_gui, seed,
+):
+
+    config = Path("config/sim.yaml")
+    sim = GraspSimulation(object_set, config, gui=sim_gui, seed=seed)
+    logger = Logger(log_dir)
+
+    for _ in tqdm.tqdm(range(rounds)):
+        sim.reset(object_count)
+        logger.new_round(sim.num_objects)
+        consecutive_failures = 1
+        last_label = None
+
+        while sim.num_objects > 0 and consecutive_failures < 3:
+            # scan the scene
+            tsdf, pc = sim.acquire_tsdf(n=5)
+
+            # visualize
+            vis.clear()
+            vis.workspace(sim.size)
+            vis.tsdf(tsdf.get_volume().squeeze(), tsdf.voxel_size)
+            vis.points(np.asarray(pc.points))
+
+            # plan grasps
+            state = State(tsdf, pc)
+            grasps, scores, planning_time = grasp_plan_fn(state)
+
+            if len(grasps) == 0:
+                break  # no detections found, abort this round
+
+            # select grasp
+            grasp, score = grasps[0], scores[0]
+
+            # visualize
+            vis.grasps(grasps, scores, sim.config["finger_depth"])
+
+            # execute grasp
+            label, _ = sim.execute_grasp(grasp.pose, abort_on_contact=no_contact)
+
+            # log the grasp
+            logger.log_grasp(state, planning_time, grasp, score, label)
+
+            if last_label == Label.FAILURE and label == Label.FAILURE:
+                consecutive_failures += 1
+            else:
+                consecutive_failures = 1
+            last_label = label
 
 
 class Logger(object):
