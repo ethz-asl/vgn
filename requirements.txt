@@ -7,7 +7,7 @@ pandas
 matplotlib
 mpi4py
 open3d==0.8.0
-pybullet
+pybullet==2.7.9
 pyyaml
 torch
 pytorch-ignite==0.2.1
