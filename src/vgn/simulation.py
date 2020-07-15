@@ -174,8 +174,10 @@ class GraspSimulation(object):
             removed_object = self._remove_objects_outside_workspace()
 
     def _check_success(self, gripper):
-        # TODO this could be improved
-        return gripper.read() > 0.1 * gripper.max_opening_width
+        # check that the fingers are in contact with some object and not fully closed
+        contacts = self.world.get_contacts(gripper.body)
+        res = len(contacts) > 0 and gripper.read() > 0.1 * gripper.max_opening_width
+        return res
 
 
 class Gripper(object):

@@ -29,7 +29,7 @@ class VGN(object):
             grasps = [from_voxel_coordinates(g, voxel_size) for g in grasps]
         toc = time.time() - tic
 
-        vis.quality(out.squeeze(), voxel_size)
+        vis.quality(out[0], voxel_size)
 
         return grasps, scores, toc
 

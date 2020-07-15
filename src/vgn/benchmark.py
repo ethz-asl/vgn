@@ -55,6 +55,10 @@ def run(
             # scan the scene
             tsdf, pc = sim.acquire_tsdf(n=n, N=N)
 
+            if pc.is_empty():
+                print("Point cloud empty, skipping scene")
+                continue
+
             # visualize
             vis.clear()
             vis.workspace(sim.size)
