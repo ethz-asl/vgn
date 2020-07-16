@@ -56,8 +56,7 @@ def run(
             tsdf, pc = sim.acquire_tsdf(n=n, N=N)
 
             if pc.is_empty():
-                print("Point cloud empty, skipping scene")
-                continue
+                break  # empty point cloud, abort this round TODO how is it possible to get here ?
 
             # visualize
             vis.clear()
