@@ -14,7 +14,6 @@ class VGN(object):
     def __init__(self, model_path):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.net = load_network(model_path, self.device)
-        self.vis = vis
 
     def __call__(self, state):
         tsdf_vol = state.tsdf.get_volume()
