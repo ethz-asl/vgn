@@ -3,7 +3,7 @@ import pandas
 from scipy import ndimage
 import torch.utils.data
 
-from vgn.grasp import Grasp, from_voxel_coordinates
+from vgn.grasp import Grasp
 from vgn.utils.transform import Rotation, Transform
 from vgn import vis
 
@@ -33,24 +33,19 @@ class Dataset(torch.utils.data.Dataset):
 
         return x, y, index
 
-    def draw(self, i, finger_depth):
-        size = 6.0 * finger_depth
-        voxel_size = size / 40.0
+    def draw(self, i):
+        voxel_size = 1.0
+        size = 40.0
+        finger_depth = size / 6.0
 
         scene_id, index, rotation, width, label = self._lookup(i)
         tsdf = self._read_tsdf(scene_id)
         grasp = Grasp(Transform(rotation, index), width)
-        grasp = from_voxel_coordinates(grasp, voxel_size)
 
         vis.clear()
         vis.workspace(size)
         vis.tsdf(tsdf.squeeze(), voxel_size)
-        vis.grasps([grasp], [float(label)], finger_depth)
-
-        cloud_path = self.root / "clouds" / (scene_id + ".npz")
-        if cloud_path.exists():
-            points = np.load(str(cloud_path))["points"]
-            vis.points(points)
+        vis.grasp(grasp, float(label), finger_depth)
 
     def _lookup(self, i):
         scene_id = self.df.loc[i, "scene_id"]
