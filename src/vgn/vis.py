@@ -42,12 +42,12 @@ def draw_points(points):
     pubs["points"].publish(msg)
 
 
-def draw_quality_vol(vol, voxel_size, threshold=0.01):
+def draw_quality(vol, voxel_size, threshold=0.01):
     msg = _create_vol_msg(vol, voxel_size, threshold)
     pubs["quality"].publish(msg)
 
 
-def draw_debug_vol(vol, voxel_size, threshold=0.01):
+def draw_volume(vol, voxel_size, threshold=0.01):
     msg = _create_vol_msg(vol, voxel_size, threshold)
     pubs["debug"].publish(msg)
 
@@ -77,7 +77,7 @@ def clear():
     pubs["debug"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
 
 
-def draw_sample(x, y, index, finger_depth=40.0 / 6.0):
+def draw_sample(x, y, index, finger_depth):
     size = 6.0 * finger_depth
     voxel_size = size / 40.0
     tsdf, (label, rotations, width), index = x, y, index

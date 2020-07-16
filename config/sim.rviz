@@ -47,52 +47,6 @@ Visualization Manager:
         "": true
       Queue Size: 100
       Value: true
-    - Alpha: 1
-      Autocompute Intensity Bounds: true
-      Autocompute Value Bounds:
-        Max Value: 0.11757335066795349
-        Min Value: 0.003000000026077032
-        Value: true
-      Axis: Z
-      Channel Name: intensity
-      Class: rviz/PointCloud2
-      Color: 255; 255; 255
-      Color Transformer: FlatColor
-      Decay Time: 0
-      Enabled: true
-      Invert Rainbow: false
-      Max Color: 255; 255; 255
-      Max Intensity: 4096
-      Min Color: 0; 0; 0
-      Min Intensity: 0
-      Name: Points
-      Position Transformer: XYZ
-      Queue Size: 10
-      Selectable: true
-      Size (Pixels): 3
-      Size (m): 0.0010000000474974513
-      Style: Spheres
-      Topic: /points
-      Unreliable: false
-      Use Fixed Frame: true
-      Use rainbow: true
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /grasps
-      Name: Grasps
-      Namespaces:
-        "": true
-      Queue Size: 100
-      Value: true
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: /grasp
-      Name: Prediction
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
     - Alpha: 0.10000000149011612
       Autocompute Intensity Bounds: false
       Autocompute Value Bounds:
@@ -119,6 +73,36 @@ Visualization Manager:
       Size (m): 0.00800000037997961
       Style: Boxes
       Topic: /tsdf
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 0.11757335066795349
+        Min Value: 0.003000000026077032
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: FlatColor
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: Points
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.0010000000474974513
+      Style: Spheres
+      Topic: /points
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
@@ -152,6 +136,22 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: false
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /grasps
+      Name: Detections
+      Namespaces:
+        "": true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /grasp
+      Name: Selection
+      Namespaces:
+        "": true
+      Queue Size: 100
       Value: true
     - Alpha: 0.10000000149011612
       Autocompute Intensity Bounds: false
@@ -211,7 +211,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.7124640941619873
+      Distance: 0.6846344470977783
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -226,10 +226,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.3899989426136017
+      Pitch: 0.3099995255470276
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.2850124835968018
+      Yaw: 6.278207302093506
     Saved: ~
 Window Geometry:
   Displays:
@@ -247,5 +247,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1301
-  X: 1083
-  Y: 286
+  X: 619
+  Y: 62

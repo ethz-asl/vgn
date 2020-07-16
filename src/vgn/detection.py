@@ -28,7 +28,7 @@ class VGN(object):
             grasps = [from_voxel_coordinates(g, voxel_size) for g in grasps]
         toc = time.time() - tic
 
-        vis.draw_quality_vol(out[0], voxel_size)
+        vis.draw_quality(out[0], voxel_size)
 
         return grasps, scores, toc
 
@@ -58,7 +58,7 @@ def process(tsdf_vol, out, threshold=0.90, gaussian_filter_sigma=1.0):
     valid_voxels = ndimage.morphology.binary_dilation(
         outside_voxels, iterations=2, mask=np.logical_not(inside_voxels)
     )
-    # vis.draw_debug_vol(valid_voxels.astype(np.float32), 0.0075)
+    # vis.draw_volume(valid_voxels.astype(np.float32), 0.0075)
     qual_vol[valid_voxels == False] = 0.0
 
     # threshold on grasp quality
@@ -75,14 +75,22 @@ def select(out, max_filter_size=3):
     qual_vol = np.where(qual_vol == max_vol, qual_vol, 0.0)
     mask = np.where(qual_vol, 1.0, 0.0)
 
+    # construct grasps
     grasps, scores = [], []
     for index in np.argwhere(mask):
-        i, j, k = index
-        qual = qual_vol[i, j, k]
-        ori = Rotation.from_quat(rot_vol[:, i, j, k])
-        pos = np.array([i, j, k], dtype=np.float64)
-        width = width_vol[i, j, k]
-        grasps.append(Grasp(Transform(ori, pos), width))
-        scores.append(qual)
+        grasp, score = select_index(out, index)
+        grasps.append(grasp)
+        scores.append(score)
 
     return grasps, scores
+
+
+def select_index(out, index):
+    qual_vol, rot_vol, width_vol = out
+    i, j, k = index
+    score = qual_vol[i, j, k]
+    ori = Rotation.from_quat(rot_vol[:, i, j, k])
+    pos = np.array([i, j, k], dtype=np.float64)
+    width = width_vol[i, j, k]
+    return Grasp(Transform(ori, pos), width), score
+
