@@ -28,7 +28,7 @@ class VGN(object):
             grasps = [from_voxel_coordinates(g, voxel_size) for g in grasps]
         toc = time.time() - tic
 
-        vis.quality(out[0], voxel_size)
+        vis.draw_quality_vol(out[0], voxel_size)
 
         return grasps, scores, toc
 
@@ -58,7 +58,7 @@ def process(tsdf_vol, out, threshold=0.90, gaussian_filter_sigma=1.0):
     valid_voxels = ndimage.morphology.binary_dilation(
         outside_voxels, iterations=2, mask=np.logical_not(inside_voxels)
     )
-    # vis.debug(valid_voxels.astype(np.float32), 0.0075)
+    # vis.draw_debug_vol(valid_voxels.astype(np.float32), 0.0075)
     qual_vol[valid_voxels == False] = 0.0
 
     # threshold on grasp quality

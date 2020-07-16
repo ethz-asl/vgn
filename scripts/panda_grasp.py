@@ -91,7 +91,7 @@ class PandaGraspController(object):
             raise ValueError
 
     def calibrate_workspace(self):
-        vis.clear_workspace()
+        vis.clear()
         self.robot.home()
 
         # T_base_tag = self.tf_tree.lookup(self.base_frame_id, "tag_0", rospy.Time(0))
@@ -115,22 +115,23 @@ class PandaGraspController(object):
         self.robot.scene.add_box("table", msg, size=(0.6, 0.6, 0.02))
         rospy.sleep(1.0)  # wait for the scene to be updated
 
-        vis.workspace(self.size)
+        vis.draw_workspace(self.size)
         rospy.loginfo("Calibrated workspace")
 
     def run(self):
         vis.clear()
+        vis.draw_workspace(self.size)
         self.robot.move_gripper(0.04)
         self.robot.home()
 
         tsdf, pc = self.acquire_tsdf()
-        vis.tsdf(tsdf.get_volume().squeeze(), tsdf.voxel_size)
-        vis.points(np.asarray(pc.points))
+        vis.draw_tsdf(tsdf.get_volume().squeeze(), tsdf.voxel_size)
+        vis.draw_points(np.asarray(pc.points))
         rospy.loginfo("Reconstructed scene")
 
         state = State(tsdf, pc)
         grasps, scores, planning_time = self.plan_grasps(state)
-        vis.grasps(grasps, scores, self.finger_depth)
+        vis.draw_grasps(grasps, scores, self.finger_depth)
         rospy.loginfo("Planned grasps")
 
         if len(grasps) == 0:
@@ -138,7 +139,7 @@ class PandaGraspController(object):
             return
 
         grasp, score = self.select_grasp(grasps, scores)
-        vis.grasp(grasp, score, self.finger_depth)
+        vis.draw_grasp(grasp, score, self.finger_depth)
         rospy.loginfo("Selected grasp")
 
         label = self.execute_grasp(grasp)

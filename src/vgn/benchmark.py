@@ -60,9 +60,9 @@ def run(
 
             # visualize
             vis.clear()
-            vis.workspace(sim.size)
-            vis.tsdf(tsdf.get_volume().squeeze(), tsdf.voxel_size)
-            vis.points(np.asarray(pc.points))
+            vis.draw_workspace(sim.size)
+            vis.draw_tsdf(tsdf.get_volume().squeeze(), tsdf.voxel_size)
+            vis.draw_points(np.asarray(pc.points))
 
             # plan grasps
             state = State(tsdf, pc)
@@ -75,7 +75,7 @@ def run(
             grasp, score = grasps[0], scores[0]
 
             # visualize
-            vis.grasps(grasps, scores, sim.config["finger_depth"])
+            vis.draw_grasps(grasps, scores, sim.config["finger_depth"])
 
             # execute grasp
             label, _ = sim.execute_grasp(grasp.pose, abort_on_contact=no_contact)

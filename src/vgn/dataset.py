@@ -5,7 +5,6 @@ import torch.utils.data
 
 from vgn.grasp import Grasp
 from vgn.utils.transform import Rotation, Transform
-from vgn import vis
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -32,20 +31,6 @@ class Dataset(torch.utils.data.Dataset):
         x, y, index = tsdf, (label, rotations, width), index
 
         return x, y, index
-
-    def draw(self, i):
-        voxel_size = 1.0
-        size = 40.0
-        finger_depth = size / 6.0
-
-        scene_id, index, rotation, width, label = self._lookup(i)
-        tsdf = self._read_tsdf(scene_id)
-        grasp = Grasp(Transform(rotation, index), width)
-
-        vis.clear()
-        vis.workspace(size)
-        vis.tsdf(tsdf.squeeze(), voxel_size)
-        vis.grasp(grasp, float(label), finger_depth)
 
     def _lookup(self, i):
         scene_id = self.df.loc[i, "scene_id"]

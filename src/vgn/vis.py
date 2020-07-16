@@ -1,5 +1,7 @@
 """Render volumes, point clouds, and grasp detections in rviz."""
 
+from __future__ import division
+
 
 import colorsys
 import time
@@ -11,7 +13,7 @@ import rospy
 from rospy import Publisher
 from visualization_msgs.msg import Marker, MarkerArray
 
-
+from vgn.grasp import Grasp, from_voxel_coordinates
 from vgn.utils import ros_utils, workspace_lines
 from vgn.utils.transform import Transform, Rotation
 
@@ -20,8 +22,7 @@ cmap = matplotlib.colors.LinearSegmentedColormap.from_list("RedGreen", ["r", "g"
 DELETEALL_MSG = Marker(action=Marker.DELETEALL)
 
 
-def workspace(size):
-    """Draw edges of the workspace."""
+def draw_workspace(size):
     scale = size * 0.005
     pose = Transform.identity()
     scale = [scale, 0.0, 0.0]
@@ -31,32 +32,32 @@ def workspace(size):
     pubs["workspace"].publish(msg)
 
 
-def tsdf(vol, voxel_size, threshold=0.01):
-    """Draw TSDF volume."""
+def draw_tsdf(vol, voxel_size, threshold=0.01):
     msg = _create_vol_msg(vol, voxel_size, threshold)
     pubs["tsdf"].publish(msg)
 
 
-def points(points):
-    """Draw point cloud."""
+def draw_points(points):
     msg = ros_utils.to_cloud_msg(points, frame="task")
     pubs["points"].publish(msg)
 
 
-def quality(vol, voxel_size, threshold=0.01):
-    """Draw grasp quality volume."""
+def draw_quality_vol(vol, voxel_size, threshold=0.01):
     msg = _create_vol_msg(vol, voxel_size, threshold)
     pubs["quality"].publish(msg)
 
 
-def grasp(grasp, score, finger_depth):
-    """Draw a grasp."""
+def draw_debug_vol(vol, voxel_size, threshold=0.01):
+    msg = _create_vol_msg(vol, voxel_size, threshold)
+    pubs["debug"].publish(msg)
+
+
+def draw_grasp(grasp, score, finger_depth):
     msg = _create_grasp_marker_msg(grasp, score, finger_depth)
     pubs["grasp"].publish(msg)
 
 
-def grasps(grasps, scores, finger_depth):
-    """Draw a list of grasps."""
+def draw_grasps(grasps, scores, finger_depth):
     markers = []
     for i, (grasp, score) in enumerate(zip(grasps, scores)):
         msg = _create_grasp_marker_msg(grasp, score, finger_depth)
@@ -66,14 +67,7 @@ def grasps(grasps, scores, finger_depth):
     pubs["grasps"].publish(msg)
 
 
-def debug(vol, voxel_size, threshold=0.01):
-    """Additional topic for visualizing some debug volume."""
-    msg = _create_vol_msg(vol, voxel_size, threshold)
-    pubs["debug"].publish(msg)
-
-
 def clear():
-    """Clear visualizer."""
     pubs["workspace"].publish(DELETEALL_MSG)
     pubs["tsdf"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
     pubs["points"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
@@ -81,6 +75,20 @@ def clear():
     pubs["grasp"].publish(DELETEALL_MSG)
     pubs["grasps"].publish(MarkerArray(markers=[DELETEALL_MSG]))
     pubs["debug"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
+
+
+def draw_sample(x, y, index, finger_depth=40.0 / 6.0):
+    size = 6.0 * finger_depth
+    voxel_size = size / 40.0
+    tsdf, (label, rotations, width), index = x, y, index
+
+    grasp = Grasp(Transform(Rotation.from_quat(rotations[0]), index), width)
+    grasp = from_voxel_coordinates(grasp, voxel_size)
+
+    clear()
+    draw_workspace(size)
+    draw_tsdf(tsdf.squeeze(), voxel_size)
+    draw_grasp(grasp, float(label), finger_depth)
 
 
 def _create_publishers():
