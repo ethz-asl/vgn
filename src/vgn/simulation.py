@@ -1,20 +1,19 @@
+from __future__ import division
+
 from pathlib2 import Path
 
 import numpy as np
 import pybullet
-import scipy.stats as stats
 
 from vgn.grasp import Label
 from vgn.perception import *
-from vgn.utils import btsim, io, workspace_lines
+from vgn.utils import btsim, workspace_lines
 from vgn.utils.transform import Rotation, Transform
 
 
 class GraspSimulation(object):
-    def __init__(self, object_set, config_path, gui=True, seed=None):
-        self.config = io.read_yaml(Path(config_path))
-
-        self._urdf_root = Path(self.config["urdf_root"])
+    def __init__(self, object_set, gui=True, seed=None):
+        self._urdf_root = Path("data/urdfs")
         self._object_set = object_set
         self._discover_object_urdfs()
         self._rng = np.random.RandomState(seed) if seed else np.random
@@ -23,7 +22,8 @@ class GraspSimulation(object):
         self._gui = gui
 
         self.world = btsim.BtWorld(self._gui)
-        self.size = 6 * self.config["finger_depth"]
+        self.gripper = Gripper(self.world)
+        self.size = 6 * self.gripper.finger_depth
 
     @property
     def num_objects(self):
@@ -74,26 +74,26 @@ class GraspSimulation(object):
         T_world_pregrasp = T_world_grasp * T_grasp_pregrasp
         T_world_retreat = T_world_grasp * T_grasp_retreat
 
-        gripper = Gripper(self.world, self.config)
-        gripper.set_tcp(T_world_pregrasp)
+        self.gripper.reset(T_world_pregrasp)
 
-        if gripper.detect_collision(threshold=0.0):
-            result = Label.FAILURE, gripper.max_opening_width
+        if self.gripper.detect_collision(threshold=0.0):
+            result = Label.FAILURE, self.gripper.max_opening_width
         else:
-            gripper.move_tcp_xyz(T_world_grasp, abort_on_contact=True)
-            if gripper.detect_collision() and abort_on_contact:
-                result = Label.FAILURE, gripper.max_opening_width
+            self.gripper.move_tcp_xyz(T_world_grasp, abort_on_contact=True)
+            if self.gripper.detect_collision() and abort_on_contact:
+                result = Label.FAILURE, self.gripper.max_opening_width
             else:
-                gripper.move(0.0)
-                gripper.move_tcp_xyz(T_world_retreat, abort_on_contact=False)
-                if self._check_success(gripper):
-                    result = Label.SUCCESS, gripper.read()
+                self.gripper.move(0.0)
+                self.gripper.move_tcp_xyz(T_world_retreat, abort_on_contact=False)
+                if self._check_success(self.gripper):
+                    result = Label.SUCCESS, self.gripper.read()
                     if remove:
-                        contacts = self.world.get_contacts(gripper.body)
+                        contacts = self.world.get_contacts(self.gripper.body)
                         self.world.remove_body(contacts[0].bodyB)
                 else:
-                    result = Label.FAILURE, gripper.max_opening_width
-        del gripper
+                    result = Label.FAILURE, self.gripper.max_opening_width
+
+        self.world.remove_body(self.gripper.body)
 
         if remove:
             self._remove_and_wait()
@@ -181,21 +181,21 @@ class GraspSimulation(object):
 
 
 class Gripper(object):
-    def __init__(self, world, config):
-        self.world = world
-        self.body = None
-        self.max_opening_width = config["max_opening_width"]
+    """Simulated Panda hand."""
 
-        self.T_body_tcp = Transform.from_dict(config["T_tool0_tcp"])
+    def __init__(self, world):
+        self.world = world
+        self.urdf_path = Path("data/urdfs/panda/hand.urdf")
+
+        self.max_opening_width = 0.08
+        self.finger_depth = 0.05
+        self.T_body_tcp = Transform(Rotation.identity(), [0.0, 0.0, 0.022])
         self.T_tcp_body = self.T_body_tcp.inverse()
 
-        self._urdf_path = Path(config["urdf_root"]) / "panda/hand.urdf"
-
-    def __del__(self):
-        self.world.remove_body(self.body)
-
-    def _load(self, T_world_body):
-        self.body = self.world.load_urdf(self._urdf_path, T_world_body)
+    def reset(self, T_world_tcp):
+        T_world_body = T_world_tcp * self.T_tcp_body
+        self.body = self.world.load_urdf(self.urdf_path, T_world_body)
+        self.body.set_pose(T_world_body)  # sets the position of the COM, not URDF link
         self.constraint = self.world.add_constraint(
             self.body,
             None,
@@ -206,7 +206,9 @@ class Gripper(object):
             Transform.identity(),
             T_world_body,
         )
-        self.world.add_constraint(  # constraint to keep fingers centered
+        self.update_tcp_constraint(T_world_tcp)
+        # constraint to keep fingers centered
+        self.world.add_constraint(
             self.body,
             self.body.links["panda_leftfinger"],
             self.body,
@@ -216,13 +218,12 @@ class Gripper(object):
             Transform.identity(),
             Transform.identity(),
         ).change(gearRatio=-1, erp=0.1, maxForce=50)
-
         self.joint1 = self.body.joints["panda_finger_joint1"]
-        self.joint2 = self.body.joints["panda_finger_joint2"]
         self.joint1.set_position(0.5 * self.max_opening_width, kinematics=True)
+        self.joint2 = self.body.joints["panda_finger_joint2"]
         self.joint2.set_position(0.5 * self.max_opening_width, kinematics=True)
 
-    def _change_tcp_constraint(self, T_world_tcp):
+    def update_tcp_constraint(self, T_world_tcp):
         T_world_body = T_world_tcp * self.T_tcp_body
         self.constraint.change(
             jointChildPivot=T_world_body.translation,
@@ -232,10 +233,8 @@ class Gripper(object):
 
     def set_tcp(self, T_world_tcp):
         T_word_body = T_world_tcp * self.T_tcp_body
-        if self.body is None:  # spawn robot if necessary
-            self._load(T_word_body)
         self.body.set_pose(T_word_body)
-        self._change_tcp_constraint(T_world_tcp)
+        self.update_tcp_constraint(T_world_tcp)
 
     def move_tcp_xyz(self, target, eef_step=0.002, vel=0.10, abort_on_contact=True):
         T_world_body = self.body.get_pose()
@@ -248,7 +247,7 @@ class Gripper(object):
 
         for _ in range(n_steps):
             T_world_tcp.translation += dist_step
-            self._change_tcp_constraint(T_world_tcp)
+            self.update_tcp_constraint(T_world_tcp)
             for _ in range(int(dur_step / self.world.dt)):
                 self.world.step()
             if abort_on_contact and self.detect_collision():

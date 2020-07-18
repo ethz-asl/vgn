@@ -41,8 +41,7 @@ def run(
     n=5,
     N=None,
 ):
-    config = Path("config/sim.yaml")
-    sim = GraspSimulation(object_set, config, gui=sim_gui, seed=seed)
+    sim = GraspSimulation(object_set, gui=sim_gui, seed=seed)
     logger = Logger(log_dir)
 
     for _ in tqdm.tqdm(range(rounds)):
@@ -75,7 +74,7 @@ def run(
             grasp, score = grasps[0], scores[0]
 
             # visualize
-            vis.draw_grasps(grasps, scores, sim.config["finger_depth"])
+            vis.draw_grasps(grasps, scores, sim.gripper.finger_depth)
 
             # execute grasp
             label, _ = sim.execute_grasp(grasp.pose, abort_on_contact=no_contact)
