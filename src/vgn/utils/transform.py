@@ -36,6 +36,9 @@ class Transform(object):
             "translation": self.translation.tolist(),
         }
 
+    def to_list(self):
+        return np.r_[self.rotation.as_quat(), self.translation]
+
     def __mul__(self, other):
         """Compose this transform with another."""
         rotation = self.rotation * other.rotation
@@ -65,6 +68,12 @@ class Transform(object):
     def from_dict(cls, dictionary):
         rotation = Rotation.from_quat(dictionary["rotation"])
         translation = np.asarray(dictionary["translation"])
+        return cls(rotation, translation)
+
+    @classmethod
+    def from_list(cls, list):
+        rotation = Rotation.from_quat(list[:4])
+        translation = list[4:]
         return cls(rotation, translation)
 
     @classmethod

@@ -24,6 +24,8 @@ class GraspSimulation(object):
         self.world = btsim.BtWorld(self._gui)
         self.gripper = Gripper(self.world)
         self.size = 6 * self.gripper.finger_depth
+        intrinsic = CameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)
+        self.camera = self.world.add_camera(intrinsic, 0.1, 2.0)
 
     @property
     def num_objects(self):
@@ -39,7 +41,6 @@ class GraspSimulation(object):
         self.world.reset()
         self.world.set_gravity([0.0, 0.0, -9.81])
         self._setup_table()
-        self._setup_camera()
         self._draw_workspace()
         self._drop_objects(object_count)
 
@@ -108,10 +109,6 @@ class GraspSimulation(object):
         urdf = self._urdf_root / "table" / "plane.urdf"
         pose = Transform(Rotation.identity(), [0.15, 0.15, 1.0 / 6.0 * self.size])
         self.world.load_urdf(urdf, pose, scale=0.6)
-
-    def _setup_camera(self):
-        intrinsic = CameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)
-        self.camera = self.world.add_camera(intrinsic, 0.1, 2.0)
 
     def _draw_workspace(self):
         points = workspace_lines(self.size)
