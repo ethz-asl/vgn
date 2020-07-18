@@ -77,9 +77,11 @@ def clear():
     pubs["debug"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
 
 
-def draw_sample(x, y, index, finger_depth):
-    size = 6.0 * finger_depth
+def draw_sample(x, y, index):
+    size = 40.0  # TODO
+    finger_depth = size / 6.0
     voxel_size = size / 40.0
+
     tsdf, (label, rotations, width), index = x, y, index
 
     grasp = Grasp(Transform(Rotation.from_quat(rotations[0]), index), width)

@@ -27,7 +27,7 @@ from vgn.utils.transform import Rotation, Transform
 
 OBJECT_COUNT_LAMBDA = 4
 VIEWPOINT_COUNT = 6
-GRASPS_PER_SCENE = 60
+GRASPS_PER_SCENE = 120
 
 
 def main(args):

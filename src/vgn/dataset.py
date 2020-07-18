@@ -8,10 +8,11 @@ from vgn.utils.transform import Rotation, Transform
 
 
 class Dataset(torch.utils.data.Dataset):
-    def __init__(self, root, augment=False):
+    def __init__(self, root, augment=False, tsdf="partial"):
         self.root = root
         self.df = pandas.read_csv(self.root / "grasps.csv")
         self._augment = augment
+        self._tsdf = tsdf
 
     def __len__(self):
         return len(self.df.index)
@@ -33,16 +34,19 @@ class Dataset(torch.utils.data.Dataset):
         return x, y, index
 
     def _lookup(self, i):
+        voxel_size = 0.3 / 40.0  # TODO
         scene_id = self.df.loc[i, "scene_id"]
-        index = self.df.loc[i, "i":"k"].to_numpy(dtype=np.long)
         rotation = Rotation.from_quat(self.df.loc[i, "qx":"qw"].to_numpy())
-        width = self.df.loc[i, "width"]
+        position = self.df.loc[i, "x":"z"].to_numpy(dtype=np.double)
+        index = np.round(position / voxel_size).astype(np.long)
+        width = self.df.loc[i, "width"] / voxel_size
         label = self.df.loc[i, "label"]
+
         return scene_id, index, rotation, width, label
 
     def _read_tsdf(self, scene_id):
         tsdf_path = self.root / "tsdfs" / (scene_id + ".npz")
-        return np.load(str(tsdf_path))["tsdf"]
+        return np.load(str(tsdf_path))[self._tsdf]
 
     def _apply_random_transform(self, tsdf, index, rotation):
         # center sample at grasp point
