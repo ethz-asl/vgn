@@ -12,8 +12,9 @@ from vgn.utils.transform import Rotation, Transform
 
 
 class GraspSimulation(object):
-    def __init__(self, object_set, gui=True, seed=None):
+    def __init__(self, scene, object_set, gui=True, seed=None):
         self._urdf_root = Path("data/urdfs")
+        self._scene = scene
         self._object_set = object_set
         self._discover_object_urdfs()
         self._rng = np.random.RandomState(seed) if seed else np.random
@@ -40,9 +41,46 @@ class GraspSimulation(object):
     def reset(self, object_count):
         self.world.reset()
         self.world.set_gravity([0.0, 0.0, -9.81])
-        self._setup_table()
-        self._draw_workspace()
-        self._drop_objects(object_count)
+        self.draw_workspace()
+
+        if self._scene == "table-top":
+            self.setup_table_top_scene(object_count)
+        else:
+            raise ValueError("Invalid scene argument")
+
+    def draw_workspace(self):
+        points = workspace_lines(self.size)
+        color = [0.5, 0.5, 0.5]
+        for i in range(0, len(points), 2):
+            self.world.p.addUserDebugLine(
+                lineFromXYZ=points[i], lineToXYZ=points[i + 1], lineColorRGB=color
+            )
+
+    def setup_table_top_scene(self, object_count):
+        # place table
+        table_height = 1.0 / 6.0 * self.size
+        urdf = self._urdf_root / "table" / "plane.urdf"
+        pose = Transform(Rotation.identity(), [0.15, 0.15, table_height])
+        self.world.load_urdf(urdf, pose, scale=0.6)
+
+        # place a box
+        urdf = self._urdf_root / "table" / "box.urdf"
+        pose = Transform(Rotation.identity(), np.r_[0.02, 0.02, table_height])
+        box = self.world.load_urdf(urdf, pose, scale=1.3)
+
+        # drop objects
+        urdfs = self._rng.choice(self._urdfs, size=object_count)
+        for urdf in urdfs:
+            rotation = Rotation.random(random_state=self._rng)
+            xy = self._rng.uniform(1.0 / 3.0 * self.size, 2.0 / 3.0 * self.size, 2)
+            pose = Transform(rotation, np.r_[xy, table_height + 0.2])
+            scale = self._rng.uniform(0.8, 1.0) if self._train else 1.0
+            body = self.world.load_urdf(urdf, pose, scale=self._global_scaling * scale)
+            self._wait_for_objects_to_rest(timeout=1.0)
+
+        # remove box
+        self.world.remove_body(box)
+        self._remove_and_wait()
 
     def acquire_tsdf(self, n, N=None):
         """Render synthetic depth images from n viewpoints and integrate into a TSDF.
@@ -105,41 +143,6 @@ class GraspSimulation(object):
         root = self._urdf_root / self._object_set
         self._urdfs = [f for f in root.iterdir() if f.suffix == ".urdf"]
 
-    def _setup_table(self):
-        urdf = self._urdf_root / "table" / "plane.urdf"
-        pose = Transform(Rotation.identity(), [0.15, 0.15, 1.0 / 6.0 * self.size])
-        self.world.load_urdf(urdf, pose, scale=0.6)
-
-    def _draw_workspace(self):
-        points = workspace_lines(self.size)
-        color = [0.5, 0.5, 0.5]
-        for i in range(0, len(points), 2):
-            self.world.p.addUserDebugLine(
-                lineFromXYZ=points[i], lineToXYZ=points[i + 1], lineColorRGB=color
-            )
-
-    def _drop_objects(self, object_count):
-        table_height = self.world.bodies[0].get_pose().translation[2]
-
-        # place a box
-        urdf = self._urdf_root / "table" / "box.urdf"
-        pose = Transform(Rotation.identity(), np.r_[0.02, 0.02, table_height])
-        box = self.world.load_urdf(urdf, pose, scale=1.3)
-
-        # drop objects
-        urdfs = self._rng.choice(self._urdfs, size=object_count)
-        for urdf in urdfs:
-            rotation = Rotation.random(random_state=self._rng)
-            xy = self._rng.uniform(1.0 / 3.0 * self.size, 2.0 / 3.0 * self.size, 2)
-            pose = Transform(rotation, np.r_[xy, table_height + 0.2])
-            scale = self._rng.uniform(0.8, 1.0) if self._train else 1.0
-            body = self.world.load_urdf(urdf, pose, scale=self._global_scaling * scale)
-            self._wait_for_objects_to_rest(timeout=1.0)
-
-        # remove box
-        self.world.remove_body(box)
-        self._remove_and_wait()
-
     def _wait_for_objects_to_rest(self, timeout=2.0, tol=0.01):
         timeout = self.world.sim_time + timeout
         objects_resting = False
@@ -157,8 +160,8 @@ class GraspSimulation(object):
     def _remove_objects_outside_workspace(self):
         removed_object = False
         for _, body in self.world.bodies.items():
-            xy = body.get_pose().translation[:2]
-            if np.any(xy < 0.0) or np.any(xy > self.size):
+            xyz = body.get_pose().translation
+            if np.any(xyz < 0.0) or np.any(xyz > self.size):
                 self.world.remove_body(body)
                 removed_object = True
         return removed_object

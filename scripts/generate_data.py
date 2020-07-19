@@ -33,7 +33,7 @@ GRASPS_PER_SCENE = 120
 def main(args):
     workers, rank = setup_mpi()
     create_dataset_dir(args.dataset, rank)
-    sim = GraspSimulation(args.object_set, gui=args.sim_gui)
+    sim = GraspSimulation(args.scene, args.object_set, gui=args.sim_gui)
     finger_depth = sim.gripper.finger_depth
     grasps_per_worker = args.grasps // workers
     pbar = tqdm(total=grasps_per_worker, disable=rank is not 0)
@@ -185,6 +185,7 @@ def store_sample(dataset_dir, scene_id, grasp, label):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=Path, required=True)
+    parser.add_argument("--scene", type=str, default="table-top")
     parser.add_argument("--object-set", type=str, required=True)
     parser.add_argument("--grasps", type=int, default=1000)
     parser.add_argument("--sim-gui", action="store_true")
