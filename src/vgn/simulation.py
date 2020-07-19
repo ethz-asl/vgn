@@ -57,8 +57,13 @@ class GraspSimulation(object):
             )
 
     def setup_table_top_scene(self, object_count):
+        finger_depth = self.gripper.finger_depth
+        table_height = finger_depth
+        l, u, z = finger_depth, self.size - finger_depth, table_height + 0.005
+        self.lower = np.r_[l, l, z]
+        self.upper = np.r_[u, u, self.size]
+
         # place table
-        table_height = 1.0 / 6.0 * self.size
         urdf = self._urdf_root / "table" / "plane.urdf"
         pose = Transform(Rotation.identity(), [0.15, 0.15, table_height])
         self.world.load_urdf(urdf, pose, scale=0.6)

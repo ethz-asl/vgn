@@ -52,9 +52,7 @@ def main(args):
         pc = reconstruct_point_cloud(sim, depth_imgs, extrinsics, n)
 
         # crop surface and borders from point cloud
-        l, u = finger_depth, sim.size - finger_depth
-        z = sim.world.bodies[0].get_pose().translation[2] + 0.005  # TODO
-        pc = pc.crop(np.r_[l, l, z], np.r_[u, u, sim.size])
+        pc = pc.crop(sim.lower, sim.upper)
 
         if pc.is_empty():
             print("Point cloud empty, skipping scene")
