@@ -126,8 +126,11 @@ def reconstruct_point_cloud(sim, depth_imgs, extrinsics, n):
 def sample_grasp_point(point_cloud, finger_depth, eps=0.1):
     points = np.asarray(point_cloud.points)
     normals = np.asarray(point_cloud.normals)
-    idx = np.random.randint(len(points))
-    point, normal = points[idx], normals[idx]
+    ok = False
+    while not ok:
+        idx = np.random.randint(len(points))
+        point, normal = points[idx], normals[idx]
+        ok = normal[2] > -0.1
     grasp_depth = np.random.uniform(-eps * finger_depth, (1.0 + eps) * finger_depth)
     point = point + normal * grasp_depth
     return point, normal
