@@ -186,7 +186,7 @@ def store_sample(dataset_dir, scene_id, grasp, label):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=Path, required=True)
-    parser.add_argument("--scene", type=str, default="table-top")
+    parser.add_argument("--scene", type=str, default="pile")
     parser.add_argument("--object-set", type=str, required=True)
     parser.add_argument("--grasps", type=int, default=1000)
     parser.add_argument("--sim-gui", action="store_true")

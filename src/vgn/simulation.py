@@ -13,15 +13,17 @@ from vgn.utils.transform import Rotation, Transform
 
 class GraspSimulation(object):
     def __init__(self, scene, object_set, gui=True, seed=None):
+        assert scene in ["pile", "packed"]
+
         self._urdf_root = Path("data/urdfs")
-        self._scene = scene
+        self.scene = scene
         self._object_set = object_set
         self._discover_object_urdfs()
-        self._rng = np.random.RandomState(seed) if seed else np.random
         self._train = True if object_set in ["train"] else False
         self._global_scaling = {"blocks": 1.67}.get(object_set, 1.0)
         self._gui = gui
 
+        self.rng = np.random.RandomState(seed) if seed else np.random
         self.world = btsim.BtWorld(self._gui)
         self.gripper = Gripper(self.world)
         self.size = 6 * self.gripper.finger_depth
@@ -43,8 +45,11 @@ class GraspSimulation(object):
         self.world.set_gravity([0.0, 0.0, -9.81])
         self.draw_workspace()
 
-        if self._scene == "table-top":
-            self.setup_table_top_scene(object_count)
+        table_height = self.gripper.finger_depth
+        self.place_table(table_height)
+
+        if self.scene == "pile":
+            self.generate_pile(object_count, table_height)
         else:
             raise ValueError("Invalid scene argument")
 
@@ -56,36 +61,38 @@ class GraspSimulation(object):
                 lineFromXYZ=points[i], lineToXYZ=points[i + 1], lineColorRGB=color
             )
 
-    def setup_table_top_scene(self, object_count):
-        finger_depth = self.gripper.finger_depth
-        table_height = finger_depth
-        l, u, z = finger_depth, self.size - finger_depth, table_height + 0.005
-        self.lower = np.r_[l, l, z]
-        self.upper = np.r_[u, u, self.size]
-
-        # place table
+    def place_table(self, height):
         urdf = self._urdf_root / "table" / "plane.urdf"
-        pose = Transform(Rotation.identity(), [0.15, 0.15, table_height])
+        pose = Transform(Rotation.identity(), [0.15, 0.15, height])
         self.world.load_urdf(urdf, pose, scale=0.6)
 
-        # place a box
+        # define valid volume for sampling grasps
+        finger_depth = self.gripper.finger_depth
+        lx, ux = finger_depth, self.size - finger_depth
+        ly, uy = finger_depth, self.size - finger_depth
+        lz, uz = height + 0.005, self.size
+        self.lower = np.r_[lx, ly, lz]
+        self.upper = np.r_[ux, uy, uz]
+
+    def generate_pile(self, object_count, table_height):
+        # place box
         urdf = self._urdf_root / "table" / "box.urdf"
         pose = Transform(Rotation.identity(), np.r_[0.02, 0.02, table_height])
         box = self.world.load_urdf(urdf, pose, scale=1.3)
 
         # drop objects
-        urdfs = self._rng.choice(self._urdfs, size=object_count)
+        urdfs = self.rng.choice(self._urdfs, size=object_count)
         for urdf in urdfs:
-            rotation = Rotation.random(random_state=self._rng)
-            xy = self._rng.uniform(1.0 / 3.0 * self.size, 2.0 / 3.0 * self.size, 2)
+            rotation = Rotation.random(random_state=self.rng)
+            xy = self.rng.uniform(1.0 / 3.0 * self.size, 2.0 / 3.0 * self.size, 2)
             pose = Transform(rotation, np.r_[xy, table_height + 0.2])
-            scale = self._rng.uniform(0.8, 1.0) if self._train else 1.0
+            scale = self.rng.uniform(0.8, 1.2) if self._train else 1.0
             body = self.world.load_urdf(urdf, pose, scale=self._global_scaling * scale)
-            self._wait_for_objects_to_rest(timeout=1.0)
+            self.wait_for_objects_to_rest(timeout=1.0)
 
         # remove box
         self.world.remove_body(box)
-        self._remove_and_wait()
+        self.remove_and_wait()
 
     def acquire_tsdf(self, n, N=None):
         """Render synthetic depth images from n viewpoints and integrate into a TSDF.
@@ -140,15 +147,18 @@ class GraspSimulation(object):
         self.world.remove_body(self.gripper.body)
 
         if remove:
-            self._remove_and_wait()
+            self.remove_and_wait()
 
         return result
 
-    def _discover_object_urdfs(self):
-        root = self._urdf_root / self._object_set
-        self._urdfs = [f for f in root.iterdir() if f.suffix == ".urdf"]
+    def remove_and_wait(self):
+        # wait for objects to rest while removing bodies that fell outside the workspace
+        removed_object = True
+        while removed_object:
+            self.wait_for_objects_to_rest()
+            removed_object = self.remove_objects_outside_workspace()
 
-    def _wait_for_objects_to_rest(self, timeout=2.0, tol=0.01):
+    def wait_for_objects_to_rest(self, timeout=2.0, tol=0.01):
         timeout = self.world.sim_time + timeout
         objects_resting = False
         while not objects_resting and self.world.sim_time < timeout:
@@ -162,7 +172,7 @@ class GraspSimulation(object):
                     objects_resting = False
                     break
 
-    def _remove_objects_outside_workspace(self):
+    def remove_objects_outside_workspace(self):
         removed_object = False
         for _, body in self.world.bodies.items():
             xyz = body.get_pose().translation
@@ -171,12 +181,9 @@ class GraspSimulation(object):
                 removed_object = True
         return removed_object
 
-    def _remove_and_wait(self):
-        # wait for objects to rest while removing bodies that fell outside the workspace
-        removed_object = True
-        while removed_object:
-            self._wait_for_objects_to_rest()
-            removed_object = self._remove_objects_outside_workspace()
+    def _discover_object_urdfs(self):
+        root = self._urdf_root / self._object_set
+        self._urdfs = [f for f in root.iterdir() if f.suffix == ".urdf"]
 
     def _check_success(self, gripper):
         # check that the fingers are in contact with some object and not fully closed
