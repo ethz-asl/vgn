@@ -165,11 +165,11 @@ class GraspSimulation(object):
 
         self.gripper.reset(T_world_pregrasp)
 
-        if self.gripper.detect_collision(threshold=0.0):
+        if self.gripper.detect_contact():
             result = Label.FAILURE, self.gripper.max_opening_width
         else:
             self.gripper.move_tcp_xyz(T_world_grasp, abort_on_contact=True)
-            if self.gripper.detect_collision() and abort_on_contact:
+            if self.gripper.detect_contact() and abort_on_contact:
                 result = Label.FAILURE, self.gripper.max_opening_width
             else:
                 self.gripper.move(0.0)
@@ -300,15 +300,14 @@ class Gripper(object):
             self.update_tcp_constraint(T_world_tcp)
             for _ in range(int(dur_step / self.world.dt)):
                 self.world.step()
-            if abort_on_contact and self.detect_collision():
+            if abort_on_contact and self.detect_contact():
                 return
 
-    def detect_collision(self, threshold=10):
-        contacts = self.world.get_contacts(self.body)
-        for contact in contacts:
-            if contact.force > threshold:
-                return True
-        return False
+    def detect_contact(self, threshold=5):
+        if self.world.get_contacts(self.body):
+            return True
+        else:
+            return False
 
     def move(self, width):
         self.joint1.set_position(0.5 * width)
