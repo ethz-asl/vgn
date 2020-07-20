@@ -33,7 +33,7 @@ GRASPS_PER_SCENE = 120
 def main(args):
     workers, rank = setup_mpi()
     create_dataset_dir(args.dataset, rank)
-    sim = GraspSimulation(args.scene, args.object_set, gui=args.sim_gui)
+    sim = GraspSimulation(args.scene, args.object_set, train=True, gui=args.sim_gui)
     finger_depth = sim.gripper.finger_depth
     grasps_per_worker = args.grasps // workers
     pbar = tqdm(total=grasps_per_worker, disable=rank is not 0)
@@ -53,6 +53,7 @@ def main(args):
 
         # crop surface and borders from point cloud
         pc = pc.crop(sim.lower, sim.upper)
+        o3d.visualization.draw_geometries([pc])
 
         if pc.is_empty():
             print("Point cloud empty, skipping scene")
@@ -94,14 +95,14 @@ def create_dataset_dir(dataset_dir, rank):
 
 def render_images(sim, N):
     height, width = sim.camera.intrinsic.height, sim.camera.intrinsic.width
-    origin = Transform(Rotation.identity(), np.r_[sim.size / 2, sim.size / 2, 0])
+    origin = Transform(Rotation.identity(), np.r_[sim.size / 2, sim.size / 2, 0.0])
 
     extrinsics = np.empty((N, 7), np.float32)
     depth_imgs = np.empty((N, height, width), np.float32)
 
     for i in range(N):
-        r = np.random.uniform(1.0, 2.0) * sim.size
-        theta = np.random.uniform(0.0, np.pi / 3.0,)
+        r = np.random.uniform(1.6, 2.4) * sim.size
+        theta = np.random.uniform(0.0, np.pi / 4.0,)
         phi = np.random.uniform(0.0, 2.0 * np.pi)
 
         extrinsic = camera_on_sphere(origin, r, theta, phi)

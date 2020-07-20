@@ -1,4 +1,4 @@
-from __future__ import division
+from __future__ import division, print_function
 
 from pathlib2 import Path
 
@@ -12,14 +12,14 @@ from vgn.utils.transform import Rotation, Transform
 
 
 class GraspSimulation(object):
-    def __init__(self, scene, object_set, gui=True, seed=None):
+    def __init__(self, scene, object_set, train=False, gui=True, seed=None):
         assert scene in ["pile", "packed"]
 
         self._urdf_root = Path("data/urdfs")
         self.scene = scene
         self._object_set = object_set
         self._discover_object_urdfs()
-        self._train = True if object_set in ["train"] else False
+        self.train = train
         self._global_scaling = {"blocks": 1.67}.get(object_set, 1.0)
         self._gui = gui
 
@@ -68,8 +68,8 @@ class GraspSimulation(object):
 
         # define valid volume for sampling grasps
         finger_depth = self.gripper.finger_depth
-        lx, ux = finger_depth, self.size - finger_depth
-        ly, uy = finger_depth, self.size - finger_depth
+        lx, ux = 0.02, self.size - 0.02
+        ly, uy = 0.02, self.size - 0.02
         lz, uz = height + 0.005, self.size
         self.lower = np.r_[lx, ly, lz]
         self.upper = np.r_[ux, uy, uz]
@@ -86,7 +86,7 @@ class GraspSimulation(object):
             rotation = Rotation.random(random_state=self.rng)
             xy = self.rng.uniform(1.0 / 3.0 * self.size, 2.0 / 3.0 * self.size, 2)
             pose = Transform(rotation, np.r_[xy, table_height + 0.2])
-            scale = self.rng.uniform(0.8, 1.2) if self._train else 1.0
+            scale = self.rng.uniform(0.8, 1.2) if self.train else 1.0
             body = self.world.load_urdf(urdf, pose, scale=self._global_scaling * scale)
             self.wait_for_objects_to_rest(timeout=1.0)
 
