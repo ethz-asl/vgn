@@ -121,9 +121,17 @@ class GraspSimulation(object):
 
     def execute_grasp(self, T_world_grasp, remove=True, abort_on_contact=True):
         T_grasp_pregrasp = Transform(Rotation.identity(), [0.0, 0.0, -0.05])
-        T_grasp_retreat = Transform(Rotation.identity(), [0.0, 0.0, -0.1])
         T_world_pregrasp = T_world_grasp * T_grasp_pregrasp
-        T_world_retreat = T_world_grasp * T_grasp_retreat
+
+        approach = T_world_grasp.rotation.as_dcm()[:, 2]
+        angle = np.arccos(np.dot(approach, np.r_[0.0, 0.0, -1.0]))
+        if angle > np.pi / 3.0:
+            # side grasp, lift the object after establishing a grasp
+            T_grasp_pregrasp_world = Transform(Rotation.identity(), [0.0, 0.0, 0.1])
+            T_world_retreat = T_grasp_pregrasp_world * T_world_grasp
+        else:
+            T_grasp_retreat = Transform(Rotation.identity(), [0.0, 0.0, -0.1])
+            T_world_retreat = T_world_grasp * T_grasp_retreat
 
         self.gripper.reset(T_world_pregrasp)
 
