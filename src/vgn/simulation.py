@@ -107,12 +107,14 @@ class GraspSimulation(object):
             x = self.rng.uniform(0.08, 0.22)
             y = self.rng.uniform(0.08, 0.22)
             z = 1.0
-            pose = Transform(Rotation.identity(), np.r_[x, y, z])
+            angle = self.rng.uniform(0.0, 2.0 * np.pi)
+            rotation = Rotation.from_rotvec(angle * np.r_[0.0, 0.0, 1.0])
+            pose = Transform(rotation, np.r_[x, y, z])
             scale = self.rng.uniform(0.8, 1.2) if self.train else 1.0
             body = self.world.load_urdf(urdf, pose, scale=self._global_scaling * scale)
             lower, upper = self.world.p.getAABB(body.uid)
             z = table_height + 0.5 * (upper[2] - lower[2]) + 0.002
-            body.set_pose(pose=Transform(Rotation.identity(), np.r_[x, y, z]))
+            body.set_pose(pose=Transform(rotation, np.r_[x, y, z]))
             self.world.step()
 
             if self.world.get_contacts(body):
