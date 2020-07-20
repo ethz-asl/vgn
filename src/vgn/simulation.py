@@ -50,6 +50,8 @@ class GraspSimulation(object):
 
         if self.scene == "pile":
             self.generate_pile(object_count, table_height)
+        elif self.scene == "packed":
+            self.generate_packed_objects(object_count, table_height)
         else:
             raise ValueError("Invalid scene argument")
 
@@ -93,6 +95,32 @@ class GraspSimulation(object):
         # remove box
         self.world.remove_body(box)
         self.remove_and_wait()
+
+    def generate_packed_objects(self, object_count, table_height):
+        objects_placed = 0
+        attempts = 0
+        max_attempts = 12
+
+        while self.num_objects < object_count and attempts < max_attempts:
+            self.save_state()
+            urdf = self.rng.choice(self._urdfs)
+            x = self.rng.uniform(0.08, 0.22)
+            y = self.rng.uniform(0.08, 0.22)
+            z = 1.0
+            pose = Transform(Rotation.identity(), np.r_[x, y, z])
+            scale = self.rng.uniform(0.8, 1.2) if self.train else 1.0
+            body = self.world.load_urdf(urdf, pose, scale=self._global_scaling * scale)
+            lower, upper = self.world.p.getAABB(body.uid)
+            z = table_height + 0.5 * (upper[2] - lower[2]) + 0.002
+            body.set_pose(pose=Transform(Rotation.identity(), np.r_[x, y, z]))
+            self.world.step()
+
+            if self.world.get_contacts(body):
+                self.world.remove_body(body)
+                self.restore_state()
+            else:
+                self.remove_and_wait()
+            attempts += 1
 
     def acquire_tsdf(self, n, N=None):
         """Render synthetic depth images from n viewpoints and integrate into a TSDF.

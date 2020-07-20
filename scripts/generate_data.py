@@ -53,7 +53,7 @@ def main(args):
 
         # crop surface and borders from point cloud
         pc = pc.crop(sim.lower, sim.upper)
-        o3d.visualization.draw_geometries([pc])
+        # o3d.visualization.draw_geometries([pc])
 
         if pc.is_empty():
             print("Point cloud empty, skipping scene")
