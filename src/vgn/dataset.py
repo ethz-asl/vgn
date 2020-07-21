@@ -4,24 +4,30 @@ from scipy import ndimage
 import torch.utils.data
 
 from vgn.grasp import Grasp
+from vgn.perception import *
 from vgn.utils.transform import Rotation, Transform
 
 
 class Dataset(torch.utils.data.Dataset):
-    def __init__(self, root, augment=False, tsdf="partial"):
+    def __init__(self, root, size=0.3, resolution=40, augment=False, tsdf="partial"):
         self.root = root
-        self.df = pandas.read_csv(self.root / "grasps.csv")
-        self._augment = augment
+        csv_path = self.root / "grasps.csv"
+        assert csv_path.exists()
+
+        self.df = pandas.read_csv(csv_path)
+        self.size = size
+        self.resolution = resolution
+        self.augment = augment
         self._tsdf = tsdf
 
     def __len__(self):
         return len(self.df.index)
 
     def __getitem__(self, i):
-        scene_id, index, rotation, width, label = self._lookup(i)
-        tsdf = self._read_tsdf(scene_id)
+        scene_id, index, rotation, width, label = self.lookup_sample(i)
+        tsdf = self.read_tsdf(scene_id)
 
-        if self._augment:
+        if self.augment:
             tsdf, index, rotation = self._apply_random_transform(tsdf, index, rotation)
 
         rotations = np.empty((2, 4), dtype=np.float32)
@@ -33,8 +39,8 @@ class Dataset(torch.utils.data.Dataset):
 
         return x, y, index
 
-    def _lookup(self, i):
-        voxel_size = 0.3 / 40.0  # TODO
+    def lookup_sample(self, i):
+        voxel_size = self.size / self.resolution
         scene_id = self.df.loc[i, "scene_id"]
         rotation = Rotation.from_quat(self.df.loc[i, "qx":"qw"].to_numpy())
         position = self.df.loc[i, "x":"z"].to_numpy(dtype=np.double)
@@ -44,9 +50,21 @@ class Dataset(torch.utils.data.Dataset):
 
         return scene_id, index, rotation, width, label
 
-    def _read_tsdf(self, scene_id):
+    def read_tsdf(self, scene_id):
         tsdf_path = self.root / "tsdfs" / (scene_id + ".npz")
         return np.load(str(tsdf_path))[self._tsdf]
+
+    def read_pc(self, i):
+        scene_id = self.df.loc[i, "scene_id"]
+        tsdf = TSDFVolume(self.size, 120)
+        intrinsic = CameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)  # TODO
+        raw = np.load(self.root / "raw" / (str(scene_id) + ".npz"))
+        n = raw["extrinsics"].shape[0] if self._tsdf == "complete" else raw["n"]
+        for i in range(n):
+            extrinsic = Transform.from_list(raw["extrinsics"][i])
+            depth_img = raw["depth_imgs"][i]
+            tsdf.integrate(depth_img, intrinsic, extrinsic)
+        return tsdf.extract_point_cloud()
 
     def _apply_random_transform(self, tsdf, index, rotation):
         # center sample at grasp point

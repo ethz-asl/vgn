@@ -5,6 +5,7 @@ numpy
 scipy
 pandas
 matplotlib
+seaborn
 mpi4py
 open3d==0.8.0
 pybullet==2.7.9
