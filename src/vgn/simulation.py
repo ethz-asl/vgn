@@ -12,14 +12,15 @@ from vgn.utils.transform import Rotation, Transform
 
 
 class GraspSimulation(object):
-    def __init__(self, scene, object_set, train=False, gui=True, seed=None):
+    def __init__(self, scene, object_set, test=False, gui=True, seed=None):
         assert scene in ["pile", "packed"]
 
-        self._urdf_root = Path("data/urdfs")
+        self.urdf_root = Path("data/urdfs")
         self.scene = scene
-        self._object_set = object_set
-        self._discover_object_urdfs()
-        self.train = train
+        self.object_set = object_set
+        self.train = not test
+        self.discover_objects()
+
         self._global_scaling = {"blocks": 1.67}.get(object_set, 1.0)
         self._gui = gui
 
@@ -33,6 +34,10 @@ class GraspSimulation(object):
     @property
     def num_objects(self):
         return max(0, self.world.p.getNumBodies() - 1)  # remove table from body count
+
+    def discover_objects(self):
+        root = self.urdf_root / self.object_set
+        self._urdfs = [f for f in root.iterdir() if f.suffix == ".urdf"]
 
     def save_state(self):
         self._snapshot_id = self.world.save_state()
@@ -64,7 +69,7 @@ class GraspSimulation(object):
             )
 
     def place_table(self, height):
-        urdf = self._urdf_root / "table" / "plane.urdf"
+        urdf = self.urdf_root / "setup" / "plane.urdf"
         pose = Transform(Rotation.identity(), [0.15, 0.15, height])
         self.world.load_urdf(urdf, pose, scale=0.6)
 
@@ -78,7 +83,7 @@ class GraspSimulation(object):
 
     def generate_pile(self, object_count, table_height):
         # place box
-        urdf = self._urdf_root / "table" / "box.urdf"
+        urdf = self.urdf_root / "setup" / "box.urdf"
         pose = Transform(Rotation.identity(), np.r_[0.02, 0.02, table_height])
         box = self.world.load_urdf(urdf, pose, scale=1.3)
 
@@ -110,7 +115,7 @@ class GraspSimulation(object):
             angle = self.rng.uniform(0.0, 2.0 * np.pi)
             rotation = Rotation.from_rotvec(angle * np.r_[0.0, 0.0, 1.0])
             pose = Transform(rotation, np.r_[x, y, z])
-            scale = self.rng.uniform(0.7, 0.9) if self.train else 0.9
+            scale = self.rng.uniform(0.7, 0.9) if self.train else 0.8
             body = self.world.load_urdf(urdf, pose, scale=self._global_scaling * scale)
             lower, upper = self.world.p.getAABB(body.uid)
             z = table_height + 0.5 * (upper[2] - lower[2]) + 0.002
@@ -218,10 +223,6 @@ class GraspSimulation(object):
                 self.world.remove_body(body)
                 removed_object = True
         return removed_object
-
-    def _discover_object_urdfs(self):
-        root = self._urdf_root / self._object_set
-        self._urdfs = [f for f in root.iterdir() if f.suffix == ".urdf"]
 
     def _check_success(self, gripper):
         # check that the fingers are in contact with some object and not fully closed
