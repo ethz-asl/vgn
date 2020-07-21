@@ -19,7 +19,8 @@ from vgn.utils.transform import Transform, Rotation
 
 
 cmap = matplotlib.colors.LinearSegmentedColormap.from_list("RedGreen", ["r", "g"])
-DELETEALL_MSG = Marker(action=Marker.DELETEALL)
+DELETE_MARKER_MSG = Marker(action=Marker.DELETEALL)
+DELETE_MARKER_ARRAY_MSG = MarkerArray(markers=[DELETE_MARKER_MSG])
 SIZE, VOXEL_SIZE, FINGER_DEPTH = 0.0, 0.0, 0.0
 
 
@@ -61,8 +62,43 @@ def draw_volume(vol, threshold=0.01):
 
 
 def draw_grasp(grasp, score):
-    msg = _create_grasp_marker_msg(grasp, score)
-    pubs["grasp"].publish(msg)
+    radius = 0.1 * FINGER_DEPTH
+    w, d = grasp.width, FINGER_DEPTH
+    color = cmap(float(score))
+
+    markers = []
+
+    # left finger
+    pose = grasp.pose * Transform(Rotation.identity(), [0.0, -w / 2, d / 2])
+    scale = [radius, radius, d]
+    msg = _create_marker_msg(Marker.CYLINDER, "task", pose, scale, color)
+    msg.id = 0
+    markers.append(msg)
+
+    # right finger
+    pose = grasp.pose * Transform(Rotation.identity(), [0.0, w / 2, d / 2])
+    scale = [radius, radius, d]
+    msg = _create_marker_msg(Marker.CYLINDER, "task", pose, scale, color)
+    msg.id = 1
+    markers.append(msg)
+
+    # wrist
+    pose = grasp.pose * Transform(Rotation.identity(), [0.0, 0.0, -d / 4])
+    scale = [radius, radius, d / 2]
+    msg = _create_marker_msg(Marker.CYLINDER, "task", pose, scale, color)
+    msg.id = 2
+    markers.append(msg)
+
+    # palm
+    pose = grasp.pose * Transform(
+        Rotation.from_rotvec(np.pi / 2 * np.r_[1.0, 0.0, 0.0]), [0.0, 0.0, 0.0]
+    )
+    scale = [radius, radius, w]
+    msg = _create_marker_msg(Marker.CYLINDER, "task", pose, scale, color)
+    msg.id = 3
+    markers.append(msg)
+
+    pubs["grasp"].publish(MarkerArray(markers=markers))
 
 
 def draw_grasps(grasps, scores):
@@ -76,12 +112,12 @@ def draw_grasps(grasps, scores):
 
 
 def clear():
-    pubs["workspace"].publish(DELETEALL_MSG)
+    pubs["workspace"].publish(DELETE_MARKER_MSG)
     pubs["tsdf"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
     pubs["points"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
     pubs["quality"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
-    pubs["grasp"].publish(DELETEALL_MSG)
-    pubs["grasps"].publish(MarkerArray(markers=[DELETEALL_MSG]))
+    pubs["grasp"].publish(DELETE_MARKER_ARRAY_MSG)
+    pubs["grasps"].publish(DELETE_MARKER_ARRAY_MSG)
     pubs["debug"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
 
 
@@ -102,7 +138,7 @@ def _create_publishers():
     pubs["tsdf"] = Publisher("/tsdf", PointCloud2, queue_size=1, latch=True)
     pubs["points"] = Publisher("/points", PointCloud2, queue_size=1, latch=True)
     pubs["quality"] = Publisher("/quality", PointCloud2, queue_size=1, latch=True)
-    pubs["grasp"] = Publisher("/grasp", Marker, queue_size=1, latch=True)
+    pubs["grasp"] = Publisher("/grasp", MarkerArray, queue_size=1, latch=True)
     pubs["grasps"] = Publisher("/grasps", MarkerArray, queue_size=1, latch=True)
     pubs["debug"] = Publisher("/debug", PointCloud2, queue_size=1, latch=True)
     return pubs

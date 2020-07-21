@@ -4,7 +4,7 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Points1
+        - /Workspace1/Status1
       Splitter Ratio: 0.5
     Tree Height: 749
   - Class: rviz/Selection
@@ -101,7 +101,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.004000000189989805
+      Size (m): 0.004999999888241291
       Style: Spheres
       Topic: /points
       Unreliable: false
@@ -146,7 +146,7 @@ Visualization Manager:
         "": true
       Queue Size: 100
       Value: true
-    - Class: rviz/Marker
+    - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /grasp
       Name: Selection
@@ -212,7 +212,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.6020039319992065
+      Distance: 0.5322219729423523
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -227,10 +227,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.3447972536087036
+      Pitch: 0.3897974491119385
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.588195562362671
+      Yaw: 4.716372489929199
     Saved: ~
 Window Geometry:
   Displays:
@@ -248,5 +248,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1301
-  X: 619
+  X: 658
   Y: 62
