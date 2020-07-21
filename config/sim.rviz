@@ -121,9 +121,9 @@ Visualization Manager:
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
-      Max Color: 255; 0; 0
+      Max Color: 0; 255; 0
       Max Intensity: 1
-      Min Color: 0; 0; 255
+      Min Color: 255; 0; 0
       Min Intensity: 0
       Name: Quality
       Position Transformer: XYZ
@@ -211,7 +211,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.6846344470977783
+      Distance: 0.6425524950027466
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -226,10 +226,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.3099995255470276
+      Pitch: 0.4747976064682007
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 6.278207302093506
+      Yaw: 6.2782087326049805
     Saved: ~
 Window Geometry:
   Displays:
