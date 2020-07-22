@@ -26,16 +26,17 @@ class Dataset(torch.utils.data.Dataset):
         return len(self.df.index)
 
     def __getitem__(self, i):
-        scene_id, index, rotation, width, label = self.lookup_sample(i)
+        scene_id, ori, pos, width, label = self.lookup_sample(i)
         tsdf = self.read_tsdf(scene_id)
 
         if self.augment:
-            tsdf, index, rotation = self._apply_random_transform(tsdf, index, rotation)
+            tsdf, ori, pos = self._apply_random_transform(tsdf, ori, pos)
 
+        index = np.round(pos).astype(np.long)
         rotations = np.empty((2, 4), dtype=np.float32)
         R = Rotation.from_rotvec(np.pi * np.r_[0.0, 0.0, 1.0])
-        rotations[0] = rotation.as_quat()
-        rotations[1] = (rotation * R).as_quat()
+        rotations[0] = ori.as_quat()
+        rotations[1] = (ori * R).as_quat()
 
         x, y, index = tsdf, (label, rotations, width), index
 
@@ -44,13 +45,12 @@ class Dataset(torch.utils.data.Dataset):
     def lookup_sample(self, i):
         voxel_size = self.size / self.resolution
         scene_id = self.df.loc[i, "scene_id"]
-        rotation = Rotation.from_quat(self.df.loc[i, "qx":"qw"].to_numpy())
-        position = self.df.loc[i, "x":"z"].to_numpy(dtype=np.double)
-        index = np.round(position / voxel_size).astype(np.long)
+        orientation = Rotation.from_quat(self.df.loc[i, "qx":"qw"].to_numpy(np.double))
+        position = self.df.loc[i, "x":"z"].to_numpy(np.double) / voxel_size
         width = self.df.loc[i, "width"] / voxel_size
         label = self.df.loc[i, "label"]
 
-        return scene_id, index, rotation, width, label
+        return scene_id, orientation, position, width, label
 
     def read_tsdf(self, scene_id):
         tsdf_path = self.root / "tsdfs" / (scene_id + ".npz")
@@ -71,13 +71,13 @@ class Dataset(torch.utils.data.Dataset):
             tsdf.integrate(depth_img, intrinsic, extrinsic)
         return tsdf.extract_point_cloud()
 
-    def _apply_random_transform(self, tsdf, index, rotation):
+    def _apply_random_transform(self, tsdf, orientation, position):
         # center sample at grasp point
-        T_center = Transform(Rotation.identity(), index)
+        T_center = Transform(Rotation.identity(), position)
         # sample random transform
         angle = np.random.uniform(0.0, 2.0 * np.pi)
         R_augment = Rotation.from_rotvec(np.r_[0.0, 0.0, angle])
-        t_augment = 20.0 - index + np.random.uniform(-18, 18, size=(3,))
+        t_augment = 20.0 - position + np.random.uniform(-16, 16, size=(3,))
         T_augment = Transform(R_augment, t_augment)
         T = T_center * T_augment * T_center.inverse()
         # transform tsdf
@@ -85,6 +85,6 @@ class Dataset(torch.utils.data.Dataset):
         matrix, offset = T_inv.rotation.as_dcm(), T_inv.translation
         tsdf[0] = ndimage.affine_transform(tsdf[0], matrix, offset, order=1)
         # transform grasp pose
-        index = np.round(T.transform_point(index)).astype(np.long)
-        rotation = T.rotation * rotation
-        return tsdf, index, rotation
+        position = T.transform_point(position)
+        orientation = T.rotation * orientation
+        return tsdf, orientation, position
