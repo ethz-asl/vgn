@@ -83,7 +83,7 @@ class Dataset(torch.utils.data.Dataset):
         # transform tsdf
         T_inv = T.inverse()
         matrix, offset = T_inv.rotation.as_dcm(), T_inv.translation
-        tsdf[0] = ndimage.affine_transform(tsdf[0], matrix, offset, order=1)
+        tsdf[0] = ndimage.affine_transform(tsdf[0], matrix, offset, order=0)
         # transform grasp pose
         position = T.transform_point(position)
         orientation = T.rotation * orientation
