@@ -74,11 +74,12 @@ class Dataset(torch.utils.data.Dataset):
         return tsdf.extract_point_cloud()
 
     def _apply_random_transform(self, tsdf, orientation, position):
-        # rotation
         angle = np.pi / 2.0 * np.random.choice(4)
         R_augment = Rotation.from_rotvec(np.r_[0.0, 0.0, angle])
 
-        t_augment = np.r_[0.0, 0.0, 0.0]
+        z_offset = np.random.uniform(6, 34) - position[2]
+
+        t_augment = np.r_[0.0, 0.0, z_offset]
         T_augment = Transform(R_augment, t_augment)
 
         T_center = Transform(Rotation.identity(), np.r_[20.0, 20.0, 20.0])
@@ -94,22 +95,3 @@ class Dataset(torch.utils.data.Dataset):
         orientation = T.rotation * orientation
 
         return tsdf, orientation, position
-
-
-if __name__ == "__main__":
-    import rospy
-    from vgn import vis
-
-    rospy.init_node("debug_dataset")
-    vis.set_size(0.3)
-
-    data_dir = Path("data/datasets/train")
-    dataset = Dataset(data_dir, reconstruction="partial", augment=True)
-
-    while True:
-        # i = np.random.choice(len(dataset))
-        i = 1572537
-        x, y, index = dataset[i]
-        vis.draw_sample(x, y, index)
-        rospy.sleep(1.0)
-
