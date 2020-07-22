@@ -1,3 +1,5 @@
+from pathlib2 import Path
+
 import numpy as np
 import pandas
 from scipy import ndimage
@@ -72,19 +74,42 @@ class Dataset(torch.utils.data.Dataset):
         return tsdf.extract_point_cloud()
 
     def _apply_random_transform(self, tsdf, orientation, position):
-        # center sample at grasp point
-        T_center = Transform(Rotation.identity(), position)
-        # sample random transform
-        angle = np.random.uniform(0.0, 2.0 * np.pi)
+        # rotation
+        angle = np.pi / 2.0 * np.random.choice(4)
         R_augment = Rotation.from_rotvec(np.r_[0.0, 0.0, angle])
-        t_augment = 20.0 - position + np.random.uniform(-16, 16, size=(3,))
+
+        t_augment = np.r_[0.0, 0.0, 0.0]
         T_augment = Transform(R_augment, t_augment)
+
+        T_center = Transform(Rotation.identity(), np.r_[20.0, 20.0, 20.0])
         T = T_center * T_augment * T_center.inverse()
+
         # transform tsdf
         T_inv = T.inverse()
         matrix, offset = T_inv.rotation.as_dcm(), T_inv.translation
         tsdf[0] = ndimage.affine_transform(tsdf[0], matrix, offset, order=0)
+
         # transform grasp pose
         position = T.transform_point(position)
         orientation = T.rotation * orientation
+
         return tsdf, orientation, position
+
+
+if __name__ == "__main__":
+    import rospy
+    from vgn import vis
+
+    rospy.init_node("debug_dataset")
+    vis.set_size(0.3)
+
+    data_dir = Path("data/datasets/train")
+    dataset = Dataset(data_dir, reconstruction="partial", augment=True)
+
+    while True:
+        # i = np.random.choice(len(dataset))
+        i = 1572537
+        x, y, index = dataset[i]
+        vis.draw_sample(x, y, index)
+        rospy.sleep(1.0)
+
