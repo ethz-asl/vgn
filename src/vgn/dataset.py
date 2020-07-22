@@ -9,7 +9,9 @@ from vgn.utils.transform import Rotation, Transform
 
 
 class Dataset(torch.utils.data.Dataset):
-    def __init__(self, root, size=0.3, resolution=40, augment=False, tsdf="partial"):
+    def __init__(
+        self, root, size=0.3, resolution=40, augment=False, reconstruction="partial"
+    ):
         self.root = root
         csv_path = self.root / "grasps.csv"
         assert csv_path.exists()
@@ -18,7 +20,7 @@ class Dataset(torch.utils.data.Dataset):
         self.size = size
         self.resolution = resolution
         self.augment = augment
-        self._tsdf = tsdf
+        self.reconstruction_mode = reconstruction
 
     def __len__(self):
         return len(self.df.index)
@@ -52,14 +54,17 @@ class Dataset(torch.utils.data.Dataset):
 
     def read_tsdf(self, scene_id):
         tsdf_path = self.root / "tsdfs" / (scene_id + ".npz")
-        return np.load(str(tsdf_path))[self._tsdf]
+        return np.load(str(tsdf_path))[self.reconstruction_mode]
 
     def read_pc(self, i):
         scene_id = self.df.loc[i, "scene_id"]
         tsdf = TSDFVolume(self.size, 120)
         intrinsic = CameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)  # TODO
         raw = np.load(self.root / "raw" / (str(scene_id) + ".npz"))
-        n = raw["extrinsics"].shape[0] if self._tsdf == "complete" else raw["n"]
+
+        N = raw["extrinsics"].shape[0]
+        n = N if self.reconstruction_mode == "complete" else raw["n"]
+
         for i in range(n):
             extrinsic = Transform.from_list(raw["extrinsics"][i])
             depth_img = raw["depth_imgs"][i]
