@@ -9,29 +9,27 @@ from vgn.grasp import Grasp
 from vgn.utils import ros_utils
 from vgn.utils.transform import Rotation, Transform
 
-# gpd_cloud_pub =
-
 
 class GPD(object):
     def __init__(self):
         self.input_topic = "/cloud_stitched"
         self.output_topic = "/detect_grasps/clustered_grasps"
-
         self.cloud_pub = rospy.Publisher(self.input_topic, PointCloud2, queue_size=1)
 
     def __call__(self, state):
         points = np.asarray(state.pc.points)
-        msg = ros_utils.to_cloud_msg(points, frame="world")
+        msg = ros_utils.to_cloud_msg(points, frame="task")
+        self.cloud_pub.publish(msg)
 
         tic = time.time()
-        self.cloud_pub.publish(msg)
         result = rospy.wait_for_message(self.output_topic, GraspConfigList)
-        grasps, scores = self._to_grasp_list(result)
         toc = time.time() - tic
+
+        grasps, scores = self.to_grasp_list(result)
 
         return grasps, scores, toc
 
-    def _to_grasp_list(self, grasp_configs):
+    def to_grasp_list(self, grasp_configs):
         grasps, scores = [], []
         for grasp_config in grasp_configs.grasps:
             # orientation
