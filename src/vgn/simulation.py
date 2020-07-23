@@ -140,8 +140,8 @@ class GraspSimulation(object):
         high_res_tsdf = TSDFVolume(self.size, 120)
 
         origin = Transform(Rotation.identity(), np.r_[self.size / 2, self.size / 2, 0])
-        r = 1.5 * self.size
-        theta = np.pi / 4.0
+        r = 2.0 * self.size
+        theta = np.pi / 6.0
 
         N = N if N else n
         phi_list = 2.0 * np.pi * np.arange(n) / N
