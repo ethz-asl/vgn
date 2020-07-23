@@ -20,9 +20,9 @@ class VGN(object):
         voxel_size = state.tsdf.voxel_size
 
         tic = time.time()
-        out = predict(tsdf_vol, self.net, self.device)
-        out = process(tsdf_vol, out)
-        grasps, scores = select(out)
+        qual_vol, rot_vol, width_vol = predict(tsdf_vol, self.net, self.device)
+        qual_vol, rot_vol, width_vol = process(tsdf_vol, qual_vol, rot_vol, width_vol)
+        grasps, scores = select(qual_vol, rot_vol, width_vol)
         toc = time.time() - tic
 
         grasps, scores = np.asarray(grasps), np.asarray(scores)
@@ -32,7 +32,7 @@ class VGN(object):
             grasps = [from_voxel_coordinates(g, voxel_size) for g in grasps[p]]
             scores = scores[p]
 
-        vis.draw_quality(out[0], voxel_size)
+        vis.draw_quality(qual_vol, voxel_size)
 
         return grasps, scores, toc
 
@@ -47,9 +47,17 @@ def predict(tsdf_vol, net, device):
     return qual_vol, rot_vol, width_vol
 
 
-def process(tsdf_vol, out, threshold=0.90, gaussian_filter_sigma=1.0):
+def process(
+    tsdf_vol,
+    qual_vol,
+    rot_vol,
+    width_vol,
+    threshold=0.90,
+    gaussian_filter_sigma=1.0,
+    min_width=1.33,
+    max_width=9.33,
+):
     tsdf_vol = tsdf_vol.squeeze()
-    qual_vol, rot_vol, width_vol = out
 
     # smooth with Gaussian
     qual_vol = ndimage.gaussian_filter(
@@ -68,11 +76,13 @@ def process(tsdf_vol, out, threshold=0.90, gaussian_filter_sigma=1.0):
     # threshold on grasp quality
     qual_vol[qual_vol < threshold] = 0.0
 
+    # reject widths that are too small or too large
+    qual_vol[np.logical_or(width_vol < min_width, width_vol > max_width)] = 0.0
+
     return qual_vol, rot_vol, width_vol
 
 
-def select(out, max_filter_size=3):
-    qual_vol, rot_vol, width_vol = out
+def select(qual_vol, rot_vol, width_vol, max_filter_size=3):
 
     # non maximum suppression
     max_vol = ndimage.maximum_filter(qual_vol, size=max_filter_size)
@@ -82,15 +92,14 @@ def select(out, max_filter_size=3):
     # construct grasps
     grasps, scores = [], []
     for index in np.argwhere(mask):
-        grasp, score = select_index(out, index)
+        grasp, score = select_index(qual_vol, rot_vol, width_vol, index)
         grasps.append(grasp)
         scores.append(score)
 
     return grasps, scores
 
 
-def select_index(out, index):
-    qual_vol, rot_vol, width_vol = out
+def select_index(qual_vol, rot_vol, width_vol, index):
     i, j, k = index
     score = qual_vol[i, j, k]
     ori = Rotation.from_quat(rot_vol[:, i, j, k])
