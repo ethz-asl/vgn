@@ -154,7 +154,7 @@ class GraspSimulation(object):
 
         return tsdf, high_res_tsdf.extract_point_cloud()
 
-    def execute_grasp(self, T_world_grasp, remove=True, abort_on_contact=True):
+    def execute_grasp(self, T_world_grasp, remove=True, allow_contact=False):
         T_grasp_pregrasp = Transform(Rotation.identity(), [0.0, 0.0, -0.05])
         T_world_pregrasp = T_world_grasp * T_grasp_pregrasp
 
@@ -174,7 +174,7 @@ class GraspSimulation(object):
             result = Label.FAILURE, self.gripper.max_opening_width
         else:
             self.gripper.move_tcp_xyz(T_world_grasp, abort_on_contact=True)
-            if self.gripper.detect_contact() and abort_on_contact:
+            if self.gripper.detect_contact() and not allow_contact:
                 result = Label.FAILURE, self.gripper.max_opening_width
             else:
                 self.gripper.move(0.0)

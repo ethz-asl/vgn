@@ -28,20 +28,22 @@ from vgn.utils import io
 
 State = collections.namedtuple("State", ["tsdf", "pc"])
 
+vis.set_size(0.3)
+
 
 def run(
     grasp_plan_fn,
     log_dir,
-    object_set="test",
+    scene,
+    object_set,
     object_count=5,
     rounds=40,
-    no_contact=False,
     sim_gui=False,
     seed=1,
     n=5,
     N=None,
 ):
-    sim = GraspSimulation(object_set, gui=sim_gui, seed=seed)
+    sim = GraspSimulation(scene, object_set, test=True, gui=sim_gui, seed=seed)
     logger = Logger(log_dir)
 
     for _ in tqdm.tqdm(range(rounds)):
@@ -59,8 +61,8 @@ def run(
 
             # visualize
             vis.clear()
-            vis.draw_workspace(sim.size)
-            vis.draw_tsdf(tsdf.get_volume().squeeze(), tsdf.voxel_size)
+            vis.draw_workspace()
+            vis.draw_tsdf(tsdf.get_volume().squeeze())
             vis.draw_points(np.asarray(pc.points))
 
             # plan grasps
@@ -74,10 +76,10 @@ def run(
             grasp, score = grasps[0], scores[0]
 
             # visualize
-            vis.draw_grasps(grasps, scores, sim.gripper.finger_depth)
+            vis.draw_grasps(grasps, scores)
 
             # execute grasp
-            label, _ = sim.execute_grasp(grasp.pose, abort_on_contact=no_contact)
+            label, _ = sim.execute_grasp(grasp.pose, allow_contact=True)
 
             # log the grasp
             logger.log_grasp(state, planning_time, grasp, score, label)
@@ -111,9 +113,8 @@ class Logger(object):
         np.savez_compressed(str(tsdf_path), tsdf=tsdf.get_volume())
         cloud_path = self.clouds_dir / (scene_id + ".npz")
         np.savez_compressed(str(cloud_path), points=points)
-        grasp = to_voxel_coordinates(grasp, tsdf.voxel_size)
         qx, qy, qz, qw = grasp.pose.rotation.as_quat()
-        i, j, k = np.round(grasp.pose.translation).astype(np.int)
+        x, y, z = grasp.pose.translation
         width = grasp.width
         label = int(label)
 
@@ -122,13 +123,13 @@ class Logger(object):
             self.round_id,
             scene_id,
             planning_time,
-            i,
-            j,
-            k,
             qx,
             qy,
             qz,
             qw,
+            x,
+            y,
+            z,
             width,
             score,
             label,
@@ -153,13 +154,13 @@ class Logger(object):
                 "round_id",
                 "scene_id",
                 "planning_time",
-                "i",
-                "j",
-                "k",
                 "qx",
                 "qy",
                 "qz",
                 "qw",
+                "x",
+                "y",
+                "z",
                 "width",
                 "score",
                 "label",

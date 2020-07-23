@@ -11,7 +11,6 @@ from vgn.detection import VGN
 def main(args):
     rospy.init_node("sim_eval")
 
-    # select grasp planner
     if args.method == "vgn":
         grasp_planner = VGN(args.model)
     elif args.method == "gpd":
@@ -19,16 +18,15 @@ def main(args):
     else:
         raise ValueError
 
-    # run the benchmark
     run(
-        grasp_planner,
-        args.logdir,
-        args.object_set,
-        args.object_count,
-        args.rounds,
-        args.no_contact,
-        args.sim_gui,
-        args.seed,
+        grasp_plan_fn=grasp_planner,
+        log_dir=args.logdir,
+        scene=args.scene,
+        object_set=args.object_set,
+        object_count=args.object_count,
+        rounds=args.rounds,
+        sim_gui=args.sim_gui,
+        seed=args.seed,
     )
 
 
@@ -37,10 +35,10 @@ if __name__ == "__main__":
 
     parser.add_argument("--method", choices=["vgn", "gpd"], required=True)
     parser.add_argument("--logdir", type=Path, required=True)
-    parser.add_argument("--object-set", type=str, default="test")
+    parser.add_argument("--scene", type=str, required=True)
+    parser.add_argument("--object-set", type=str, required=True)
     parser.add_argument("--object-count", type=int, default=5)
     parser.add_argument("--rounds", type=int, default=40)
-    parser.add_argument("--no-contact", action="store_true")
     parser.add_argument("--sim-gui", action="store_true")
     parser.add_argument("--seed", type=int, default=1)
 
