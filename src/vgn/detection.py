@@ -23,10 +23,14 @@ class VGN(object):
         out = predict(tsdf_vol, self.net, self.device)
         out = process(tsdf_vol, out)
         grasps, scores = select(out)
-        if len(grasps) > 0:
-            scores, grasps = zip(*sorted(zip(scores, grasps), reverse=True))
-            grasps = [from_voxel_coordinates(g, voxel_size) for g in grasps]
         toc = time.time() - tic
+
+        grasps, scores = np.asarray(grasps), np.asarray(scores)
+
+        if len(grasps) > 0:
+            p = np.random.permutation(len(grasps))
+            grasps = [from_voxel_coordinates(g, voxel_size) for g in grasps[p]]
+            scores = scores[p]
 
         vis.draw_quality(out[0], voxel_size)
 
