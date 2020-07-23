@@ -38,9 +38,16 @@ class VGN(object):
 
 
 def predict(tsdf_vol, net, device):
+    assert tsdf_vol.shape == (1, 40, 40, 40)
+
+    # move input to the GPU
     tsdf_vol = torch.from_numpy(tsdf_vol).unsqueeze(0).to(device)
+
+    # forward pass
     with torch.no_grad():
         qual_vol, rot_vol, width_vol = net(tsdf_vol)
+
+    # move output back to the CPU
     qual_vol = qual_vol.cpu().squeeze().numpy()
     rot_vol = rot_vol.cpu().squeeze().numpy()
     width_vol = width_vol.cpu().squeeze().numpy()
@@ -52,7 +59,7 @@ def process(
     qual_vol,
     rot_vol,
     width_vol,
-    threshold=0.90,
+    threshold=0.95,
     gaussian_filter_sigma=1.0,
     min_width=1.33,
     max_width=9.33,
@@ -70,7 +77,6 @@ def process(
     valid_voxels = ndimage.morphology.binary_dilation(
         outside_voxels, iterations=2, mask=np.logical_not(inside_voxels)
     )
-    # vis.draw_volume(valid_voxels.astype(np.float32), 0.0075)
     qual_vol[valid_voxels == False] = 0.0
 
     # threshold on grasp quality
@@ -82,7 +88,7 @@ def process(
     return qual_vol, rot_vol, width_vol
 
 
-def select(qual_vol, rot_vol, width_vol, max_filter_size=3):
+def select(qual_vol, rot_vol, width_vol, max_filter_size=4):
 
     # non maximum suppression
     max_vol = ndimage.maximum_filter(qual_vol, size=max_filter_size)

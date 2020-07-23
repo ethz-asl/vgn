@@ -59,7 +59,7 @@ def run(
             if pc.is_empty():
                 break  # empty point cloud, abort this round TODO how is it possible to get here ?
 
-            # visualize
+            # visualize scene
             vis.clear()
             vis.draw_workspace()
             vis.draw_tsdf(tsdf.get_volume().squeeze())
@@ -72,13 +72,11 @@ def run(
             if len(grasps) == 0:
                 break  # no detections found, abort this round
 
-            # select grasp
-            grasp, score = grasps[0], scores[0]
-
-            # visualize
             vis.draw_grasps(grasps, scores)
 
             # execute grasp
+            grasp, score = grasps[0], scores[0]
+            vis.draw_grasp(grasp, score)
             label, _ = sim.execute_grasp(grasp.pose, allow_contact=True)
 
             # log the grasp
