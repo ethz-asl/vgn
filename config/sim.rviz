@@ -48,7 +48,7 @@ Visualization Manager:
         "": true
       Queue Size: 100
       Value: true
-    - Alpha: 0.10000000149011612
+    - Alpha: 1
       Autocompute Intensity Bounds: false
       Autocompute Value Bounds:
         Max Value: 10
@@ -71,7 +71,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.00800000037997961
+      Size (m): 0.007499999832361937
       Style: Boxes
       Topic: /tsdf
       Unreliable: false
@@ -154,7 +154,7 @@ Visualization Manager:
         "": true
       Queue Size: 100
       Value: true
-    - Alpha: 0.10000000149011612
+    - Alpha: 0.05000000074505806
       Autocompute Intensity Bounds: false
       Autocompute Value Bounds:
         Max Value: 10
@@ -212,25 +212,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.5322219729423523
+      Distance: 0.5772230625152588
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.15287350118160248
-        Y: 0.15206675231456757
-        Z: 0.12335440516471863
+        X: 0.15299423038959503
+        Y: 0.15491430461406708
+        Z: 0.13348425924777985
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.3897974491119385
+      Pitch: 0.2797974944114685
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.716372489929199
+      Yaw: 4.714216232299805
     Saved: ~
 Window Geometry:
   Displays:
@@ -248,5 +248,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1301
-  X: 658
-  Y: 62
+  X: 1142
+  Y: 202
