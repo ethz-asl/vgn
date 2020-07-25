@@ -22,7 +22,7 @@ class VGN(object):
         tic = time.time()
         qual_vol, rot_vol, width_vol = predict(tsdf_vol, self.net, self.device)
         qual_vol, rot_vol, width_vol = process(tsdf_vol, qual_vol, rot_vol, width_vol)
-        grasps, scores = select(qual_vol, rot_vol, width_vol)
+        grasps, scores = select(qual_vol.copy(), rot_vol, width_vol)
         toc = time.time() - tic
 
         grasps, scores = np.asarray(grasps), np.asarray(scores)
@@ -32,7 +32,7 @@ class VGN(object):
             grasps = [from_voxel_coordinates(g, voxel_size) for g in grasps[p]]
             scores = scores[p]
 
-        vis.draw_quality(qual_vol, voxel_size)
+        vis.draw_quality(qual_vol, threshold=0.01)
 
         return grasps, scores, toc
 
@@ -59,14 +59,13 @@ def process(
     qual_vol,
     rot_vol,
     width_vol,
-    threshold=0.90,
     gaussian_filter_sigma=1.0,
     min_width=1.33,
     max_width=9.33,
 ):
     tsdf_vol = tsdf_vol.squeeze()
 
-    # smooth with Gaussian
+    # smooth quality volume with a Gaussian
     qual_vol = ndimage.gaussian_filter(
         qual_vol, sigma=gaussian_filter_sigma, mode="nearest"
     )
@@ -79,16 +78,15 @@ def process(
     )
     qual_vol[valid_voxels == False] = 0.0
 
-    # threshold on grasp quality
-    qual_vol[qual_vol < threshold] = 0.0
-
-    # reject widths that are too small or too large
+    # reject voxels with predicted widths that are too small or too large
     qual_vol[np.logical_or(width_vol < min_width, width_vol > max_width)] = 0.0
 
     return qual_vol, rot_vol, width_vol
 
 
-def select(qual_vol, rot_vol, width_vol, max_filter_size=4):
+def select(qual_vol, rot_vol, width_vol, threshold=0.90, max_filter_size=4):
+    # threshold on grasp quality
+    qual_vol[qual_vol < threshold] = 0.0
 
     # non maximum suppression
     max_vol = ndimage.maximum_filter(qual_vol, size=max_filter_size)
