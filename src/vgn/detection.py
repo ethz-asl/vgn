@@ -59,7 +59,7 @@ def process(
     qual_vol,
     rot_vol,
     width_vol,
-    threshold=0.95,
+    threshold=0.90,
     gaussian_filter_sigma=1.0,
     min_width=1.33,
     max_width=9.33,
