@@ -50,10 +50,6 @@ pip install -r requirements.txt
 
 ## Robot Grasping
 
-```
-sudo apt install ros-melodic-apriltag-ros
-```
-
 Launch the grasp controller.
 
 ```

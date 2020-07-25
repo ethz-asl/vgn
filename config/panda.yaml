@@ -2,7 +2,6 @@ panda_grasp:
   base_frame_id: panda_link0
   tool0_frame_id: panda_link8
   T_tool0_tcp: {rotation: [0.000, 0.000, -0.382, 0.924], translation: [0.000, 0.000, 0.065]}
-  T_tool0_cam: {rotation: [0.001, -0.000, 0.399, 0.917], translation: [0.063, -0.090, 0.041]}
   finger_depth: 0.05
   max_opening_width: 0.08
   cam:

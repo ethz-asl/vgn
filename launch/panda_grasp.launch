@@ -2,13 +2,20 @@
 <launch>
     <!-- parameters -->
     <arg name="method" default="vgn" />
-    <arg name="logdir" default="data/experiments/meh" />
+    <arg name="robot_ip" default="172.16.0.2" />
+    <arg name="apriltag" default="false" />
+    <arg name="ds4" default="false" />
 
     <!-- load configuration -->
     <rosparam command="load" file="$(find vgn)/config/panda.yaml" />
 
-    <!-- launch panda control node -->
-    <include file="$(find panda_control)/launch/panda_control.launch"/>
+    <!-- tf required by moveit -->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster" args="0 0 0 0 0 0 world panda_link0" />
+
+    <!-- launch franka control -->
+    <include file="$(find franka_control)/launch/franka_control.launch">
+        <arg name="robot_ip" value="$(arg robot_ip)" />
+    </include>
 
     <!-- spawn a joint trajectory controller -->
     <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="position_joint_trajectory_controller"/>
@@ -18,11 +25,15 @@
 
     <!-- launch camera driver -->
     <include file="$(find realsense2_camera)/launch/rs_camera.launch">
-        <arg name="enable_pointcloud" value="true"/>
+        <arg name="enable_pointcloud" value="true" />
+        <arg name="publish_tf" value="false" />
     </include>
 
+    <!-- hand-eye calibration -->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="hand_eye_broadcaster" args="0.03226862 -0.06137175  0.04107702 0.00099995 0. 0.39898185 0.91695828 panda_link8 camera_depth_optical_frame" />
+
     <!-- launch tag detection -->
-    <node name="apriltag_ros" pkg="apriltag_ros" type="apriltag_ros_continuous_node" clear_params="true" output="screen">
+    <node name="apriltag_ros" pkg="apriltag_ros" type="apriltag_ros_continuous_node" clear_params="true" output="screen" if="$(eval apriltag)">
         <remap from="image_rect" to="/camera/color/image_raw" />
         <remap from="camera_info" to="/camera/color/camera_info" />
         <param name="camera_frame" type="str" value="camera_color_optical_frame" />
@@ -33,5 +44,5 @@
     <include file="$(find vgn)/launch/gpd.launch" if="$(eval method == 'gpd')" />
 
     <!-- dualshock controller -->
-    <!-- <node name="ds4_teleop" pkg="joy" type="joy_node" /> -->
+    <node name="ds4_teleop" pkg="joy" type="joy_node" if="$(eval ds4)" />
 </launch>
