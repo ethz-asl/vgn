@@ -18,7 +18,6 @@ import pickle
 import cv_bridge
 import geometry_msgs.msg
 import numpy as np
-from panda_control.panda_commander import PandaCommander
 import rospy
 import sensor_msgs.msg
 import std_srvs.srv
@@ -31,7 +30,10 @@ from vgn.detection import VGN
 from vgn.perception import *
 from vgn.utils import ros_utils
 from vgn.utils.transform import Rotation, Transform
+from vgn.utils.panda_control import PandaCommander
 
+
+vis.set_size(0.3)
 
 scan_joints = [
     [
@@ -84,7 +86,7 @@ class PandaGraspController(object):
 
     def select_grasp_planner(self, method):
         if method == "vgn":
-            return VGN(rospy.get_param("~vgn/model_path"))
+            return VGN(args.model)
         elif method == "gpd":
             return GPD()
         else:
@@ -115,23 +117,23 @@ class PandaGraspController(object):
         self.robot.scene.add_box("table", msg, size=(0.6, 0.6, 0.02))
         rospy.sleep(1.0)  # wait for the scene to be updated
 
-        vis.draw_workspace(self.size)
+        vis.draw_workspace()
         rospy.loginfo("Calibrated workspace")
 
     def run(self):
         vis.clear()
-        vis.draw_workspace(self.size)
+        vis.draw_workspace()
         self.robot.move_gripper(0.04)
         self.robot.home()
 
         tsdf, pc = self.acquire_tsdf()
-        vis.draw_tsdf(tsdf.get_volume().squeeze(), tsdf.voxel_size)
+        vis.draw_tsdf(tsdf.get_volume().squeeze())
         vis.draw_points(np.asarray(pc.points))
         rospy.loginfo("Reconstructed scene")
 
         state = State(tsdf, pc)
         grasps, scores, planning_time = self.plan_grasps(state)
-        vis.draw_grasps(grasps, scores, self.finger_depth)
+        vis.draw_grasps(grasps, scores)
         rospy.loginfo("Planned grasps")
 
         if len(grasps) == 0:
@@ -139,7 +141,7 @@ class PandaGraspController(object):
             return
 
         grasp, score = self.select_grasp(grasps, scores)
-        vis.draw_grasp(grasp, score, self.finger_depth)
+        vis.draw_grasp(grasp, score)
         rospy.loginfo("Selected grasp")
 
         label = self.execute_grasp(grasp)
@@ -152,7 +154,7 @@ class PandaGraspController(object):
         self.tsdf_server.integrate = True
 
         for joint_target in scan_joints:
-            self.robot.goto_joint_target(joint_target)
+            self.robot.goto_joints(joint_target)
 
         self.tsdf_server.integrate = False
         tsdf = self.tsdf_server.low_res_tsdf
@@ -180,12 +182,10 @@ class PandaGraspController(object):
         T_base_pregrasp = T_base_grasp * T_grasp_pregrasp
         T_base_retreat = T_base_grasp * T_grasp_retreat
 
-        msg = ros_utils.to_pose_msg(T_base_pregrasp * self.T_tcp_tool0)
-        self.robot.goto_pose_target(msg)
+        self.robot.goto_pose(T_base_pregrasp * self.T_tcp_tool0)
         self.approach_grasp(T_base_grasp)
         self.robot.move_gripper(0.0, max_effort=100.0)
-        msg = ros_utils.to_pose_msg(T_base_retreat * self.T_tcp_tool0)
-        self.robot.goto_pose_target(msg)
+        self.robot.T_base_retreat * self.T_tcp_tool0(msg)
         self.drop()
 
         # check success
@@ -193,12 +193,11 @@ class PandaGraspController(object):
         return True
 
     def approach_grasp(self, T_base_grasp):
-        msg = ros_utils.to_pose_msg(T_base_grasp * self.T_tcp_tool0)
-        self.robot.goto_pose_target(msg)
+        self.robot.goto_pose(T_base_grasp * self.T_tcp_tool0)
 
     def drop(self):
-        self.robot.goto_joint_target([0, -0.785, 0, -2.356, 0, 1.57, 0.785], 0.2, 0.2)
-        self.robot.goto_joint_target([-0.9, -0.5, 1.6, -2.1, 0.55, 2.1, 0.75], 0.2, 0.2)
+        self.robot.goto_joints([0, -0.785, 0, -2.356, 0, 1.57, 0.785], 0.2, 0.2)
+        self.robot.goto_joints([-0.9, -0.5, 1.6, -2.1, 0.55, 2.1, 0.75], 0.2, 0.2)
         self.robot.move_gripper(0.04)
 
 
@@ -223,7 +222,9 @@ class TSDFServer(object):
             return
 
         img = self.cv_bridge.imgmsg_to_cv2(msg).astype(np.float32) * 0.001
-        T_cam_task = self.tf_tree.lookup(self.cam_frame_id, "task", msg.header.stamp)
+        T_cam_task = self.tf_tree.lookup(
+            self.cam_frame_id, "task", msg.header.stamp, rospy.Duration(0.1)
+        )
 
         self.low_res_tsdf.integrate(img, self.intrinsic, T_cam_task)
         self.high_res_tsdf.integrate(img, self.intrinsic, T_cam_task)
@@ -243,5 +244,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="real-world grasp trials")
     parser.add_argument("--method", choices=["vgn", "gpd"], required=True)
     parser.add_argument("--logdir", type=Path, required=True)
+
+    # vgn specific args
+    parser.add_argument("--model", type=Path)
+
     args = parser.parse_args()
     main(args)
