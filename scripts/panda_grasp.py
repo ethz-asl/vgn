@@ -91,10 +91,18 @@ class PandaGraspController(object):
         rospy.sleep(1.0)  # wait for the TF to be broadcasted
 
     def create_planning_scene(self):
+        # collision box for table
         msg = geometry_msgs.msg.PoseStamped()
         msg.header.frame_id = self.base_frame_id
         msg.pose = ros_utils.to_pose_msg(T_base_tag)
         self.robot.scene.add_box("table", msg, size=(0.6, 0.6, 0.02))
+
+        # collision box for camera
+        msg = geometry_msgs.msg.PoseStamped()
+        msg.header.frame_id = "panda_hand"
+        msg.pose.position.x = 0.06
+        msg.pose.position.z = 0.03
+        self.robot.scene.add_box("camera", msg, size=(0.04, 0.10, 0.04))
 
         rospy.sleep(1.0)  # wait for the scene to be updated
 
