@@ -65,6 +65,8 @@ scan_joints = [
         0.9008788375077649,
     ],
 ]
+
+
 # tag lies on the table in the center of the workspace
 T_base_tag = Transform(Rotation.identity(), [0.42, 0.02, 0.21])
 
@@ -197,7 +199,7 @@ class PandaGraspController(object):
 
         self.robot.goto_pose(T_base_pregrasp * self.T_tcp_tool0)
         self.approach_grasp(T_base_grasp)
-        self.robot.move_gripper(0.0, max_effort=40.0)
+        self.robot.move_gripper(0.0, max_effort=100.0)
         self.robot.goto_pose(T_base_retreat * self.T_tcp_tool0)
         self.drop()
 
@@ -208,7 +210,9 @@ class PandaGraspController(object):
 
     def drop(self):
         self.robot.goto_joints([0, -0.785, 0, -2.356, 0, 1.57, 0.785], 0.2, 0.2)
-        self.robot.goto_joints([-0.9, -0.5, 1.6, -2.1, 0.55, 2.1, 0.75], 0.2, 0.2)
+        self.robot.goto_joints(
+            [0.678, 0.097, 0.237, -1.63, -0.031, 1.756, 0.931], 0.2, 0.2
+        )
         self.robot.move_gripper(0.04)
 
 
