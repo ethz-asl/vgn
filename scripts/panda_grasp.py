@@ -80,8 +80,7 @@ class PandaGraspController(object):
         self.finger_depth = rospy.get_param("~finger_depth")
         self.size = 6.0 * self.finger_depth
 
-        self.robot = PandaCommander()
-        self.robot.move_group.set_end_effector_link(self.tool0_frame_id)
+        self.setup_panda_control()
         self.tf_tree = ros_utils.TransformTree()
         self.define_workspace()
         self.create_planning_scene()
@@ -90,6 +89,10 @@ class PandaGraspController(object):
         self.logger = Logger(args.logdir)
 
         rospy.loginfo("Ready to take action")
+
+    def setup_panda_control(self):
+        self.pc = PandaCommander()
+        self.pc.move_group.set_end_effector_link(self.tool0_frame_id)
 
     def define_workspace(self):
         z_offset = -0.06
@@ -106,16 +109,16 @@ class PandaGraspController(object):
         msg.header.frame_id = self.base_frame_id
         msg.pose = ros_utils.to_pose_msg(T_base_tag)
         msg.pose.position.z -= 0.01
-        self.robot.scene.add_box("table", msg, size=(0.6, 0.6, 0.02))
+        self.pc.scene.add_box("table", msg, size=(0.6, 0.6, 0.02))
 
         # collision box for camera
         msg = geometry_msgs.msg.PoseStamped()
         msg.header.frame_id = "panda_hand"
         msg.pose.position.x = 0.06
         msg.pose.position.z = 0.03
-        self.robot.scene.add_box("camera", msg, size=(0.04, 0.10, 0.04))
-        touch_links = self.robot.robot.get_link_names(group=self.robot.name)
-        self.robot.scene.attach_box("panda_link8", "camera", touch_links=touch_links)
+        self.pc.scene.add_box("camera", msg, size=(0.04, 0.10, 0.04))
+        touch_links = self.pc.robot.get_link_names(group=self.pc.name)
+        self.pc.scene.attach_box("panda_link8", "camera", touch_links=touch_links)
 
         rospy.sleep(1.0)  # wait for the scene to be updated
 
@@ -130,8 +133,8 @@ class PandaGraspController(object):
     def run(self):
         vis.clear()
         vis.draw_workspace()
-        self.robot.move_gripper(0.04)
-        self.robot.home()
+        self.pc.move_gripper(0.04)
+        self.pc.home()
 
         tsdf, pc = self.acquire_tsdf()
         vis.draw_tsdf(tsdf.get_volume().squeeze())
@@ -151,20 +154,20 @@ class PandaGraspController(object):
         vis.draw_grasp(grasp, score)
         rospy.loginfo("Selected grasp")
 
-        self.robot.home()
+        self.pc.home()
         label = self.execute_grasp(grasp)
         rospy.loginfo("Grasp execution")
 
         self.logger.log_grasp(state, planning_time, grasp, score, label)
 
     def acquire_tsdf(self):
-        self.robot.goto_joints(scan_joints[0])
+        self.pc.goto_joints(scan_joints[0])
 
         self.tsdf_server.reset()
         self.tsdf_server.integrate = True
 
         for joint_target in scan_joints[1:]:
-            self.robot.goto_joints(joint_target)
+            self.pc.goto_joints(joint_target)
 
         self.tsdf_server.integrate = False
         tsdf = self.tsdf_server.low_res_tsdf
@@ -197,23 +200,23 @@ class PandaGraspController(object):
         T_base_pregrasp = T_base_grasp * T_grasp_pregrasp
         T_base_retreat = T_base_grasp * T_grasp_retreat
 
-        self.robot.goto_pose(T_base_pregrasp * self.T_tcp_tool0)
+        self.pc.goto_pose(T_base_pregrasp * self.T_tcp_tool0)
         self.approach_grasp(T_base_grasp)
-        self.robot.move_gripper(0.0, max_effort=100.0)
-        self.robot.goto_pose(T_base_retreat * self.T_tcp_tool0)
+        self.pc.move_gripper(0.0, max_effort=100.0)
+        self.pc.goto_pose(T_base_retreat * self.T_tcp_tool0)
         self.drop()
 
         return True
 
     def approach_grasp(self, T_base_grasp):
-        self.robot.goto_pose(T_base_grasp * self.T_tcp_tool0)
+        self.pc.goto_pose(T_base_grasp * self.T_tcp_tool0)
 
     def drop(self):
-        self.robot.goto_joints([0, -0.785, 0, -2.356, 0, 1.57, 0.785], 0.2, 0.2)
-        self.robot.goto_joints(
+        self.pc.goto_joints([0, -0.785, 0, -2.356, 0, 1.57, 0.785], 0.2, 0.2)
+        self.pc.goto_joints(
             [0.678, 0.097, 0.237, -1.63, -0.031, 1.756, 0.931], 0.2, 0.2
         )
-        self.robot.move_gripper(0.04)
+        self.pc.move_gripper(0.04)
 
 
 class TSDFServer(object):
