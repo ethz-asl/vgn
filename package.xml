@@ -12,6 +12,7 @@
     <buildtool_depend>catkin</buildtool_depend>
     <buildtool_depend>catkin_simple</buildtool_depend>
 
+    <depend>franka_control</depend>
     <depend>franka_msgs</depend>
     <depend>franka_gripper</depend>
     <depend>rospy</depend>

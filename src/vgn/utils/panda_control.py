@@ -1,4 +1,5 @@
 import actionlib
+import franka_control.msg
 import franka_gripper.msg
 import moveit_commander
 from moveit_commander.conversions import list_to_pose
@@ -11,9 +12,17 @@ from vgn.utils import ros_utils
 class PandaCommander(object):
     def __init__(self):
         self.name = "panda_arm"
+        self._setup_recover_action()
         self._connect_to_move_group()
         self._connect_to_gripper()
         rospy.loginfo("PandaCommander ready")
+
+    def _setup_recover_action(self):
+        self.recover_pub = rospy.Publisher(
+            "/franka_control/error_recovery/goal",
+            franka_control.msg.ErrorRecoveryActionGoal,
+            queue_size=1,
+        )
 
     def _connect_to_move_group(self):
         self.robot = moveit_commander.RobotCommander()
@@ -27,6 +36,11 @@ class PandaCommander(object):
         self.move_client = actionlib.SimpleActionClient(
             "franka_gripper/move", franka_gripper.msg.MoveAction
         )
+
+    def recover(self):
+        msg = franka_control.msg.ErrorRecoveryActionGoal()
+        self.recover_pub.publish(msg)
+        rospy.sleep(4.0)
 
     def home(self):
         self.goto_joints([0, -0.785, 0, -2.356, 0, 1.57, 0.785], 0.2, 0.2)

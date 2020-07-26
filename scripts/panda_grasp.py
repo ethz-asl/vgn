@@ -34,6 +34,8 @@ round_id = 0
 
 class PandaGraspController(object):
     def __init__(self, args):
+        self.robot_error = False
+
         self.base_frame_id = rospy.get_param("~base_frame_id")
         self.tool0_frame_id = rospy.get_param("~tool0_frame_id")
         self.T_tool0_tcp = Transform.from_dict(rospy.get_param("~T_tool0_tcp"))  # TODO
@@ -102,11 +104,23 @@ class PandaGraspController(object):
             raise ValueError
 
     def robot_state_cb(self, msg):
+        detected_error = False
         if np.any(msg.cartesian_collision):
+            detected_error = True
+        for s in franka_msgs.msg.Errors.__slots__:
+            if getattr(msg.current_errors, s):
+                detected_error = True
+        if not self.robot_error and detected_error:
             self.robot_error = True
+            rospy.logwarn("Detected robot error")
 
     def joints_cb(self, msg):
         self.gripper_width = msg.position[7] + msg.position[8]
+
+    def recover_robot(self):
+        self.pc.recover()
+        self.robot_error = False
+        rospy.loginfo("Recovered from robot error")
 
     def run(self):
         vis.clear()
@@ -138,9 +152,12 @@ class PandaGraspController(object):
 
         self.logger.log_grasp(round_id, state, planning_time, grasp, score, label)
 
+        if self.robot_error:
+            self.recover_robot()
+            return
+
         if label:
             self.drop()
-
         self.pc.home()
 
     def acquire_tsdf(self):
@@ -185,8 +202,21 @@ class PandaGraspController(object):
 
         self.pc.goto_pose(T_base_pregrasp * self.T_tcp_tool0)
         self.approach_grasp(T_base_grasp)
-        self.pc.grasp(force=5.0)
+
+        if self.robot_error:
+            return False
+
+        self.pc.grasp(force=10.0)
+
+        if self.robot_error:
+            return False
+
         self.pc.goto_pose(T_base_retreat * self.T_tcp_tool0)
+
+        # lift hand
+        T_retreat_lift_base = Transform(Rotation.identity(), [0.0, 0.0, 0.1])
+        T_base_lift = T_retreat_lift_base * T_base_retreat
+        self.pc.goto_pose(T_base_lift * self.T_tcp_tool0)
 
         if self.gripper_width > 0.004:
             return True
@@ -236,7 +266,8 @@ class TSDFServer(object):
 def main(args):
     rospy.init_node("panda_grasp")
     panda_grasp = PandaGraspController(args)
-    panda_grasp.run()
+    while True:
+        panda_grasp.run()
 
 
 if __name__ == "__main__":
