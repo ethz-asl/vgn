@@ -111,7 +111,7 @@ class PandaGraspController(object):
     def run(self):
         vis.clear()
         vis.draw_workspace()
-        self.pc.home_gripper()
+        self.pc.move_gripper(0.08)
         self.pc.home()
 
         tsdf, pc = self.acquire_tsdf()
@@ -137,6 +137,9 @@ class PandaGraspController(object):
         rospy.loginfo("Grasp execution")
 
         self.logger.log_grasp(round_id, state, planning_time, grasp, score, label)
+
+        if label:
+            self.drop()
 
     def acquire_tsdf(self):
         self.pc.goto_joints(self.scan_joints[0])
@@ -181,10 +184,9 @@ class PandaGraspController(object):
         self.pc.goto_pose(T_base_pregrasp * self.T_tcp_tool0)
         self.approach_grasp(T_base_grasp)
         self.pc.grasp(force=8.0)
+        self.pc.goto_pose(T_base_retreat * self.T_tcp_tool0)
 
-        if self.gripper_width > 0.01:
-            self.pc.goto_pose(T_base_retreat * self.T_tcp_tool0)
-            self.drop()
+        if self.gripper_width > 0.004:
             return True
         else:
             return False
@@ -197,7 +199,7 @@ class PandaGraspController(object):
         self.pc.goto_joints(
             [0.678, 0.097, 0.237, -1.63, -0.031, 1.756, 0.931], 0.2, 0.2
         )
-        self.pc.home_gripper()
+        self.pc.move_gripper(0.08)
 
 
 class TSDFServer(object):

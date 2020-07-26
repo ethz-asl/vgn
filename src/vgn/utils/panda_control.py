@@ -24,8 +24,8 @@ class PandaCommander(object):
         self.grasp_client = actionlib.SimpleActionClient(
             "franka_gripper/grasp", franka_gripper.msg.GraspAction
         )
-        self.homing_client = actionlib.SimpleActionClient(
-            "franka_gripper/homing", franka_gripper.msg.HomingAction
+        self.move_client = actionlib.SimpleActionClient(
+            "franka_gripper/move", franka_gripper.msg.MoveAction
         )
 
     def home(self):
@@ -55,9 +55,9 @@ class PandaCommander(object):
         epsilon = franka_gripper.msg.GraspEpsilon(e_inner, e_outer)
         goal = franka_gripper.msg.GraspGoal(width, epsilon, speed, force)
         self.grasp_client.send_goal(goal)
-        return self.grasp_client.wait_for_result()
+        return self.grasp_client.wait_for_result(rospy.Duration(4.0))
 
-    def home_gripper(self):
-        goal = franka_gripper.msg.HomingGoal()
-        self.homing_client.send_goal(goal)
-        return self.homing_client.wait_for_result()
+    def move_gripper(self, width, speed=0.1):
+        goal = franka_gripper.msg.MoveGoal(width, speed)
+        self.move_client.send_goal(goal)
+        return self.move_client.wait_for_result(rospy.Duration(4.0))
