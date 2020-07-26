@@ -225,7 +225,6 @@ def main(args):
     rospy.init_node("panda_grasp")
     panda_grasp = PandaGraspController(args)
     panda_grasp.run()
-    rospy.spin()
 
 
 if __name__ == "__main__":
