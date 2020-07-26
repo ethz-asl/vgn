@@ -28,46 +28,6 @@ from vgn.utils.panda_control import PandaCommander
 
 vis.set_size(0.3)
 
-scan_joints = [
-    [
-        0.010523236721068734,
-        -1.4790833239639014,
-        0.10027132190633238,
-        -2.416246868493765,
-        0.08994288870361117,
-        1.4022499498261343,
-        0.8516519819506339,
-    ],
-    [
-        -0.5204305512655648,
-        -0.7962560020246003,
-        0.9121961832112832,
-        -1.6720657872605567,
-        0.0914094145960278,
-        1.2810500415696036,
-        0.8710614908889162,
-    ],
-    [
-        0.03202341903301707,
-        0.45900370514601985,
-        0.0743635250858064,
-        -0.8394780465249851,
-        0.01546591704007652,
-        0.7776030993991428,
-        0.8335337665490805,
-    ],
-    [
-        0.0927063864391347,
-        -0.6268411712966925,
-        -0.5511789947129442,
-        -1.8378490985067266,
-        0.1656381993108548,
-        1.2387742138438755,
-        0.9008788375077649,
-    ],
-]
-
-
 # tag lies on the table in the center of the workspace
 T_base_tag = Transform(Rotation.identity(), [0.42, 0.02, 0.21])
 
@@ -80,6 +40,7 @@ class PandaGraspController(object):
         self.T_tcp_tool0 = self.T_tool0_tcp.inverse()
         self.finger_depth = rospy.get_param("~finger_depth")
         self.size = 6.0 * self.finger_depth
+        self.scan_joints = rospy.get_param("~scan_joints")
 
         self.setup_panda_control()
         self.tf_tree = ros_utils.TransformTree()
@@ -145,7 +106,7 @@ class PandaGraspController(object):
     def run(self):
         vis.clear()
         vis.draw_workspace()
-        self.pc.move_gripper(0.04)
+        self.pc.home_gripper()
         self.pc.home()
 
         tsdf, pc = self.acquire_tsdf()
@@ -173,12 +134,12 @@ class PandaGraspController(object):
         self.logger.log_grasp(state, planning_time, grasp, score, label)
 
     def acquire_tsdf(self):
-        self.pc.goto_joints(scan_joints[0])
+        self.pc.goto_joints(self.scan_joints[0])
 
         self.tsdf_server.reset()
         self.tsdf_server.integrate = True
 
-        for joint_target in scan_joints[1:]:
+        for joint_target in self.scan_joints[1:]:
             self.pc.goto_joints(joint_target)
 
         self.tsdf_server.integrate = False
@@ -214,7 +175,7 @@ class PandaGraspController(object):
 
         self.pc.goto_pose(T_base_pregrasp * self.T_tcp_tool0)
         self.approach_grasp(T_base_grasp)
-        self.pc.move_gripper(0.0, max_effort=100.0)
+        self.pc.grasp(force=5.0)
         self.pc.goto_pose(T_base_retreat * self.T_tcp_tool0)
         self.drop()
 
@@ -228,7 +189,7 @@ class PandaGraspController(object):
         self.pc.goto_joints(
             [0.678, 0.097, 0.237, -1.63, -0.031, 1.756, 0.931], 0.2, 0.2
         )
-        self.pc.move_gripper(0.04)
+        self.pc.home_gripper()
 
 
 class TSDFServer(object):

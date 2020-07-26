@@ -4,8 +4,7 @@
     <version>0.0.1</version>
     <description>Volumetric Grasping Network.</description>
 
-    <author email="michel.breyer@mavt.ethz.ch">Michel Breyer</author>
-    <maintainer email="michel.breyer@mavt.ethz.ch">Michel Breyer</maintainer>
+    <maintainer email="mbreyer@ethz.ch">Michel Breyer</maintainer>
 
     <license>TODO</license>
     <url></url>
@@ -14,5 +13,6 @@
     <buildtool_depend>catkin_simple</buildtool_depend>
 
     <depend>franka_msgs</depend>
+    <depend>franka_gripper</depend>
     <depend>rospy</depend>
 </package>
