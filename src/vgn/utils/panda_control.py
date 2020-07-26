@@ -10,6 +10,7 @@ from vgn.utils import ros_utils
 
 class PandaCommander(object):
     def __init__(self):
+        self.name = "panda_arm"
         self._connect_to_move_group()
         self._connect_to_gripper()
         rospy.loginfo("PandaCommander ready")
@@ -17,7 +18,7 @@ class PandaCommander(object):
     def _connect_to_move_group(self):
         self.robot = moveit_commander.RobotCommander()
         self.scene = moveit_commander.PlanningSceneInterface()
-        self.move_group = moveit_commander.MoveGroupCommander("panda_arm")
+        self.move_group = moveit_commander.MoveGroupCommander(self.name)
 
     def _connect_to_gripper(self):
         name = "franka_gripper/gripper_action"
@@ -25,7 +26,7 @@ class PandaCommander(object):
         self.gripper_client.wait_for_server()
 
     def home(self):
-        self.goto_joints([0, -0.785, 0, -2.356, 0, 1.57, 0.785], 0.4, 0.4)
+        self.goto_joints([0, -0.785, 0, -2.356, 0, 1.57, 0.785], 0.2, 0.2)
 
     def goto_joints(self, joints, velocity_scaling=0.1, acceleration_scaling=0.1):
         self.move_group.set_max_velocity_scaling_factor(velocity_scaling)

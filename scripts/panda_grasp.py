@@ -56,22 +56,13 @@ scan_joints = [
         0.8335337665490805,
     ],
     [
-        0.9798169128286234,
-        -0.6390771990120473,
-        -0.9722881526504988,
-        -1.4402028385965446,
-        0.0027546756364818965,
-        1.1379097332822639,
-        0.9631001308374105,
-    ],
-    [
-        0.010523236721068734,
-        -1.4790833239639014,
-        0.10027132190633238,
-        -2.416246868493765,
-        0.08994288870361117,
-        1.4022499498261343,
-        0.8516519819506339,
+        0.0927063864391347,
+        -0.6268411712966925,
+        -0.5511789947129442,
+        -1.8378490985067266,
+        0.1656381993108548,
+        1.2387742138438755,
+        0.9008788375077649,
     ],
 ]
 # tag lies on the table in the center of the workspace
@@ -121,6 +112,8 @@ class PandaGraspController(object):
         msg.pose.position.x = 0.06
         msg.pose.position.z = 0.03
         self.robot.scene.add_box("camera", msg, size=(0.04, 0.10, 0.04))
+        touch_links = self.robot.robot.get_link_names(group=self.robot.name)
+        self.robot.scene.attach_box("panda_link8", "camera", touch_links=touch_links)
 
         rospy.sleep(1.0)  # wait for the scene to be updated
 
@@ -156,6 +149,7 @@ class PandaGraspController(object):
         vis.draw_grasp(grasp, score)
         rospy.loginfo("Selected grasp")
 
+        self.robot.home()
         label = self.execute_grasp(grasp)
         rospy.loginfo("Grasp execution")
 
@@ -177,15 +171,12 @@ class PandaGraspController(object):
         return tsdf, pc
 
     def select_grasp(self, grasps, scores):
-        grasp, score = grasps[0], scores[0]
-
-        # ensure that the camera mount points upwards to avoid collisions with the table
-        rot = grasp.pose.rotation
-        axis = rot.as_dcm()[:, 0]
-        if axis[2] < 0.0:
-            grasp.pose.rotation = rot * Rotation.from_euler("z", np.pi)
-
-        return grasp, score
+        # select the highest grasp
+        heights = np.empty(len(grasps))
+        for i, grasp in enumerate(grasps):
+            heights[i] = grasp.pose.translation[2]
+        idx = np.argmax(heights)
+        return grasps[idx], scores[idx]
 
     def execute_grasp(self, grasp):
         T_task_grasp = grasp.pose
