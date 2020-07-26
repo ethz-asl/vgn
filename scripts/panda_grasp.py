@@ -8,6 +8,7 @@ import pickle
 
 
 import cv_bridge
+import franka_msgs.msg
 import geometry_msgs.msg
 import numpy as np
 import rospy
@@ -91,6 +92,13 @@ class PandaGraspController(object):
         rospy.loginfo("Ready to take action")
 
     def setup_panda_control(self):
+        rospy.Subscriber(
+            "/franka_state_controller/franka_states",
+            franka_msgs.msg.FrankaState,
+            self.robot_state_cb,
+            queue_size=1,
+        )
+
         self.pc = PandaCommander()
         self.pc.move_group.set_end_effector_link(self.tool0_frame_id)
 
@@ -129,6 +137,10 @@ class PandaGraspController(object):
             return GPD()
         else:
             raise ValueError
+
+    def robot_state_cb(self, msg):
+        if np.any(msg.cartesian_collision):
+            self.robot_error = True
 
     def run(self):
         vis.clear()
