@@ -11,16 +11,3 @@ panda_grasp:
       height: 480
       width: 640
       K: [383.265, 0.0, 319.39, 0.0, 383.26, 242.43, 0.0, 0.0, 1.0]
-  vgn:
-    model_path: /path/to/model
-
-apriltag_ros:
-  tag_family: 'tag36h11'
-  tag_threads: 2
-  tag_decimate: 1.0
-  tag_blur: 0.0
-  tag_refine_edges: 1
-  tag_debug: 0
-  publish_tf: true
-  standalone_tags: [{id: 0, size: 0.135}]
-  tag_bundles: []

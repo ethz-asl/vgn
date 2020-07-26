@@ -1,13 +1,5 @@
 #!/usr/bin/env python
 
-"""
-Dualshock 4 interface:
-  x  starts a grasp trial,
-  ○  cancles a grasp trial,
-  △  triggers a new round (for logging),
-  □  triggers workspace calibration.
-"""
-
 from __future__ import division, print_function
 
 import argparse
@@ -66,6 +58,9 @@ scan_joints = [
 ]
 
 
+T_base_tag = Transform(Rotation.identity(), [0.38, 0.0, 0.0367])
+
+
 class PandaGraspController(object):
     def __init__(self, args):
         self.base_frame_id = rospy.get_param("~base_frame_id")
@@ -78,29 +73,15 @@ class PandaGraspController(object):
         self.robot = PandaCommander()
         self.robot.move_group.set_end_effector_link(self.tool0_frame_id)
         self.tf_tree = ros_utils.TransformTree()
+        self.define_workspace()
+        self.create_planning_scene()
         self.tsdf_server = TSDFServer()
         self.plan_grasps = self.select_grasp_planner(args.method)
         self.logger = Logger(args.logdir)
 
         rospy.loginfo("Ready to take action")
 
-    def select_grasp_planner(self, method):
-        if method == "vgn":
-            return VGN(args.model)
-        elif method == "gpd":
-            return GPD()
-        else:
-            raise ValueError
-
-    def calibrate_workspace(self):
-        vis.clear()
-        self.robot.home()
-
-        # T_base_tag = self.tf_tree.lookup(self.base_frame_id, "tag_0", rospy.Time(0))
-        R_base_tag = Rotation.from_quat([-0.00889, -0.01100, -0.71420, 0.69979])
-        t_base_tag = [0.38075931, 0.00874077, 0.03670042]
-        T_base_tag = Transform(R_base_tag, t_base_tag)
-
+    def define_workspace(self):
         z_offset = -0.05
         t_tag_task = np.r_[[-0.5 * self.size, -0.5 * self.size, z_offset]]
         T_tag_task = Transform(Rotation.identity(), t_tag_task)
@@ -109,16 +90,21 @@ class PandaGraspController(object):
         self.tf_tree.broadcast_static(self.T_base_task, self.base_frame_id, "task")
         rospy.sleep(1.0)  # wait for the TF to be broadcasted
 
+    def create_planning_scene(self):
         msg = geometry_msgs.msg.PoseStamped()
-        msg.header.frame_id = "task"
-        msg.pose.position.x = 0.15
-        msg.pose.position.y = 0.15
-        msg.pose.position.z = -z_offset  # - 0.01
+        msg.header.frame_id = self.base_frame_id
+        msg.pose = ros_utils.to_pose_msg(T_base_tag)
         self.robot.scene.add_box("table", msg, size=(0.6, 0.6, 0.02))
+
         rospy.sleep(1.0)  # wait for the scene to be updated
 
-        vis.draw_workspace()
-        rospy.loginfo("Calibrated workspace")
+    def select_grasp_planner(self, method):
+        if method == "vgn":
+            return VGN(args.model)
+        elif method == "gpd":
+            return GPD()
+        else:
+            raise ValueError
 
     def run(self):
         vis.clear()
@@ -233,10 +219,7 @@ class TSDFServer(object):
 def main(args):
     rospy.init_node("panda_grasp")
     panda_grasp = PandaGraspController(args)
-
-    panda_grasp.calibrate_workspace()
     panda_grasp.run()
-
     rospy.spin()
 
 
