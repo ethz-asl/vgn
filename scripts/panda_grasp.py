@@ -59,7 +59,9 @@ class PandaGraspController(object):
             self.robot_state_cb,
             queue_size=1,
         )
-
+        rospy.Subscriber(
+            "/joint_states", sensor_msgs.msg.JointState, self.joints_cb, queue_size=1
+        )
         self.pc = PandaCommander()
         self.pc.move_group.set_end_effector_link(self.tool0_frame_id)
 
@@ -102,6 +104,9 @@ class PandaGraspController(object):
     def robot_state_cb(self, msg):
         if np.any(msg.cartesian_collision):
             self.robot_error = True
+
+    def joints_cb(self, msg):
+        self.gripper_width = msg.position[7] + msg.position[8]
 
     def run(self):
         vis.clear()
@@ -176,10 +181,13 @@ class PandaGraspController(object):
         self.pc.goto_pose(T_base_pregrasp * self.T_tcp_tool0)
         self.approach_grasp(T_base_grasp)
         self.pc.grasp(force=8.0)
-        self.pc.goto_pose(T_base_retreat * self.T_tcp_tool0)
-        self.drop()
 
-        return True
+        if self.gripper_width > 0.01:
+            self.pc.goto_pose(T_base_retreat * self.T_tcp_tool0)
+            self.drop()
+            return True
+        else:
+            return False
 
     def approach_grasp(self, T_base_grasp):
         self.pc.goto_pose(T_base_grasp * self.T_tcp_tool0)
