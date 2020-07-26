@@ -141,6 +141,8 @@ class PandaGraspController(object):
         if label:
             self.drop()
 
+        self.pc.home()
+
     def acquire_tsdf(self):
         self.pc.goto_joints(self.scan_joints[0])
 
