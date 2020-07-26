@@ -183,7 +183,7 @@ class PandaGraspController(object):
 
         self.pc.goto_pose(T_base_pregrasp * self.T_tcp_tool0)
         self.approach_grasp(T_base_grasp)
-        self.pc.grasp(force=8.0)
+        self.pc.grasp(force=5.0)
         self.pc.goto_pose(T_base_retreat * self.T_tcp_tool0)
 
         if self.gripper_width > 0.004:
