@@ -29,36 +29,53 @@ vis.set_size(0.3)
 
 scan_joints = [
     [
-        -0.43108035333952316,
-        -0.9870793052137942,
-        0.6965837768545206,
-        -2.0120709856722176,
-        0.12508303126065481,
-        1.3463392878108555,
-        0.8366453268933625,
+        0.010523236721068734,
+        -1.4790833239639014,
+        0.10027132190633238,
+        -2.416246868493765,
+        0.08994288870361117,
+        1.4022499498261343,
+        0.8516519819506339,
     ],
     [
-        -0.1351051290959735,
-        0.11679895606962587,
-        0.3614310921786124,
-        -1.175866540273047,
-        0.10791277298602031,
-        0.946452884727054,
-        1.0446157227800703,
+        -0.5204305512655648,
+        -0.7962560020246003,
+        0.9121961832112832,
+        -1.6720657872605567,
+        0.0914094145960278,
+        1.2810500415696036,
+        0.8710614908889162,
     ],
     [
-        -0.7980986830856897,
-        0.0072509909150631794,
-        0.3052539200105668,
-        -1.4125830988298362,
-        0.35131070071250914,
-        0.9115777040304364,
-        0.8701020664779676,
+        0.03202341903301707,
+        0.45900370514601985,
+        0.0743635250858064,
+        -0.8394780465249851,
+        0.01546591704007652,
+        0.7776030993991428,
+        0.8335337665490805,
+    ],
+    [
+        0.9798169128286234,
+        -0.6390771990120473,
+        -0.9722881526504988,
+        -1.4402028385965446,
+        0.0027546756364818965,
+        1.1379097332822639,
+        0.9631001308374105,
+    ],
+    [
+        0.010523236721068734,
+        -1.4790833239639014,
+        0.10027132190633238,
+        -2.416246868493765,
+        0.08994288870361117,
+        1.4022499498261343,
+        0.8516519819506339,
     ],
 ]
-
-
-T_base_tag = Transform(Rotation.identity(), [0.38, 0.0, 0.0367])
+# tag lies on the table in the center of the workspace
+T_base_tag = Transform(Rotation.identity(), [0.42, 0.02, 0.21])
 
 
 class PandaGraspController(object):
@@ -82,7 +99,7 @@ class PandaGraspController(object):
         rospy.loginfo("Ready to take action")
 
     def define_workspace(self):
-        z_offset = -0.05
+        z_offset = -0.06
         t_tag_task = np.r_[[-0.5 * self.size, -0.5 * self.size, z_offset]]
         T_tag_task = Transform(Rotation.identity(), t_tag_task)
         self.T_base_task = T_base_tag * T_tag_task
@@ -95,6 +112,7 @@ class PandaGraspController(object):
         msg = geometry_msgs.msg.PoseStamped()
         msg.header.frame_id = self.base_frame_id
         msg.pose = ros_utils.to_pose_msg(T_base_tag)
+        msg.pose.position.z -= 0.01
         self.robot.scene.add_box("table", msg, size=(0.6, 0.6, 0.02))
 
         # collision box for camera
@@ -144,10 +162,12 @@ class PandaGraspController(object):
         self.logger.log_grasp(state, planning_time, grasp, score, label)
 
     def acquire_tsdf(self):
+        self.robot.goto_joints(scan_joints[0])
+
         self.tsdf_server.reset()
         self.tsdf_server.integrate = True
 
-        for joint_target in scan_joints:
+        for joint_target in scan_joints[1:]:
             self.robot.goto_joints(joint_target)
 
         self.tsdf_server.integrate = False
