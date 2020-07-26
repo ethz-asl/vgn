@@ -176,7 +176,15 @@ class PandaGraspController(object):
         for i, grasp in enumerate(grasps):
             heights[i] = grasp.pose.translation[2]
         idx = np.argmax(heights)
-        return grasps[idx], scores[idx]
+        grasp, score = grasps[idx], scores[idx]
+
+        # make sure camera is pointing forward
+        rot = grasp.pose.rotation
+        axis = rot.as_dcm()[:, 0]
+        if axis[0] < 0:
+            grasp.pose.rotation = rot * Rotation.from_euler("z", np.pi)
+
+        return grasp, score
 
     def execute_grasp(self, grasp):
         T_task_grasp = grasp.pose
@@ -189,11 +197,9 @@ class PandaGraspController(object):
 
         self.robot.goto_pose(T_base_pregrasp * self.T_tcp_tool0)
         self.approach_grasp(T_base_grasp)
-        self.robot.move_gripper(0.0, max_effort=100.0)
-        self.robot.T_base_retreat * self.T_tcp_tool0(msg)
+        self.robot.move_gripper(0.0, max_effort=40.0)
+        self.robot.goto_pose(T_base_retreat * self.T_tcp_tool0)
         self.drop()
-
-        # check success
 
         return True
 
