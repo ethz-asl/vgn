@@ -27,9 +27,9 @@ from vgn.utils.panda_control import PandaCommander
 
 
 vis.set_size(0.3)
-
 # tag lies on the table in the center of the workspace
 T_base_tag = Transform(Rotation.identity(), [0.42, 0.02, 0.21])
+round_id = 0
 
 
 class PandaGraspController(object):
@@ -131,7 +131,7 @@ class PandaGraspController(object):
         label = self.execute_grasp(grasp)
         rospy.loginfo("Grasp execution")
 
-        self.logger.log_grasp(state, planning_time, grasp, score, label)
+        self.logger.log_grasp(round_id, state, planning_time, grasp, score, label)
 
     def acquire_tsdf(self):
         self.pc.goto_joints(self.scan_joints[0])

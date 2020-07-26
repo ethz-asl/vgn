@@ -104,7 +104,7 @@ class Logger(object):
         round_id = self.round_id + 1
         io.append_csv(self.round_csv_path, round_id, object_count)
 
-    def log_grasp(self, state, planning_time, grasp, score, label):
+    def log_grasp(self, round_id, state, planning_time, grasp, score, label):
         tsdf, points = state.tsdf, np.asarray(state.pc.points)
         scene_id = uuid.uuid4().hex
         tsdf_path = self.tsdfs_dir / (scene_id + ".npz")
@@ -118,7 +118,7 @@ class Logger(object):
 
         io.append_csv(
             self.grasps_csv_path,
-            self.round_id,
+            round_id,
             scene_id,
             planning_time,
             qx,
