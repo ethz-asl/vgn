@@ -1,4 +1,5 @@
 import actionlib
+import control_msgs.msg
 import franka_control.msg
 import franka_gripper.msg
 import moveit_commander
@@ -31,11 +32,20 @@ class PandaCommander(object):
 
     def _connect_to_gripper(self):
         self.grasp_client = actionlib.SimpleActionClient(
-            "franka_gripper/grasp", franka_gripper.msg.GraspAction
+            "/franka_gripper/grasp", franka_gripper.msg.GraspAction
         )
+        self.grasp_client.wait_for_server()
+        rospy.loginfo("Connected to grasp action server")
         self.move_client = actionlib.SimpleActionClient(
-            "franka_gripper/move", franka_gripper.msg.MoveAction
+            "/franka_gripper/move", franka_gripper.msg.MoveAction
         )
+        self.move_client.wait_for_server()
+        rospy.loginfo("Connected to move action server")
+        self.gripper_command_client = actionlib.SimpleActionClient(
+            "/franka_gripper/gripper_action", control_msgs.msg.GripperCommandAction
+        )
+        self.gripper_command_client.wait_for_server()
+        rospy.loginfo("Connected to gripper command action server")
 
     def recover(self):
         msg = franka_control.msg.ErrorRecoveryActionGoal()
@@ -69,9 +79,15 @@ class PandaCommander(object):
         epsilon = franka_gripper.msg.GraspEpsilon(e_inner, e_outer)
         goal = franka_gripper.msg.GraspGoal(width, epsilon, speed, force)
         self.grasp_client.send_goal(goal)
-        return self.grasp_client.wait_for_result(rospy.Duration(4.0))
+        return self.grasp_client.wait_for_result(rospy.Duration(2.0))
 
     def move_gripper(self, width, speed=0.1):
         goal = franka_gripper.msg.MoveGoal(width, speed)
         self.move_client.send_goal(goal)
-        return self.move_client.wait_for_result(rospy.Duration(4.0))
+        return self.move_client.wait_for_result(rospy.Duration(2.0))
+
+    def gripper_command(self, width, max_effort=10.0):
+        cmd = control_msgs.msg.GripperCommand(width, max_effort)
+        goal = control_msgs.msg.GripperCommandGoal(cmd)
+        self.gripper_command_client.send_goal(goal)
+        return self.gripper_command_client.wait_for_result(rospy.Duration(2.0))
