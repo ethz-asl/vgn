@@ -206,7 +206,7 @@ class PandaGraspController(object):
         if self.robot_error:
             return False
 
-        self.pc.grasp(force=10.0)
+        self.pc.grasp(force=20.0)
 
         if self.robot_error:
             return False

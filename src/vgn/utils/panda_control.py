@@ -65,7 +65,7 @@ class PandaCommander(object):
         self.move_group.clear_pose_targets()
         return success
 
-    def grasp(self, width=0, e_inner=0.1, e_outer=0.1, speed=0.1, force=1):
+    def grasp(self, width=0.0, e_inner=0.1, e_outer=0.1, speed=0.1, force=10.0):
         epsilon = franka_gripper.msg.GraspEpsilon(e_inner, e_outer)
         goal = franka_gripper.msg.GraspGoal(width, epsilon, speed, force)
         self.grasp_client.send_goal(goal)
