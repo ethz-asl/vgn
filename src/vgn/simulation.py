@@ -50,6 +50,14 @@ class GraspSimulation(object):
         self.world.set_gravity([0.0, 0.0, -9.81])
         self.draw_workspace()
 
+        if self._gui:
+            self.world.p.resetDebugVisualizerCamera(
+                cameraDistance=1.0,
+                cameraYaw=0.0,
+                cameraPitch=-45,
+                cameraTargetPosition=[0.15, 0.50, -0.3],
+            )
+
         table_height = self.gripper.finger_depth
         self.place_table(table_height)
 
