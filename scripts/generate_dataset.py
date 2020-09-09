@@ -1,11 +1,3 @@
-"""Generate synthetic grasping trials. 
-
-First, a scene with randomly placed objects is generated. Next, multiple depth 
-images are rendered and integrated into a TSDF used to reconstruct the scene.
-A geometric heuristic then samples grasp candidates which are evaluated using
-physical simulation.
-"""
-
 from __future__ import print_function, division
 
 import argparse
@@ -14,28 +6,27 @@ import uuid
 
 from mpi4py import MPI
 import numpy as np
-import open3d as o3d
 import scipy.signal as signal
 from tqdm import tqdm
 
 from vgn.grasp import Grasp, Label
 from vgn.perception import *
-from vgn.simulation import GraspSimulation
+from vgn.simulation import ClutterRemovalSim
 from vgn.utils import io
 from vgn.utils.transform import Rotation, Transform
 
 
 OBJECT_COUNT_LAMBDA = 4
-VIEWPOINT_COUNT = 6
+MAX_VIEWPOINT_COUNT = 6
 GRASPS_PER_SCENE = 120
 
 
 def main(args):
     workers, rank = setup_mpi()
     create_data_dir(args.root, rank)
-    sim = GraspSimulation(args.scene, args.object_set, test=args.test, gui=args.sim_gui)
+    sim = ClutterRemovalSim(args.scene, args.object_set, gui=args.sim_gui)
     finger_depth = sim.gripper.finger_depth
-    grasps_per_worker = args.grasps // workers
+    grasps_per_worker = args.num_grasps // workers
     pbar = tqdm(total=grasps_per_worker, disable=rank is not 0)
 
     for _ in range(grasps_per_worker // GRASPS_PER_SCENE):
@@ -45,10 +36,10 @@ def main(args):
         sim.save_state()
 
         # render synthetic depth images
-        depth_imgs, extrinsics = render_images(sim, VIEWPOINT_COUNT)
+        depth_imgs, extrinsics = render_images(sim, MAX_VIEWPOINT_COUNT)
 
         # reconstrct point cloud using a subset of the images
-        n = np.random.randint(VIEWPOINT_COUNT) + 1
+        n = np.random.randint(MAX_VIEWPOINT_COUNT) + 1
         pc = reconstruct_point_cloud(sim, depth_imgs, extrinsics, n)
 
         # crop surface and borders from point cloud
@@ -127,9 +118,10 @@ def sample_grasp_point(point_cloud, finger_depth, eps=0.1):
     normals = np.asarray(point_cloud.normals)
     ok = False
     while not ok:
+        # TODO this could result in an infinite loop, though very unlikely
         idx = np.random.randint(len(points))
         point, normal = points[idx], normals[idx]
-        ok = normal[2] > -0.1
+        ok = normal[2] > -0.1  # make sure the normal is poitning upwards
     grasp_depth = np.random.uniform(-eps * finger_depth, (1.0 + eps) * finger_depth)
     point = point + normal * grasp_depth
     return point, normal
@@ -151,11 +143,13 @@ def evaluate_grasp_point(sim, pos, normal, num_rotations=6):
     for yaw in yaws:
         ori = R * Rotation.from_euler("z", yaw)
         sim.restore_state()
-        outcome, width = sim.execute_grasp(Transform(ori, pos), remove=False)
+        candidate = Grasp(Transform(ori, pos), width=sim.gripper.max_opening_width)
+        outcome, width = sim.execute_grasp(candidate, remove=False)
         outcomes.append(outcome)
         widths.append(width)
 
     # detect mid-point of widest peak of successful yaw angles
+    # TODO currently this does not properly handle periodicity
     successes = (np.asarray(outcomes) == Label.SUCCESS).astype(float)
     if np.sum(successes):
         peaks, properties = signal.find_peaks(
@@ -176,7 +170,7 @@ def store_raw_data(root, depth_imgs, extrinsics, n):
 
 
 def store_sample(root, scene_id, grasp, label):
-    # add a row to the table (TODO concurrent writes could be an issue, meh)
+    # add a row to the table (TODO concurrent writes could be an issue?)
     csv_path = root / "grasps.csv"
     qx, qy, qz, qw = grasp.pose.rotation.as_quat()
     x, y, z = grasp.pose.translation
@@ -187,10 +181,9 @@ def store_sample(root, scene_id, grasp, label):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("root", type=Path)
-    parser.add_argument("--scene", type=str)
+    parser.add_argument("--scene", type=str, choices=["pile", "packed"])
     parser.add_argument("--object-set", type=str)
-    parser.add_argument("--test", action="store_true")
-    parser.add_argument("--grasps", type=int, default=10000)
+    parser.add_argument("--num-grasps", type=int, default=10000)
     parser.add_argument("--sim-gui", action="store_true")
     args = parser.parse_args()
     main(args)

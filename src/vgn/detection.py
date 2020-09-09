@@ -11,9 +11,10 @@ from vgn.networks import load_network
 
 
 class VGN(object):
-    def __init__(self, model_path):
+    def __init__(self, model_path, rviz=False):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.net = load_network(model_path, self.device)
+        self.rviz = rviz
 
     def __call__(self, state):
         tsdf_vol = state.tsdf.get_volume()
@@ -32,7 +33,8 @@ class VGN(object):
             grasps = [from_voxel_coordinates(g, voxel_size) for g in grasps[p]]
             scores = scores[p]
 
-        vis.draw_quality(qual_vol, threshold=0.01)
+        if self.rviz:
+            vis.draw_quality(qual_vol, threshold=0.01)
 
         return grasps, scores, toc
 

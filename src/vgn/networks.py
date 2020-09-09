@@ -9,16 +9,19 @@ from scipy import ndimage
 def get_network(name):
     models = {
         "conv": ConvNet(),
-        "small_conv": SmallConvNet(),
-        "mtconv": MTConvNet(),
     }
     return models[name.lower()]
 
 
 def load_network(path, device):
-    start, end = path.name.find("_") + 1, path.name.rfind("_")
-    name = path.name[start:end]
-    net = get_network(name).to(device)
+    """Construct the neural network and load parameters from the specified file.
+
+    Args:
+        path: Path to the model parameters. The name must conform to `vgn_name_[_...]`.
+
+    """
+    model_name = path.stem.split("_")[1]
+    net = get_network(model_name).to(device)
     net.load_state_dict(torch.load(str(path), map_location=device))
     return net
 
@@ -48,46 +51,6 @@ class ConvNet(nn.Module):
         qual_out = torch.sigmoid(self.conv_qual(x))
         rot_out = F.normalize(self.conv_rot(x), dim=1)
         width_out = self.conv_width(x)
-        return qual_out, rot_out, width_out
-
-
-class SmallConvNet(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.encoder = Encoder(1, [8, 16, 32], [3, 3, 3])
-        self.decoder = Decoder(32, [32, 16, 8], [3, 3, 3])
-        self.conv_qual = conv(8, 1, 5)
-        self.conv_rot = conv(8, 4, 5)
-        self.conv_width = conv(8, 1, 5)
-
-    def forward(self, x):
-        x = self.encoder(x)
-        x = self.decoder(x)
-        qual_out = torch.sigmoid(self.conv_qual(x))
-        rot_out = F.normalize(self.conv_rot(x), dim=1)
-        width_out = self.conv_width(x)
-        return qual_out, rot_out, width_out
-
-
-class MTConvNet(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.encoder = Encoder(1, [16, 32, 64], [5, 3, 3])
-        self.qual_decoder = Decoder(64, [64, 32, 16], [3, 3, 5])
-        self.rot_decoder = Decoder(64, [64, 32, 16], [3, 3, 5])
-        self.width_decoder = Decoder(64, [64, 32, 16], [3, 3, 5])
-        self.conv_qual = conv(16, 1, 5)
-        self.conv_rot = conv(16, 4, 5)
-        self.conv_width = conv(16, 1, 5)
-
-    def forward(self, x):
-        x = self.encoder(x)
-        x_qual = self.qual_decoder(x)
-        x_rot = self.rot_decoder(x)
-        x_width = self.width_decoder(x)
-        qual_out = torch.sigmoid(self.conv_qual(x_qual))
-        rot_out = F.normalize(self.conv_rot(x_rot), dim=1)
-        width_out = self.conv_width(x_width)
         return qual_out, rot_out, width_out
 
 

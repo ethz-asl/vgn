@@ -30,7 +30,7 @@ def main(args):
         args.lr,
         args.description,
     ).strip(",")
-    log_dir = args.logdir / description
+    logdir = args.logdir / description
 
     # create data loaders
     train_loader, val_loader = create_train_val_loaders(
@@ -55,7 +55,7 @@ def main(args):
     # log training progress to the terminal and tensorboard
     ProgressBar(persist=True, ascii=True).attach(trainer)
 
-    train_writer, val_writer = create_summary_writers(net, device, log_dir)
+    train_writer, val_writer = create_summary_writers(net, device, logdir)
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_train_results(engine):
@@ -72,7 +72,7 @@ def main(args):
 
     # checkpoint model
     checkpoint_handler = ModelCheckpoint(
-        str(log_dir),
+        str(logdir),
         "vgn",
         save_interval=1,
         n_saved=100,
@@ -214,5 +214,4 @@ if __name__ == "__main__":
     parser.add_argument("--val-split", type=float, default=0.1)
     parser.add_argument("--augment", action="store_true")
     args = parser.parse_args()
-
     main(args)

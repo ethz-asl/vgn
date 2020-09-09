@@ -28,8 +28,8 @@ class Dataset(torch.utils.data.Dataset):
         return len(self.df.index)
 
     def __getitem__(self, i):
-        scene_id, ori, pos, width, label = self.lookup_sample(i)
-        tsdf = self.read_tsdf(scene_id)
+        scene_id, ori, pos, width, label = self._lookup_sample(i)
+        tsdf = self._read_tsdf(scene_id)
 
         if self.augment:
             tsdf, ori, pos = self._apply_random_transform(tsdf, ori, pos)
@@ -44,7 +44,7 @@ class Dataset(torch.utils.data.Dataset):
 
         return x, y, index
 
-    def lookup_sample(self, i):
+    def _lookup_sample(self, i):
         voxel_size = self.size / self.resolution
         scene_id = self.df.loc[i, "scene_id"]
         orientation = Rotation.from_quat(self.df.loc[i, "qx":"qw"].to_numpy(np.double))
@@ -54,24 +54,9 @@ class Dataset(torch.utils.data.Dataset):
 
         return scene_id, orientation, position, width, label
 
-    def read_tsdf(self, scene_id):
+    def _read_tsdf(self, scene_id):
         tsdf_path = self.root / "tsdfs" / (scene_id + ".npz")
         return np.load(str(tsdf_path))[self.reconstruction_mode]
-
-    def read_pc(self, i):
-        scene_id = self.df.loc[i, "scene_id"]
-        tsdf = TSDFVolume(self.size, 120)
-        intrinsic = CameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)  # TODO
-        raw = np.load(self.root / "raw" / (str(scene_id) + ".npz"))
-
-        N = raw["extrinsics"].shape[0]
-        n = N if self.reconstruction_mode == "complete" else raw["n"]
-
-        for i in range(n):
-            extrinsic = Transform.from_list(raw["extrinsics"][i])
-            depth_img = raw["depth_imgs"][i]
-            tsdf.integrate(depth_img, intrinsic, extrinsic)
-        return tsdf.extract_point_cloud()
 
     def _apply_random_transform(self, tsdf, orientation, position):
         angle = np.pi / 2.0 * np.random.choice(4)

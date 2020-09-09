@@ -157,6 +157,7 @@ def _create_marker_msg(marker_type, frame, pose, scale, color):
 
 
 def _create_vol_msg(vol, threshold):
+    vol = vol.squeeze()
     points = np.argwhere(vol > threshold) * VOXEL_SIZE
     values = np.expand_dims(vol[vol > threshold], 1)
     return ros_utils.to_cloud_msg(points, values, frame="task")

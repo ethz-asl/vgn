@@ -11,21 +11,20 @@ from vgn.utils import btsim, workspace_lines
 from vgn.utils.transform import Rotation, Transform
 
 
-class GraspSimulation(object):
-    def __init__(self, scene, object_set, test=False, gui=True, seed=None):
+class ClutterRemovalSim(object):
+    def __init__(self, scene, object_set, gui=True, seed=None):
         assert scene in ["pile", "packed"]
 
         self.urdf_root = Path("data/urdfs")
         self.scene = scene
         self.object_set = object_set
-        self.train = not test
         self.discover_objects()
 
-        self._global_scaling = {"blocks": 1.67}.get(object_set, 1.0)
-        self._gui = gui
+        self.global_scaling = {"blocks": 1.67}.get(object_set, 1.0)
+        self.gui = gui
 
         self.rng = np.random.RandomState(seed) if seed else np.random
-        self.world = btsim.BtWorld(self._gui)
+        self.world = btsim.BtWorld(self.gui)
         self.gripper = Gripper(self.world)
         self.size = 6 * self.gripper.finger_depth
         intrinsic = CameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)
@@ -37,7 +36,7 @@ class GraspSimulation(object):
 
     def discover_objects(self):
         root = self.urdf_root / self.object_set
-        self._urdfs = [f for f in root.iterdir() if f.suffix == ".urdf"]
+        self.object_urdfs = [f for f in root.iterdir() if f.suffix == ".urdf"]
 
     def save_state(self):
         self._snapshot_id = self.world.save_state()
@@ -50,7 +49,7 @@ class GraspSimulation(object):
         self.world.set_gravity([0.0, 0.0, -9.81])
         self.draw_workspace()
 
-        if self._gui:
+        if self.gui:
             self.world.p.resetDebugVisualizerCamera(
                 cameraDistance=1.0,
                 cameraYaw=0.0,
@@ -62,9 +61,9 @@ class GraspSimulation(object):
         self.place_table(table_height)
 
         if self.scene == "pile":
-            self.generate_pile(object_count, table_height)
+            self.generate_pile_scene(object_count, table_height)
         elif self.scene == "packed":
-            self.generate_packed_objects(object_count, table_height)
+            self.generate_packed_scene(object_count, table_height)
         else:
             raise ValueError("Invalid scene argument")
 
@@ -82,49 +81,47 @@ class GraspSimulation(object):
         self.world.load_urdf(urdf, pose, scale=0.6)
 
         # define valid volume for sampling grasps
-        finger_depth = self.gripper.finger_depth
         lx, ux = 0.02, self.size - 0.02
         ly, uy = 0.02, self.size - 0.02
         lz, uz = height + 0.005, self.size
         self.lower = np.r_[lx, ly, lz]
         self.upper = np.r_[ux, uy, uz]
 
-    def generate_pile(self, object_count, table_height):
+    def generate_pile_scene(self, object_count, table_height):
         # place box
         urdf = self.urdf_root / "setup" / "box.urdf"
         pose = Transform(Rotation.identity(), np.r_[0.02, 0.02, table_height])
         box = self.world.load_urdf(urdf, pose, scale=1.3)
 
         # drop objects
-        urdfs = self.rng.choice(self._urdfs, size=object_count)
+        urdfs = self.rng.choice(self.object_urdfs, size=object_count)
         for urdf in urdfs:
             rotation = Rotation.random(random_state=self.rng)
             xy = self.rng.uniform(1.0 / 3.0 * self.size, 2.0 / 3.0 * self.size, 2)
             pose = Transform(rotation, np.r_[xy, table_height + 0.2])
-            scale = self.rng.uniform(0.8, 1.0) if self.train else 1.0
-            body = self.world.load_urdf(urdf, pose, scale=self._global_scaling * scale)
+            scale = self.rng.uniform(0.8, 1.0)
+            self.world.load_urdf(urdf, pose, scale=self.global_scaling * scale)
             self.wait_for_objects_to_rest(timeout=1.0)
 
         # remove box
         self.world.remove_body(box)
         self.remove_and_wait()
 
-    def generate_packed_objects(self, object_count, table_height):
-        objects_placed = 0
+    def generate_packed_scene(self, object_count, table_height):
         attempts = 0
         max_attempts = 12
 
         while self.num_objects < object_count and attempts < max_attempts:
             self.save_state()
-            urdf = self.rng.choice(self._urdfs)
+            urdf = self.rng.choice(self.object_urdfs)
             x = self.rng.uniform(0.08, 0.22)
             y = self.rng.uniform(0.08, 0.22)
             z = 1.0
             angle = self.rng.uniform(0.0, 2.0 * np.pi)
             rotation = Rotation.from_rotvec(angle * np.r_[0.0, 0.0, 1.0])
             pose = Transform(rotation, np.r_[x, y, z])
-            scale = self.rng.uniform(0.7, 0.9) if self.train else 0.8
-            body = self.world.load_urdf(urdf, pose, scale=self._global_scaling * scale)
+            scale = self.rng.uniform(0.7, 0.9)
+            body = self.world.load_urdf(urdf, pose, scale=self.global_scaling * scale)
             lower, upper = self.world.p.getAABB(body.uid)
             z = table_height + 0.5 * (upper[2] - lower[2]) + 0.002
             body.set_pose(pose=Transform(rotation, np.r_[x, y, z]))
@@ -162,7 +159,8 @@ class GraspSimulation(object):
 
         return tsdf, high_res_tsdf.extract_point_cloud()
 
-    def execute_grasp(self, T_world_grasp, remove=True, allow_contact=False):
+    def execute_grasp(self, grasp, remove=True, allow_contact=False):
+        T_world_grasp = grasp.pose
         T_grasp_pregrasp = Transform(Rotation.identity(), [0.0, 0.0, -0.05])
         T_world_pregrasp = T_world_grasp * T_grasp_pregrasp
 
@@ -187,7 +185,7 @@ class GraspSimulation(object):
             else:
                 self.gripper.move(0.0)
                 self.gripper.move_tcp_xyz(T_world_retreat, abort_on_contact=False)
-                if self._check_success(self.gripper):
+                if self.check_success(self.gripper):
                     result = Label.SUCCESS, self.gripper.read()
                     if remove:
                         contacts = self.world.get_contacts(self.gripper.body)
@@ -232,7 +230,7 @@ class GraspSimulation(object):
                 removed_object = True
         return removed_object
 
-    def _check_success(self, gripper):
+    def check_success(self, gripper):
         # check that the fingers are in contact with some object and not fully closed
         contacts = self.world.get_contacts(gripper.body)
         res = len(contacts) > 0 and gripper.read() > 0.1 * gripper.max_opening_width

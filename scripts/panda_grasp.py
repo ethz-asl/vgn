@@ -4,8 +4,6 @@ from __future__ import division, print_function
 
 import argparse
 from pathlib2 import Path
-import pickle
-
 
 import cv_bridge
 import franka_msgs.msg
@@ -13,12 +11,10 @@ import geometry_msgs.msg
 import numpy as np
 import rospy
 import sensor_msgs.msg
-import std_srvs.srv
-
 
 from vgn import vis
 from vgn.baselines import GPD
-from vgn.benchmark import Logger, State
+from vgn.experiments.clutter_removal import Logger, State
 from vgn.detection import VGN
 from vgn.perception import *
 from vgn.utils import ros_utils
@@ -49,8 +45,8 @@ class PandaGraspController(object):
         self.define_workspace()
         self.create_planning_scene()
         self.tsdf_server = TSDFServer()
-        self.plan_grasps = self.select_grasp_planner(args.method)
-        self.logger = Logger(args.logdir)
+        self.plan_grasps = self.select_grasp_planner(args.model)
+        self.logger = Logger(args.logdir, args.description)
 
         rospy.loginfo("Ready to take action")
 
@@ -95,13 +91,11 @@ class PandaGraspController(object):
 
         rospy.sleep(1.0)  # wait for the scene to be updated
 
-    def select_grasp_planner(self, method):
-        if method == "vgn":
-            return VGN(args.model)
-        elif method == "gpd":
+    def select_grasp_planner(self, model):
+        if str(args.model) == "gpd":
             return GPD()
         else:
-            raise ValueError
+            return VGN(model, rviz=True)
 
     def robot_state_cb(self, msg):
         detected_error = False
@@ -200,13 +194,13 @@ class PandaGraspController(object):
         T_base_pregrasp = T_base_grasp * T_grasp_pregrasp
         T_base_retreat = T_base_grasp * T_grasp_retreat
 
-        self.pc.goto_pose(T_base_pregrasp * self.T_tcp_tool0)
+        self.pc.goto_pose(T_base_pregrasp * self.T_tcp_tool0, velocity_scaling=0.2)
         self.approach_grasp(T_base_grasp)
 
         if self.robot_error:
             return False
 
-        self.pc.grasp(force=20.0)
+        self.pc.grasp(width=0.0, force=20.0)
 
         if self.robot_error:
             return False
@@ -227,7 +221,6 @@ class PandaGraspController(object):
         self.pc.goto_pose(T_base_grasp * self.T_tcp_tool0)
 
     def drop(self):
-        self.pc.goto_joints([0, -0.785, 0, -2.356, 0, 1.57, 0.785], 0.2, 0.2)
         self.pc.goto_joints(
             [0.678, 0.097, 0.237, -1.63, -0.031, 1.756, 0.931], 0.2, 0.2
         )
@@ -266,17 +259,15 @@ class TSDFServer(object):
 def main(args):
     rospy.init_node("panda_grasp")
     panda_grasp = PandaGraspController(args)
+
     while True:
         panda_grasp.run()
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="real-world grasp trials")
-    parser.add_argument("--method", choices=["vgn", "gpd"], required=True)
-    parser.add_argument("--logdir", type=Path, required=True)
-
-    # vgn specific args
-    parser.add_argument("--model", type=Path)
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", type=Path, required=True)
+    parser.add_argument("--logdir", type=Path, default="data/experiments")
+    parser.add_argument("--description", type=str, default="")
     args = parser.parse_args()
     main(args)
