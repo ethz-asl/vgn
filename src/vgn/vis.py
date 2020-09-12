@@ -3,9 +3,6 @@
 from __future__ import division
 
 
-import colorsys
-import time
-
 import matplotlib.colors
 import numpy as np
 from sensor_msgs.msg import PointCloud2
@@ -13,7 +10,6 @@ import rospy
 from rospy import Publisher
 from visualization_msgs.msg import Marker, MarkerArray
 
-from vgn.grasp import Grasp, from_voxel_coordinates
 from vgn.utils import ros_utils, workspace_lines
 from vgn.utils.transform import Transform, Rotation
 
@@ -21,28 +17,20 @@ from vgn.utils.transform import Transform, Rotation
 cmap = matplotlib.colors.LinearSegmentedColormap.from_list("RedGreen", ["r", "g"])
 DELETE_MARKER_MSG = Marker(action=Marker.DELETEALL)
 DELETE_MARKER_ARRAY_MSG = MarkerArray(markers=[DELETE_MARKER_MSG])
-SIZE, VOXEL_SIZE, FINGER_DEPTH = 0.0, 0.0, 0.0
 
 
-def set_size(size):
-    global SIZE, VOXEL_SIZE, FINGER_DEPTH
-    SIZE = size
-    VOXEL_SIZE = SIZE / 40.0
-    FINGER_DEPTH = SIZE / 6.0
-
-
-def draw_workspace():
-    scale = SIZE * 0.005
+def draw_workspace(size):
+    scale = size * 0.005
     pose = Transform.identity()
     scale = [scale, 0.0, 0.0]
     color = [0.5, 0.5, 0.5]
     msg = _create_marker_msg(Marker.LINE_LIST, "task", pose, scale, color)
-    msg.points = [ros_utils.to_point_msg(point) for point in workspace_lines(SIZE)]
+    msg.points = [ros_utils.to_point_msg(point) for point in workspace_lines(size)]
     pubs["workspace"].publish(msg)
 
 
-def draw_tsdf(vol, threshold=0.01):
-    msg = _create_vol_msg(vol, threshold)
+def draw_tsdf(vol, voxel_size, threshold=0.01):
+    msg = _create_vol_msg(vol, voxel_size, threshold)
     pubs["tsdf"].publish(msg)
 
 
@@ -51,19 +39,19 @@ def draw_points(points):
     pubs["points"].publish(msg)
 
 
-def draw_quality(vol, threshold=0.01):
-    msg = _create_vol_msg(vol, threshold)
+def draw_quality(vol, voxel_size, threshold=0.01):
+    msg = _create_vol_msg(vol, voxel_size, threshold)
     pubs["quality"].publish(msg)
 
 
-def draw_volume(vol, threshold=0.01):
-    msg = _create_vol_msg(vol, threshold)
+def draw_volume(vol, voxel_size, threshold=0.01):
+    msg = _create_vol_msg(vol, voxel_size, threshold)
     pubs["debug"].publish(msg)
 
 
-def draw_grasp(grasp, score):
-    radius = 0.1 * FINGER_DEPTH
-    w, d = grasp.width, FINGER_DEPTH
+def draw_grasp(grasp, score, finger_depth):
+    radius = 0.1 * finger_depth
+    w, d = grasp.width, finger_depth
     color = cmap(float(score))
 
     markers = []
@@ -101,10 +89,10 @@ def draw_grasp(grasp, score):
     pubs["grasp"].publish(MarkerArray(markers=markers))
 
 
-def draw_grasps(grasps, scores):
+def draw_grasps(grasps, scores, finger_depth):
     markers = []
     for i, (grasp, score) in enumerate(zip(grasps, scores)):
-        msg = _create_grasp_marker_msg(grasp, score)
+        msg = _create_grasp_marker_msg(grasp, score, finger_depth)
         msg.id = i
         markers.append(msg)
     msg = MarkerArray(markers=markers)
@@ -119,17 +107,6 @@ def clear():
     pubs["grasp"].publish(DELETE_MARKER_ARRAY_MSG)
     pubs["grasps"].publish(DELETE_MARKER_ARRAY_MSG)
     pubs["debug"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
-
-
-def draw_sample(x, y, index):
-    tsdf, (label, rotations, width), index = x, y, index
-    grasp = Grasp(Transform(Rotation.from_quat(rotations[0]), index), width)
-    grasp = from_voxel_coordinates(grasp, VOXEL_SIZE)
-
-    clear()
-    draw_workspace()
-    draw_tsdf(tsdf.squeeze())
-    draw_grasp(grasp, float(label))
 
 
 def _create_publishers():
@@ -156,16 +133,16 @@ def _create_marker_msg(marker_type, frame, pose, scale, color):
     return msg
 
 
-def _create_vol_msg(vol, threshold):
+def _create_vol_msg(vol, voxel_size, threshold):
     vol = vol.squeeze()
-    points = np.argwhere(vol > threshold) * VOXEL_SIZE
+    points = np.argwhere(vol > threshold) * voxel_size
     values = np.expand_dims(vol[vol > threshold], 1)
     return ros_utils.to_cloud_msg(points, values, frame="task")
 
 
-def _create_grasp_marker_msg(grasp, score):
-    radius = 0.1 * FINGER_DEPTH
-    w, d = grasp.width, FINGER_DEPTH
+def _create_grasp_marker_msg(grasp, score, finger_depth):
+    radius = 0.1 * finger_depth
+    w, d = grasp.width, finger_depth
     scale = [radius, 0.0, 0.0]
     color = cmap(float(score))
     msg = _create_marker_msg(Marker.LINE_LIST, "task", grasp.pose, scale, color)

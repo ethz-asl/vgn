@@ -1,38 +1,31 @@
-from pathlib2 import Path
-
 import numpy as np
-import pandas
 from scipy import ndimage
 import torch.utils.data
 
-from vgn.grasp import Grasp
+from vgn.io import *
 from vgn.perception import *
 from vgn.utils.transform import Rotation, Transform
 
 
 class Dataset(torch.utils.data.Dataset):
-    def __init__(
-        self, root, size=0.3, resolution=40, augment=False, reconstruction="partial"
-    ):
+    def __init__(self, root, augment=False):
         self.root = root
-        csv_path = self.root / "grasps.csv"
-        assert csv_path.exists()
-
-        self.df = pandas.read_csv(csv_path)
-        self.size = size
-        self.resolution = resolution
         self.augment = augment
-        self.reconstruction_mode = reconstruction
+        self.df = read_df(root)
 
     def __len__(self):
         return len(self.df.index)
 
     def __getitem__(self, i):
-        scene_id, ori, pos, width, label = self._lookup_sample(i)
-        tsdf = self._read_tsdf(scene_id)
+        scene_id = self.df.loc[i, "scene_id"]
+        ori = Rotation.from_quat(self.df.loc[i, "qx":"qw"].to_numpy(np.double))
+        pos = self.df.loc[i, "i":"k"].to_numpy(np.double)
+        width = self.df.loc[i, "width"]
+        label = self.df.loc[i, "label"]
+        voxel_grid = read_voxel_grid(self.root, scene_id)
 
         if self.augment:
-            tsdf, ori, pos = self._apply_random_transform(tsdf, ori, pos)
+            voxel_grid, ori, pos = apply_transform(voxel_grid, ori, pos)
 
         index = np.round(pos).astype(np.long)
         rotations = np.empty((2, 4), dtype=np.float32)
@@ -40,43 +33,30 @@ class Dataset(torch.utils.data.Dataset):
         rotations[0] = ori.as_quat()
         rotations[1] = (ori * R).as_quat()
 
-        x, y, index = tsdf, (label, rotations, width), index
+        x, y, index = voxel_grid, (label, rotations, width), index
 
         return x, y, index
 
-    def _lookup_sample(self, i):
-        voxel_size = self.size / self.resolution
-        scene_id = self.df.loc[i, "scene_id"]
-        orientation = Rotation.from_quat(self.df.loc[i, "qx":"qw"].to_numpy(np.double))
-        position = self.df.loc[i, "x":"z"].to_numpy(np.double) / voxel_size
-        width = self.df.loc[i, "width"] / voxel_size
-        label = self.df.loc[i, "label"]
 
-        return scene_id, orientation, position, width, label
+def apply_transform(voxel_grid, orientation, position):
+    angle = np.pi / 2.0 * np.random.choice(4)
+    R_augment = Rotation.from_rotvec(np.r_[0.0, 0.0, angle])
 
-    def _read_tsdf(self, scene_id):
-        tsdf_path = self.root / "tsdfs" / (scene_id + ".npz")
-        return np.load(str(tsdf_path))[self.reconstruction_mode]
+    z_offset = np.random.uniform(6, 34) - position[2]
 
-    def _apply_random_transform(self, tsdf, orientation, position):
-        angle = np.pi / 2.0 * np.random.choice(4)
-        R_augment = Rotation.from_rotvec(np.r_[0.0, 0.0, angle])
+    t_augment = np.r_[0.0, 0.0, z_offset]
+    T_augment = Transform(R_augment, t_augment)
 
-        z_offset = np.random.uniform(6, 34) - position[2]
+    T_center = Transform(Rotation.identity(), np.r_[20.0, 20.0, 20.0])
+    T = T_center * T_augment * T_center.inverse()
 
-        t_augment = np.r_[0.0, 0.0, z_offset]
-        T_augment = Transform(R_augment, t_augment)
+    # transform voxel grid
+    T_inv = T.inverse()
+    matrix, offset = T_inv.rotation.as_dcm(), T_inv.translation
+    voxel_grid[0] = ndimage.affine_transform(voxel_grid[0], matrix, offset, order=0)
 
-        T_center = Transform(Rotation.identity(), np.r_[20.0, 20.0, 20.0])
-        T = T_center * T_augment * T_center.inverse()
+    # transform grasp pose
+    position = T.transform_point(position)
+    orientation = T.rotation * orientation
 
-        # transform tsdf
-        T_inv = T.inverse()
-        matrix, offset = T_inv.rotation.as_dcm(), T_inv.translation
-        tsdf[0] = ndimage.affine_transform(tsdf[0], matrix, offset, order=0)
-
-        # transform grasp pose
-        position = T.transform_point(position)
-        orientation = T.rotation * orientation
-
-        return tsdf, orientation, position
+    return voxel_grid, orientation, position

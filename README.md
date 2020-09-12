@@ -57,12 +57,12 @@ source /path/to/catkin_ws/devel/setup.zsh
 
 ## Data Generation
 
-Generate a new dataset for training VGN using the [pybullet](https://github.com/bulletphysics/bullet3) physics simulator.
+Generate raw synthetic grasping trials using the [pybullet](https://github.com/bulletphysics/bullet3) physics simulator.
 
 First, a scene with randomly placed objects is generated. Next, multiple depth images are rendered to reconstruct a point cloud of the scene. A geometric heuristic then samples grasp candidates which are evaluated using dynamic simulation. These steps are repeated until the desired number of grasps has been generated.
 
 ```
-python scripts/generate_dataset.py data/datasets/foo --scene pile --object-set blocks [--num-grasps=...] [--sim-gui]
+python scripts/generate_data.py data/raw/foo --scene pile --object-set blocks [--num-grasps=...] [--sim-gui]
 ```
 
 * The options for `scene` are `pile` and `packed`.
@@ -70,12 +70,18 @@ python scripts/generate_dataset.py data/datasets/foo --scene pile --object-set b
 * Use the `--sim-gui` option to show the simulation.
 * `mpirun -np <num-workers> python ...` will run multiple simulations in parallel.
 
-The script will create the following file structure within `path/to/dataset`:
+The script will create the following file structure within `path/to/foo`:
 
 * `grasps.csv` contains the configuration, label, and associated scene for each grasp,
-* `raw/<scene_id>.npz` contains the synthetic sensor data of each scene.
+* `scenes/<scene_id>.npz` contains the synthetic sensor data of each scene.
 
-Afterwards, use [`dataset.ipynb`](notebooks/dataset.ipynb) to clean, merge and balance datasets and generate TSDFs.
+The `data.ipynb` notebook is useful to clean and balance the generated data.
+
+Finally, use `construct_dataset.py` to generate the voxel grids/grasp targets required to train VGN.
+
+```
+python scripts/construct_dataset.py data/raw/foo data/datasets/foo
+```
 
 ## Network Training
 

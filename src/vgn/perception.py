@@ -104,23 +104,28 @@ class TSDFVolume(object):
 
         self._volume.integrate(rgbd, intrinsic, extrinsic)
 
-    def get_volume(self):
+    def get_grid(self):
         shape = (1, self.resolution, self.resolution, self.resolution)
-        tsdf_vol = np.zeros(shape, dtype=np.float32)
+        tsdf_grid = np.zeros(shape, dtype=np.float32)
         voxels = self._volume.extract_voxel_grid().voxels
         for voxel in voxels:
             i, j, k = voxel.grid_index
-            tsdf_vol[0, i, j, k] = voxel.color[0]
-        return tsdf_vol
+            tsdf_grid[0, i, j, k] = voxel.color[0]
+        return tsdf_grid
 
-    def extract_point_cloud(self):
+    def get_cloud(self):
         return self._volume.extract_point_cloud()
 
 
+def create_tsdf(size, resolution, depth_imgs, intrinsic, extrinsics):
+    tsdf = TSDFVolume(size, resolution)
+    for i in range(depth_imgs.shape[0]):
+        extrinsic = Transform.from_list(extrinsics[i])
+        tsdf.integrate(depth_imgs[i], intrinsic, extrinsic)
+    return tsdf
+
+
 def camera_on_sphere(origin, radius, theta, phi):
-    """Compute extrinsic of a camera located at the given spherical coordinates
-    pointing towards the center of a sphere at the specified origin.
-    """
     eye = np.r_[
         radius * sin(theta) * cos(phi),
         radius * sin(theta) * sin(phi),

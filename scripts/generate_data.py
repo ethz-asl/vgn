@@ -2,7 +2,6 @@ from __future__ import print_function, division
 
 import argparse
 from pathlib2 import Path
-import uuid
 
 from mpi4py import MPI
 import numpy as np
@@ -10,9 +9,9 @@ import scipy.signal as signal
 from tqdm import tqdm
 
 from vgn.grasp import Grasp, Label
+from vgn.io import *
 from vgn.perception import *
 from vgn.simulation import ClutterRemovalSim
-from vgn.utils import io
 from vgn.utils.transform import Rotation, Transform
 
 
@@ -23,11 +22,20 @@ GRASPS_PER_SCENE = 120
 
 def main(args):
     workers, rank = setup_mpi()
-    create_data_dir(args.root, rank)
     sim = ClutterRemovalSim(args.scene, args.object_set, gui=args.sim_gui)
     finger_depth = sim.gripper.finger_depth
     grasps_per_worker = args.num_grasps // workers
     pbar = tqdm(total=grasps_per_worker, disable=rank is not 0)
+
+    if rank == 0:
+        (args.root / "scenes").mkdir(parents=True, exist_ok=True)
+        write_setup(
+            args.root,
+            sim.size,
+            sim.camera.intrinsic,
+            sim.gripper.max_opening_width,
+            sim.gripper.finger_depth,
+        )
 
     for _ in range(grasps_per_worker // GRASPS_PER_SCENE):
         # generate heap
@@ -36,11 +44,12 @@ def main(args):
         sim.save_state()
 
         # render synthetic depth images
-        depth_imgs, extrinsics = render_images(sim, MAX_VIEWPOINT_COUNT)
+        n = np.random.randint(MAX_VIEWPOINT_COUNT) + 1
+        depth_imgs, extrinsics = render_images(sim, n)
 
         # reconstrct point cloud using a subset of the images
-        n = np.random.randint(MAX_VIEWPOINT_COUNT) + 1
-        pc = reconstruct_point_cloud(sim, depth_imgs, extrinsics, n)
+        tsdf = create_tsdf(sim.size, 120, depth_imgs, sim.camera.intrinsic, extrinsics)
+        pc = tsdf.get_cloud()
 
         # crop surface and borders from point cloud
         pc = pc.crop(sim.lower, sim.upper)
@@ -51,7 +60,7 @@ def main(args):
             continue
 
         # store the raw data
-        scene_id = store_raw_data(args.root, depth_imgs, extrinsics, n)
+        scene_id = write_sensor_data(args.root, depth_imgs, extrinsics)
 
         for _ in range(GRASPS_PER_SCENE):
             # sample and evaluate a grasp point
@@ -59,7 +68,7 @@ def main(args):
             grasp, label = evaluate_grasp_point(sim, point, normal)
 
             # store the sample
-            store_sample(args.root, scene_id, grasp, label)
+            write_grasp(args.root, scene_id, grasp, label)
             pbar.update()
 
     pbar.close()
@@ -71,27 +80,14 @@ def setup_mpi():
     return workers, rank
 
 
-def create_data_dir(root, rank):
-    if rank != 0:
-        return
-    raw_dir = root / "raw"
-    raw_dir.mkdir(parents=True, exist_ok=True)
-    csv_path = root / "grasps.csv"
-    if not csv_path.exists():
-        io.create_csv(
-            csv_path,
-            ["scene_id", "qx", "qy", "qz", "qw", "x", "y", "z", "width", "label"],
-        )
-
-
-def render_images(sim, N):
+def render_images(sim, n):
     height, width = sim.camera.intrinsic.height, sim.camera.intrinsic.width
     origin = Transform(Rotation.identity(), np.r_[sim.size / 2, sim.size / 2, 0.0])
 
-    extrinsics = np.empty((N, 7), np.float32)
-    depth_imgs = np.empty((N, height, width), np.float32)
+    extrinsics = np.empty((n, 7), np.float32)
+    depth_imgs = np.empty((n, height, width), np.float32)
 
-    for i in range(N):
+    for i in range(n):
         r = np.random.uniform(1.6, 2.4) * sim.size
         theta = np.random.uniform(0.0, np.pi / 4.0,)
         phi = np.random.uniform(0.0, 2.0 * np.pi)
@@ -103,14 +99,6 @@ def render_images(sim, N):
         depth_imgs[i] = depth_img
 
     return depth_imgs, extrinsics
-
-
-def reconstruct_point_cloud(sim, depth_imgs, extrinsics, n):
-    tsdf = TSDFVolume(sim.size, 120)
-    for i in range(n):
-        extrinsic = Transform.from_list(extrinsics[i])
-        tsdf.integrate(depth_imgs[i], sim.camera.intrinsic, extrinsic)
-    return tsdf.extract_point_cloud()
 
 
 def sample_grasp_point(point_cloud, finger_depth, eps=0.1):
@@ -162,27 +150,11 @@ def evaluate_grasp_point(sim, pos, normal, num_rotations=6):
     return Grasp(Transform(ori, pos), width), int(np.max(outcomes))
 
 
-def store_raw_data(root, depth_imgs, extrinsics, n):
-    scene_id = uuid.uuid4().hex
-    path = root / "raw" / (scene_id + ".npz")
-    np.savez_compressed(str(path), depth_imgs=depth_imgs, extrinsics=extrinsics, n=n)
-    return scene_id
-
-
-def store_sample(root, scene_id, grasp, label):
-    # add a row to the table (TODO concurrent writes could be an issue?)
-    csv_path = root / "grasps.csv"
-    qx, qy, qz, qw = grasp.pose.rotation.as_quat()
-    x, y, z = grasp.pose.translation
-    width = grasp.width
-    io.append_csv(csv_path, scene_id, qx, qy, qz, qw, x, y, z, width, label)
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("root", type=Path)
-    parser.add_argument("--scene", type=str, choices=["pile", "packed"])
-    parser.add_argument("--object-set", type=str)
+    parser.add_argument("--scene", type=str, choices=["pile", "packed"], default="pile")
+    parser.add_argument("--object-set", type=str, default="blocks")
     parser.add_argument("--num-grasps", type=int, default=10000)
     parser.add_argument("--sim-gui", action="store_true")
     args = parser.parse_args()
