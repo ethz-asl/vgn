@@ -75,7 +75,7 @@ The script will create the following file structure within `path/to/foo`:
 * `grasps.csv` contains the configuration, label, and associated scene for each grasp,
 * `scenes/<scene_id>.npz` contains the synthetic sensor data of each scene.
 
-The `data.ipynb` notebook is useful to clean and balance the generated data.
+The `data.ipynb` notebook is useful to clean, balance and visualize the generated data.
 
 Finally, use `construct_dataset.py` to generate the voxel grids/grasp targets required to train VGN.
 
@@ -83,10 +83,12 @@ Finally, use `construct_dataset.py` to generate the voxel grids/grasp targets re
 python scripts/construct_dataset.py data/raw/foo data/datasets/foo
 ```
 
+* Samples of the dataset can be visualized with the `vis_sample.py` script. The script includes the option to apply a random affine transform to the input/target pair to check the data augmentation procedure.
+
 ## Network Training
 
 ```
-python scripts/train_vgn.py --dataset data/datasets/foo
+python scripts/train_vgn.py --dataset data/datasets/foo [--augment]
 ```
 
 Training and validation metrics are logged to TensorBoard and can be accessed with
