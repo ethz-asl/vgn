@@ -25,7 +25,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: TSDF
+    SyncSource: VoxelGrid
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -59,7 +59,7 @@ Visualization Manager:
       Max Intensity: 1
       Min Color: 114; 159; 207
       Min Intensity: 0
-      Name: TSDF
+      Name: VoxelGrid
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
@@ -107,7 +107,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 110.91764068603516
+      Distance: 101.7705078125
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -122,10 +122,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.37039852142333984
+      Pitch: 0.39539968967437744
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 6.27858304977417
+      Yaw: 0.0004067420959472656
     Saved: ~
 Window Geometry:
   Displays:

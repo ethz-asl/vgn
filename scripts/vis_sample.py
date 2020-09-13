@@ -16,12 +16,12 @@ def main(args):
     dataset = Dataset(args.dataset, augment=args.augment)
     i = np.random.randint(len(dataset))
 
-    tsdf_grid, (label, rotations, width), index = dataset[i]
+    voxel_grid, (label, rotations, width), index = dataset[i]
     grasp = Grasp(Transform(Rotation.from_quat(rotations[0]), index), width)
 
     vis.clear()
     vis.draw_workspace(40)
-    vis.draw_tsdf(tsdf_grid, 1.0)
+    vis.draw_tsdf(voxel_grid, 1.0)
     vis.draw_grasp(grasp, float(label), 40.0 / 6.0)
 
     rospy.sleep(1.0)
