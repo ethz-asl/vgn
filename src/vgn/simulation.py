@@ -1,6 +1,7 @@
 from __future__ import division, print_function
 
 from pathlib2 import Path
+import time
 
 import numpy as np
 import pybullet
@@ -152,12 +153,15 @@ class ClutterRemovalSim(object):
         phi_list = 2.0 * np.pi * np.arange(n) / N
         extrinsics = [camera_on_sphere(origin, r, theta, phi) for phi in phi_list]
 
+        timing = 0.0
         for extrinsic in extrinsics:
             depth_img = self.camera.render(extrinsic)[1]
+            tic = time.time()
             tsdf.integrate(depth_img, self.camera.intrinsic, extrinsic)
+            timing += time.time() - tic
             high_res_tsdf.integrate(depth_img, self.camera.intrinsic, extrinsic)
 
-        return tsdf, high_res_tsdf.get_cloud()
+        return tsdf, high_res_tsdf.get_cloud(), timing
 
     def execute_grasp(self, grasp, remove=True, allow_contact=False):
         T_world_grasp = grasp.pose

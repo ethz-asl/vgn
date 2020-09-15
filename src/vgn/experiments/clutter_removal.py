@@ -52,8 +52,10 @@ def run(
         last_label = None
 
         while sim.num_objects > 0 and consecutive_failures < MAX_CONSECUTIVE_FAILURES:
+            timings = {}
+
             # scan the scene
-            tsdf, pc = sim.acquire_tsdf(n=n, N=N)
+            tsdf, pc, timings["integration"] = sim.acquire_tsdf(n=n, N=N)
 
             if pc.is_empty():
                 break  # empty point cloud, abort this round TODO this should not happen
@@ -67,7 +69,7 @@ def run(
 
             # plan grasps
             state = State(tsdf, pc)
-            grasps, scores, planning_time = grasp_plan_fn(state)
+            grasps, scores, timings["planning"] = grasp_plan_fn(state)
 
             if len(grasps) == 0:
                 break  # no detections found, abort this round
@@ -82,7 +84,7 @@ def run(
             label, _ = sim.execute_grasp(grasp, allow_contact=True)
 
             # log the grasp
-            logger.log_grasp(round_id, state, planning_time, grasp, score, label)
+            logger.log_grasp(round_id, state, timings, grasp, score, label)
 
             if last_label == Label.FAILURE and label == Label.FAILURE:
                 consecutive_failures += 1
@@ -112,7 +114,6 @@ class Logger(object):
             columns = [
                 "round_id",
                 "scene_id",
-                "planning_time",
                 "qx",
                 "qy",
                 "qz",
@@ -123,6 +124,8 @@ class Logger(object):
                 "width",
                 "score",
                 "label",
+                "integration",
+                "planning",
             ]
             io.create_csv(self.grasps_csv_path, columns)
 
@@ -133,7 +136,7 @@ class Logger(object):
     def log_round(self, round_id, object_count):
         io.append_csv(self.rounds_csv_path, round_id, object_count)
 
-    def log_grasp(self, round_id, state, planning_time, grasp, score, label):
+    def log_grasp(self, round_id, state, timings, grasp, score, label):
         # log scene
         tsdf, points = state.tsdf, np.asarray(state.pc.points)
         scene_id = uuid.uuid4().hex
@@ -149,7 +152,6 @@ class Logger(object):
             self.grasps_csv_path,
             round_id,
             scene_id,
-            planning_time,
             qx,
             qy,
             qz,
@@ -160,6 +162,8 @@ class Logger(object):
             width,
             score,
             label,
+            timings["integration"],
+            timings["planning"],
         )
 
 
