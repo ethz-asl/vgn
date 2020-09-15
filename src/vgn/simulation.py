@@ -157,7 +157,7 @@ class ClutterRemovalSim(object):
             tsdf.integrate(depth_img, self.camera.intrinsic, extrinsic)
             high_res_tsdf.integrate(depth_img, self.camera.intrinsic, extrinsic)
 
-        return tsdf, high_res_tsdf.extract_point_cloud()
+        return tsdf, high_res_tsdf.get_cloud()
 
     def execute_grasp(self, grasp, remove=True, allow_contact=False):
         T_world_grasp = grasp.pose

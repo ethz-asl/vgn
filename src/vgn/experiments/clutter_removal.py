@@ -8,10 +8,9 @@ import numpy as np
 import pandas as pd
 import tqdm
 
-from vgn import vis
+from vgn import io, vis
 from vgn.grasp import *
 from vgn.simulation import ClutterRemovalSim
-from vgn.utils import io
 from vgn.utils.transform import Rotation, Transform
 
 MAX_CONSECUTIVE_FAILURES = 2
@@ -27,7 +26,7 @@ def run(
     scene,
     object_set,
     num_objects=5,
-    n=5,
+    n=6,
     N=None,
     num_rounds=40,
     seed=1,
@@ -40,9 +39,6 @@ def run(
     run until (a) no objects remain, (b) the planner failed to find a grasp hypothesis,
     or (c) maximum number of consecutive failed grasp attempts.
     """
-    if rviz:
-        vis.set_size(0.3)
-
     sim = ClutterRemovalSim(scene, object_set, gui=sim_gui, seed=seed)
     logger = Logger(logdir, description)
 
@@ -65,8 +61,8 @@ def run(
             # visualize scene
             if rviz:
                 vis.clear()
-                vis.draw_workspace()
-                vis.draw_tsdf(tsdf.get_volume().squeeze())
+                vis.draw_workspace(sim.size)
+                vis.draw_tsdf(tsdf.get_grid().squeeze(), tsdf.voxel_size)
                 vis.draw_points(np.asarray(pc.points))
 
             # plan grasps
@@ -77,12 +73,12 @@ def run(
                 break  # no detections found, abort this round
 
             if rviz:
-                vis.draw_grasps(grasps, scores)
+                vis.draw_grasps(grasps, scores, sim.gripper.finger_depth)
 
             # execute grasp
             grasp, score = grasps[0], scores[0]
             if rviz:
-                vis.draw_grasp(grasp, score)
+                vis.draw_grasp(grasp, score, sim.gripper.finger_depth)
             label, _ = sim.execute_grasp(grasp, allow_contact=True)
 
             # log the grasp
@@ -142,7 +138,7 @@ class Logger(object):
         tsdf, points = state.tsdf, np.asarray(state.pc.points)
         scene_id = uuid.uuid4().hex
         scene_path = self.scenes_dir / (scene_id + ".npz")
-        np.savez_compressed(str(scene_path), tsdf=tsdf.get_volume(), points=points)
+        np.savez_compressed(str(scene_path), tsdf=tsdf.get_grid(), points=points)
 
         # log grasp
         qx, qy, qz, qw = grasp.pose.rotation.as_quat()

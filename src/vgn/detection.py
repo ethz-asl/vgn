@@ -17,7 +17,7 @@ class VGN(object):
         self.rviz = rviz
 
     def __call__(self, state):
-        tsdf_vol = state.tsdf.get_volume()
+        tsdf_vol = state.tsdf.get_grid()
         voxel_size = state.tsdf.voxel_size
 
         tic = time.time()
@@ -34,7 +34,7 @@ class VGN(object):
             scores = scores[p]
 
         if self.rviz:
-            vis.draw_quality(qual_vol, threshold=0.01)
+            vis.draw_quality(qual_vol, state.tsdf.voxel_size, threshold=0.01)
 
         return grasps, scores, toc
 

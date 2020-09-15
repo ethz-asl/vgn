@@ -7,7 +7,7 @@ from vgn.experiments import clutter_removal
 
 def main(args):
 
-    if args.rviz or str(args.model == "gpd"):
+    if args.rviz or str(args.model) == "gpd":
         import rospy
 
         rospy.init_node("sim_grasp", anonymous=True)
