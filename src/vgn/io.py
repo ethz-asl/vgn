@@ -31,7 +31,7 @@ def read_setup(root):
 def write_sensor_data(root, depth_imgs, extrinsics):
     scene_id = uuid.uuid4().hex
     path = root / "scenes" / (scene_id + ".npz")
-    np.savez_compressed(str(path), depth_imgs=depth_imgs, extrinsics=extrinsics)
+    np.savez_compressed(path, depth_imgs=depth_imgs, extrinsics=extrinsics)
     return scene_id
 
 
@@ -74,12 +74,12 @@ def write_df(df, root):
 
 def write_voxel_grid(root, scene_id, voxel_grid):
     path = root / "scenes" / (scene_id + ".npz")
-    np.savez_compressed(str(path), grid=voxel_grid)
+    np.savez_compressed(path, grid=voxel_grid)
 
 
 def read_voxel_grid(root, scene_id):
     path = root / "scenes" / (scene_id + ".npz")
-    return np.load(str(path))["grid"]
+    return np.load(path)["grid"]
 
 
 def read_json(path):
@@ -89,18 +89,18 @@ def read_json(path):
 
 
 def write_json(data, path):
-    with path.open("wb") as f:
+    with path.open("w") as f:
         json.dump(data, f, indent=4)
 
 
 def create_csv(path, columns):
-    with path.open("wb") as f:
+    with path.open("w") as f:
         f.write(",".join(columns))
         f.write("\n")
 
 
 def append_csv(path, *args):
     row = ",".join([str(arg) for arg in args])
-    with path.open("ab") as f:
+    with path.open("a") as f:
         f.write(row)
         f.write("\n")

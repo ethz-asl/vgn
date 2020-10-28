@@ -22,7 +22,7 @@ def load_network(path, device):
     """
     model_name = path.stem.split("_")[1]
     net = get_network(model_name).to(device)
-    net.load_state_dict(torch.load(str(path), map_location=device))
+    net.load_state_dict(torch.load(path, map_location=device))
     return net
 
 

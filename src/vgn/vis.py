@@ -1,8 +1,5 @@
 """Render volumes, point clouds, and grasp detections in rviz."""
 
-from __future__ import division
-
-
 import matplotlib.colors
 import numpy as np
 from sensor_msgs.msg import PointCloud2

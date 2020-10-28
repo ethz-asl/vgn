@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 
-from __future__ import division, print_function
-
 import argparse
-from pathlib2 import Path
+from pathlib import Path
 
 import cv_bridge
 import franka_msgs.msg
@@ -179,7 +177,7 @@ class PandaGraspController(object):
 
         # make sure camera is pointing forward
         rot = grasp.pose.rotation
-        axis = rot.as_dcm()[:, 0]
+        axis = rot.as_matrix()[:, 0]
         if axis[0] < 0:
             grasp.pose.rotation = rot * Rotation.from_euler("z", np.pi)
 

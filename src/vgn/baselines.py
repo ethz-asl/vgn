@@ -36,7 +36,7 @@ class GPD(object):
             x_axis = ros_utils.from_vector3_msg(grasp_config.axis)
             y_axis = -ros_utils.from_vector3_msg(grasp_config.binormal)
             z_axis = ros_utils.from_vector3_msg(grasp_config.approach)
-            orientation = Rotation.from_dcm(np.vstack([x_axis, y_axis, z_axis]).T)
+            orientation = Rotation.from_matrix(np.vstack([x_axis, y_axis, z_axis]).T)
             # position
             position = ros_utils.from_point_msg(grasp_config.position)
             # width

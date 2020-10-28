@@ -1,5 +1,5 @@
 import argparse
-from pathlib2 import Path
+from pathlib import Path
 
 import numpy as np
 import rospy

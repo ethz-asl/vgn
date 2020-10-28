@@ -1,7 +1,5 @@
-from __future__ import division
-
 import argparse
-from pathlib2 import Path
+from pathlib import Path
 
 import numpy as np
 import open3d as o3d
@@ -15,7 +13,7 @@ RESOLUTION = 40
 
 def main(args):
     # create directory of new dataset
-    (args.dataset / "scenes").mkdir(parents=True, exist_ok=True)
+    (args.dataset / "scenes").mkdir(parents=True)
 
     # load setup information
     size, intrinsic, _, finger_depth = read_setup(args.raw)

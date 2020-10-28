@@ -18,17 +18,17 @@ class Dataset(torch.utils.data.Dataset):
 
     def __getitem__(self, i):
         scene_id = self.df.loc[i, "scene_id"]
-        ori = Rotation.from_quat(self.df.loc[i, "qx":"qw"].to_numpy(np.double))
-        pos = self.df.loc[i, "i":"k"].to_numpy(np.double)
-        width = self.df.loc[i, "width"]
-        label = self.df.loc[i, "label"]
+        ori = Rotation.from_quat(self.df.loc[i, "qx":"qw"].to_numpy(np.single))
+        pos = self.df.loc[i, "i":"k"].to_numpy(np.single)
+        width = self.df.loc[i, "width"].astype(np.single)
+        label = self.df.loc[i, "label"].astype(np.long)
         voxel_grid = read_voxel_grid(self.root, scene_id)
 
         if self.augment:
             voxel_grid, ori, pos = apply_transform(voxel_grid, ori, pos)
 
         index = np.round(pos).astype(np.long)
-        rotations = np.empty((2, 4), dtype=np.float32)
+        rotations = np.empty((2, 4), dtype=np.single)
         R = Rotation.from_rotvec(np.pi * np.r_[0.0, 0.0, 1.0])
         rotations[0] = ori.as_quat()
         rotations[1] = (ori * R).as_quat()
@@ -52,7 +52,7 @@ def apply_transform(voxel_grid, orientation, position):
 
     # transform voxel grid
     T_inv = T.inverse()
-    matrix, offset = T_inv.rotation.as_dcm(), T_inv.translation
+    matrix, offset = T_inv.rotation.as_matrix(), T_inv.translation
     voxel_grid[0] = ndimage.affine_transform(voxel_grid[0], matrix, offset, order=0)
 
     # transform grasp pose

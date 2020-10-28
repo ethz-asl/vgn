@@ -1,10 +1,10 @@
 # Volumetric Grasping Network
 
-VGN is a 3D convolutional neural network for real-time 6 DOF grasp detection. The network accepts a Truncated Signed Distance Function (TSDF) representation of the scene and outputs a volume of the same spatial resolution, where each cell contains the predicted quality, orientation, and width of a grasp executed at the center of the voxel. The network is trained on synthetic grasping dataset generated with a physics simulator.
+VGN is a 3D convolutional neural network for real-time 6 DOF grasp pose detection. The network accepts a Truncated Signed Distance Function (TSDF) representation of the scene and outputs a volume of the same spatial resolution, where each cell contains the predicted quality, orientation, and width of a grasp executed at the center of the voxel. The network is trained on a synthetic grasping dataset generated with physics simulation.
 
 <!-- TODO insert citation -->
 
-![](docs/overview.png)
+![overview](docs/overview.png)
 
 The next sections provide instructions for getting started with VGN.
 
@@ -16,9 +16,9 @@ The next sections provide instructions for getting started with VGN.
 
 ## Installation
 
-The following instructions were tested with `python2.7` and ROS Melodic.
+The following instructions were tested with `python3.8` on Ubuntu 20.04.
 
-(**Note**: A ROS installation is only required for visualizations and interfacing the robot and sensors. Simulations and network training should work just fine without.)
+**Note**: A ROS installation is only required for visualizations and interfacing hardware. Simulations and network training should work just fine without.
 
 OpenMPI is used to distribute the data generation over multiple cores/machines.
 
@@ -36,7 +36,7 @@ Create and activate a new virtual environment.
 
 ```
 cd /path/to/vgn
-virtualenv -p python2 --system-site-packages .venv
+python3 -m venv --system-site-packages .venv
 source .venv/bin/activate
 ```
 
@@ -53,6 +53,8 @@ catkin build vgn
 source /path/to/catkin_ws/devel/setup.zsh
 ```
 
+<!-- TODO add instructions for pip installation -->
+
 <!-- TODO data download -->
 
 ## Data Generation
@@ -65,25 +67,25 @@ First, a scene with randomly placed objects is generated. Next, multiple depth i
 python scripts/generate_data.py data/raw/foo --scene pile --object-set blocks [--num-grasps=...] [--sim-gui]
 ```
 
-* The options for `scene` are `pile` and `packed`.
-* See `data/urdfs` for available object sets.
-* Use the `--sim-gui` option to show the simulation.
-* `mpirun -np <num-workers> python ...` will run multiple simulations in parallel.
+- The options for `scene` are `pile` and `packed`.
+- See `data/urdfs` for available object sets.
+- Use the `--sim-gui` option to show the simulation.
+- `mpirun -np <num-workers> python ...` will run multiple simulations in parallel.
 
-The script will create the following file structure within `path/to/foo`:
+The script will create the following file structure within `data/raw/foo`:
 
-* `grasps.csv` contains the configuration, label, and associated scene for each grasp,
-* `scenes/<scene_id>.npz` contains the synthetic sensor data of each scene.
+- `grasps.csv` contains the configuration, label, and associated scene for each grasp,
+- `scenes/<scene_id>.npz` contains the synthetic sensor data of each scene.
 
 The `data.ipynb` notebook is useful to clean, balance and visualize the generated data.
 
-Finally, use `construct_dataset.py` to generate the voxel grids/grasp targets required to train VGN.
+Finally, generate the voxel grids/grasp targets required to train VGN.
 
 ```
 python scripts/construct_dataset.py data/raw/foo data/datasets/foo
 ```
 
-* Samples of the dataset can be visualized with the `vis_sample.py` script. The script includes the option to apply a random affine transform to the input/target pair to check the data augmentation procedure.
+- Samples of the dataset can be visualized with the `vis_sample.py` script and `vgn.rviz` configuration. The script includes the option to apply a random affine transform to the input/target pair to check the data augmentation procedure.
 
 ## Network Training
 
@@ -99,14 +101,15 @@ tensorboard --logdir data/runs
 
 ## Simulated Grasping
 
-The following command runs a simulated clutter removal experiment to evaluate VGN.
+The following command runs a simulated clutter removal experiment.
 
 ```
-python scripts/sim_grasp.py --model data/models/vgn_conv.pth
+python scripts/sim_grasp.py --model data/models/vgn_conv.pth [--sim-gui] [--rviz]
 ```
 
-* Use [`clutter_removal.ipynb`](notebooks/clutter_removal.ipynb) to compute metrics and visualize failure cases of an experiment.
-* To detect grasps using GPD, you first need to install and launch the [`gpd_ros`](https://github.com/atenpas/gpd_ros) node, `mon launch vgn gpd.launch`, then run `python scripts/sim_grasp.py --model gpd`.
+- `python scripts/sim_grasp.py -h` prints a complete list of optional arguments.
+- Use the `clutter_removal.ipynb` notebook to compute metrics and visualize failure cases of an experiment.
+- To detect grasps using GPD, you first need to install and launch the [`gpd_ros`](https://github.com/atenpas/gpd_ros) node (`mon launch vgn gpd.launch`), then run `python scripts/sim_grasp.py --model gpd`.
 
 ## Robot Grasping
 
@@ -123,3 +126,7 @@ Then in a second terminal, run
 ```
 ptyhon scripts/panda_grasp.py --model data/models/vgn_conv.pth.
 ```
+
+## To Do
+
+- [ ] Verify the panda scripts on ROS Noetic.

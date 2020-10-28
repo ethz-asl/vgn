@@ -1,5 +1,5 @@
 import argparse
-from pathlib2 import Path
+from pathlib import Path
 from datetime import datetime
 
 from ignite.contrib.handlers.tqdm_logger import ProgressBar
@@ -72,15 +72,14 @@ def main(args):
 
     # checkpoint model
     checkpoint_handler = ModelCheckpoint(
-        str(logdir),
+        logdir,
         "vgn",
-        save_interval=1,
         n_saved=100,
         require_empty=True,
         save_as_state_dict=True,
     )
     evaluator.add_event_handler(
-        Events.EPOCH_COMPLETED, checkpoint_handler, to_save={args.net: net}
+        Events.EPOCH_COMPLETED(every=1), checkpoint_handler, {args.net: net}
     )
 
     # run the training loop
@@ -96,10 +95,10 @@ def create_train_val_loaders(root, batch_size, val_split, augment, kwargs):
     train_set, val_set = torch.utils.data.random_split(dataset, [train_size, val_size])
     # create loaders for both datasets
     train_loader = torch.utils.data.DataLoader(
-        train_set, batch_size=batch_size, shuffle=True, **kwargs
+        train_set, batch_size=batch_size, shuffle=True, drop_last=True, **kwargs
     )
     val_loader = torch.utils.data.DataLoader(
-        val_set, batch_size=batch_size, shuffle=False, **kwargs
+        val_set, batch_size=batch_size, shuffle=False, drop_last=True, **kwargs
     )
     return train_loader, val_loader
 

@@ -1,6 +1,4 @@
-from __future__ import division, print_function
-
-from pathlib2 import Path
+from pathlib import Path
 import time
 
 import numpy as np
@@ -137,7 +135,7 @@ class ClutterRemovalSim(object):
 
     def acquire_tsdf(self, n, N=None):
         """Render synthetic depth images from n viewpoints and integrate into a TSDF.
-        
+
         If N is None, the n viewpoints are equally distributed on circular trajectory.
 
         If N is given, the first n viewpoints on a circular trajectory consisting of N points are rendered.
@@ -168,7 +166,7 @@ class ClutterRemovalSim(object):
         T_grasp_pregrasp = Transform(Rotation.identity(), [0.0, 0.0, -0.05])
         T_world_pregrasp = T_world_grasp * T_grasp_pregrasp
 
-        approach = T_world_grasp.rotation.as_dcm()[:, 2]
+        approach = T_world_grasp.rotation.as_matrix()[:, 2]
         angle = np.arccos(np.dot(approach, np.r_[0.0, 0.0, -1.0]))
         if angle > np.pi / 3.0:
             # side grasp, lift the object after establishing a grasp
@@ -227,7 +225,7 @@ class ClutterRemovalSim(object):
 
     def remove_objects_outside_workspace(self):
         removed_object = False
-        for _, body in self.world.bodies.items():
+        for body in list(self.world.bodies.values()):
             xyz = body.get_pose().translation
             if np.any(xyz < 0.0) or np.any(xyz > self.size):
                 self.world.remove_body(body)

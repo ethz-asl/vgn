@@ -1,14 +1,13 @@
-future
-pathlib2
+black
 jupyterlab
 numpy
 scipy
 pandas
 matplotlib
 mpi4py
-open3d==0.8.0
+open3d
 pybullet==2.7.9
 torch
-pytorch-ignite==0.2.1
+pytorch-ignite
 tensorboard
 tqdm

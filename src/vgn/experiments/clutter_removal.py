@@ -1,5 +1,3 @@
-from __future__ import division, print_function
-
 import collections
 from datetime import datetime
 import uuid
@@ -96,7 +94,7 @@ def run(
 class Logger(object):
     def __init__(self, root, description):
         time_stamp = datetime.now().strftime("%y%m%d-%H%M%S")
-        description = "{},{}".format(time_stamp, description,).strip(",")
+        description = "{},{}".format(time_stamp, description).strip(",")
 
         self.logdir = root / description
         self.scenes_dir = self.logdir / "scenes"
@@ -124,8 +122,8 @@ class Logger(object):
                 "width",
                 "score",
                 "label",
-                "integration",
-                "planning",
+                "integration_time",
+                "planning_time",
             ]
             io.create_csv(self.grasps_csv_path, columns)
 
@@ -141,7 +139,7 @@ class Logger(object):
         tsdf, points = state.tsdf, np.asarray(state.pc.points)
         scene_id = uuid.uuid4().hex
         scene_path = self.scenes_dir / (scene_id + ".npz")
-        np.savez_compressed(str(scene_path), tsdf=tsdf.get_grid(), points=points)
+        np.savez_compressed(scene_path, grid=tsdf.get_grid(), points=points)
 
         # log grasp
         qx, qy, qz, qw = grasp.pose.rotation.as_quat()
@@ -198,12 +196,8 @@ class Data(object):
         return self.grasps["planning_time"].mean()
 
     def read_grasp(self, i):
-        scene_path = self.logdir / "scenes" / (self.grasps.loc[i, "scene_id"] + ".npz")
-        scene_data = np.load(str(scene_path))
-        ori = Rotation.from_quat(self.grasps.loc[i, "qx":"qw"].to_numpy(np.double))
-        pos = self.grasps.loc[i, "x":"z"].to_numpy(np.double)
-        width = self.grasps.loc[i, "width"]
-        grasp = Grasp(Transform(ori, pos), width)
+        scene_id, grasp, label = io.read_grasp(self.grasps, i)
         score = self.grasps.loc[i, "score"]
-        label = self.grasps.loc[i, "label"]
+        scene_data = np.load(self.logdir / "scenes" / (scene_id + ".npz"))
+
         return scene_data["points"], grasp, score, label

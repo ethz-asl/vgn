@@ -1,5 +1,5 @@
 import argparse
-from pathlib2 import Path
+from pathlib import Path
 
 from vgn.detection import VGN
 from vgn.experiments import clutter_removal
@@ -47,4 +47,3 @@ if __name__ == "__main__":
     parser.add_argument("--rviz", action="store_true")
     args = parser.parse_args()
     main(args)
-

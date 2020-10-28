@@ -25,7 +25,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: Cloud
+    SyncSource: Points
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -33,7 +33,8 @@ Toolbars:
 Visualization Manager:
   Class: ""
   Displays:
-    - Class: rviz/Axes
+    - Alpha: 1
+      Class: rviz/Axes
       Enabled: false
       Length: 0.10000000149011612
       Name: Axes
@@ -81,14 +82,14 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 0.30000001192092896
-        Min Value: 0
-        Value: false
+        Max Value: 10
+        Min Value: -10
+        Value: true
       Axis: Z
       Channel Name: intensity
       Class: rviz/PointCloud2
       Color: 255; 255; 255
-      Color Transformer: AxisColor
+      Color Transformer: Intensity
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
@@ -96,17 +97,17 @@ Visualization Manager:
       Max Intensity: 4096
       Min Color: 0; 0; 0
       Min Intensity: 0
-      Name: Cloud
+      Name: Points
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
-      Size (Pixels): 3
+      Size (Pixels): 1
       Size (m): 0.004000000189989805
       Style: Spheres
       Topic: /points
       Unreliable: false
       Use Fixed Frame: true
-      Use rainbow: true
+      Use rainbow: false
       Value: true
     - Alpha: 0.10000000149011612
       Autocompute Intensity Bounds: false
@@ -212,12 +213,13 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.5839865803718567
+      Distance: 0.567192554473877
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
+      Field of View: 0.7853981852531433
       Focal Point:
         X: 0.15303541719913483
         Y: 0.15682418644428253
@@ -227,10 +229,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.3952040672302246
+      Pitch: 0.40520399808883667
       Target Frame: <Fixed Frame>
-      Value: Orbit (rviz)
-      Yaw: 1.5542105436325073
+      Yaw: 1.5542099475860596
     Saved: ~
 Window Geometry:
   Displays:
@@ -248,5 +249,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1301
-  X: 965
-  Y: 239
+  X: 619
+  Y: 48

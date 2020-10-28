@@ -1,10 +1,9 @@
-from __future__ import print_function, division
-
 import argparse
-from pathlib2 import Path
+from pathlib import Path
 
 from mpi4py import MPI
 import numpy as np
+import open3d as o3d
 import scipy.signal as signal
 from tqdm import tqdm
 
@@ -25,7 +24,7 @@ def main(args):
     sim = ClutterRemovalSim(args.scene, args.object_set, gui=args.sim_gui)
     finger_depth = sim.gripper.finger_depth
     grasps_per_worker = args.num_grasps // workers
-    pbar = tqdm(total=grasps_per_worker, disable=rank is not 0)
+    pbar = tqdm(total=grasps_per_worker, disable=rank != 0)
 
     if rank == 0:
         (args.root / "scenes").mkdir(parents=True, exist_ok=True)
@@ -52,7 +51,8 @@ def main(args):
         pc = tsdf.get_cloud()
 
         # crop surface and borders from point cloud
-        pc = pc.crop(sim.lower, sim.upper)
+        bounding_box = o3d.geometry.AxisAlignedBoundingBox(sim.lower, sim.upper)
+        pc = pc.crop(bounding_box)
         # o3d.visualization.draw_geometries([pc])
 
         if pc.is_empty():
@@ -89,7 +89,7 @@ def render_images(sim, n):
 
     for i in range(n):
         r = np.random.uniform(1.6, 2.4) * sim.size
-        theta = np.random.uniform(0.0, np.pi / 4.0,)
+        theta = np.random.uniform(0.0, np.pi / 4.0)
         phi = np.random.uniform(0.0, 2.0 * np.pi)
 
         extrinsic = camera_on_sphere(origin, r, theta, phi)
@@ -123,7 +123,7 @@ def evaluate_grasp_point(sim, pos, normal, num_rotations=6):
         x_axis = np.r_[0.0, 1.0, 0.0]
     y_axis = np.cross(z_axis, x_axis)
     x_axis = np.cross(y_axis, z_axis)
-    R = Rotation.from_dcm(np.vstack((x_axis, y_axis, z_axis)).T)
+    R = Rotation.from_matrix(np.vstack((x_axis, y_axis, z_axis)).T)
 
     # try to grasp with different yaw angles
     yaws = np.linspace(0.0, np.pi, num_rotations)

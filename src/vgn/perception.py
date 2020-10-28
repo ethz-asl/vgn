@@ -69,11 +69,11 @@ class TSDFVolume(object):
         self.voxel_size = self.size / self.resolution
         self.sdf_trunc = 4 * self.voxel_size
 
-        self._volume = o3d.integration.UniformTSDFVolume(
+        self._volume = o3d.pipelines.integration.UniformTSDFVolume(
             length=self.size,
             resolution=self.resolution,
             sdf_trunc=self.sdf_trunc,
-            color_type=getattr(o3d.integration.TSDFVolumeColorType, "None"),
+            color_type=o3d.pipelines.integration.TSDFVolumeColorType.NoColor,
         )
 
     def integrate(self, depth_img, intrinsic, extrinsic):
@@ -107,7 +107,7 @@ class TSDFVolume(object):
     def get_grid(self):
         shape = (1, self.resolution, self.resolution, self.resolution)
         tsdf_grid = np.zeros(shape, dtype=np.float32)
-        voxels = self._volume.extract_voxel_grid().voxels
+        voxels = self._volume.extract_voxel_grid().get_voxels()
         for voxel in voxels:
             i, j, k = voxel.grid_index
             tsdf_grid[0, i, j, k] = voxel.color[0]
