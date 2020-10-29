@@ -109,7 +109,7 @@ python scripts/sim_grasp.py --model data/models/vgn_conv.pth [--sim-gui] [--rviz
 
 - `python scripts/sim_grasp.py -h` prints a complete list of optional arguments.
 - Use the `clutter_removal.ipynb` notebook to compute metrics and visualize failure cases of an experiment.
-- To detect grasps using GPD, you first need to install and launch the [`gpd_ros`](https://github.com/atenpas/gpd_ros) node (`mon launch vgn gpd.launch`), then run `python scripts/sim_grasp.py --model gpd`.
+- To detect grasps using GPD, you first need to install and launch the [`gpd_ros`](https://github.com/atenpas/gpd_ros) node (`roslaunch vgn gpd.launch`), then run `python scripts/sim_grasp.py --model gpd`.
 
 ## Robot Grasping
 
@@ -118,7 +118,7 @@ This package contains an example of open-loop grasp execution on a Franka Emika 
 Frist, launch the robot and sensor drivers
 
 ```
-mon launch vgn panda_grasp.launch
+roslaunch vgn panda_grasp.launch
 ```
 
 Then in a second terminal, run
