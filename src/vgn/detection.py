@@ -112,4 +112,3 @@ def select_index(qual_vol, rot_vol, width_vol, index):
     pos = np.array([i, j, k], dtype=np.float64)
     width = width_vol[i, j, k]
     return Grasp(Transform(ori, pos), width), score
-

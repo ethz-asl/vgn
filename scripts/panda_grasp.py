@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+"""
+Open-loop grasp execution using a Panda arm and wrist-mounted RealSense camera.
+"""
+
 import argparse
 from pathlib import Path
 
