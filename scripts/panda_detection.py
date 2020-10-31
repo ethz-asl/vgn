@@ -23,10 +23,6 @@ from vgn.utils.transform import Rotation, Transform
 
 class GraspDetectionServer(object):
     def __init__(self, model_path):
-        # load frame parameters
-        self.base_frame_id = rospy.get_param("~base_frame_id")
-        self.cam_frame_id = rospy.get_param("~cam/frame_id")
-
         #  load camera parameters
         self.cam_topic_name = rospy.get_param("~cam/topic_name")
         self.intrinsic = CameraIntrinsic.from_dict(rospy.get_param("~cam/intrinsic"))
@@ -34,18 +30,15 @@ class GraspDetectionServer(object):
         # setup a CV bridge
         self.cv_bridge = cv_bridge.CvBridge()
 
-        # connect to the tf tree
-        self.tf_tree = ros_utils.TransformTree()
-
         # define the worspace
         self.size = 0.3
-
-        T_base_tag = Transform(Rotation.identity(), [0.42, 0.02, 0.21])
-        self.T_base_task = T_base_tag * Transform(
-            Rotation.identity(), np.r_[[-0.5 * self.size, -0.5 * self.size, -0.06]]
+        self.T_cam_task = Transform(
+            Rotation.from_quat([-0.679, 0.726, -0.074, -0.081]), [0.166, 0.101, 0.515]
         )
-        self.tf_tree.broadcast_static(self.T_base_task, self.base_frame_id, "task")
-        rospy.sleep(1.0)  # wait for the TF to be broadcasted
+        self.tf_tree = ros_utils.TransformTree()
+        self.tf_tree.broadcast_static(
+            self.T_cam_task, "camera_depth_optical_frame", "task"
+        )
 
         # construct the grasp planner object
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -66,14 +59,9 @@ class GraspDetectionServer(object):
         # reset tsdf
         self.tsdf = TSDFVolume(0.3, 40)
 
-        # lookup camera pose
-        T_cam_task = self.tf_tree.lookup(
-            self.cam_frame_id, "task", msg.header.stamp, rospy.Duration(0.1)
-        )
-
         # integrate image
         img = self.cv_bridge.imgmsg_to_cv2(msg).astype(np.float32) * 0.001
-        self.tsdf.integrate(img, self.intrinsic, T_cam_task)
+        self.tsdf.integrate(img, self.intrinsic, self.T_cam_task)
 
         # detect grasps
         tsdf_vol = self.tsdf.get_grid()
