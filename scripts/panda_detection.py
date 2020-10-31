@@ -23,22 +23,25 @@ from vgn.utils.transform import Rotation, Transform
 
 class GraspDetectionServer(object):
     def __init__(self, model_path):
-        #  load camera parameters
-        self.cam_topic_name = rospy.get_param("~cam/topic_name")
-        self.intrinsic = CameraIntrinsic.from_dict(rospy.get_param("~cam/intrinsic"))
-
-        # setup a CV bridge
-        self.cv_bridge = cv_bridge.CvBridge()
-
-        # define the worspace
-        self.size = 0.3
+        # define frames
+        self.task_frame_id = "task"
+        self.cam_frame_id = "camera_depth_optical_frame"
         self.T_cam_task = Transform(
             Rotation.from_quat([-0.679, 0.726, -0.074, -0.081]), [0.166, 0.101, 0.515]
         )
+
+        # broadcast the tf tree (for visualization)
         self.tf_tree = ros_utils.TransformTree()
         self.tf_tree.broadcast_static(
-            self.T_cam_task, "camera_depth_optical_frame", "task"
+            self.T_cam_task, self.cam_frame_id, self.task_frame_id
         )
+
+        # define camera parameters
+        self.cam_topic_name = "/camera/depth/image_rect_raw"
+        self.intrinsic = CameraIntrinsic(640, 480, 383.265, 383.26, 319.39, 242.43)
+
+        # setup a CV bridge
+        self.cv_bridge = cv_bridge.CvBridge()
 
         # construct the grasp planner object
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -52,8 +55,6 @@ class GraspDetectionServer(object):
         rospy.Subscriber(
             self.cam_topic_name, sensor_msgs.msg.Image, self.sensor_cb, queue_size=1
         )
-
-        self.last_grasp = None
 
     def sensor_cb(self, msg):
         # reset tsdf
@@ -82,6 +83,6 @@ if __name__ == "__main__":
     parser.add_argument("--model", type=Path, required=True)
     args = parser.parse_args()
 
-    rospy.init_node("panda_grasp")
+    rospy.init_node("panda_detection")
     GraspDetectionServer(args.model)
     rospy.spin()
