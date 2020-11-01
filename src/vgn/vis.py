@@ -100,10 +100,18 @@ def clear():
     pubs["workspace"].publish(DELETE_MARKER_MSG)
     pubs["tsdf"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
     pubs["points"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
-    pubs["quality"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
+    clear_quality()
     pubs["grasp"].publish(DELETE_MARKER_ARRAY_MSG)
-    pubs["grasps"].publish(DELETE_MARKER_ARRAY_MSG)
+    clear_grasps()
     pubs["debug"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
+
+
+def clear_quality():
+    pubs["quality"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
+
+
+def clear_grasps():
+    pubs["grasps"].publish(DELETE_MARKER_ARRAY_MSG)
 
 
 def _create_publishers():

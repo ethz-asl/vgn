@@ -1,5 +1,5 @@
-import json
 from math import cos, sin
+import time
 
 import numpy as np
 import open3d as o3d
@@ -105,6 +105,7 @@ class TSDFVolume(object):
         self._volume.integrate(rgbd, intrinsic, extrinsic)
 
     def get_grid(self):
+        # TODO(mbreyer) very slow (~35 ms / 50 ms of the whole pipeline)
         shape = (1, self.resolution, self.resolution, self.resolution)
         tsdf_grid = np.zeros(shape, dtype=np.float32)
         voxels = self._volume.extract_voxel_grid().get_voxels()
