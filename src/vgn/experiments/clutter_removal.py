@@ -93,8 +93,8 @@ def run(
 
 class Logger(object):
     def __init__(self, root, description):
-        time_stamp = datetime.now().strftime("%y-%m-%d-%H%M%S")
-        description = "{},{}".format(time_stamp, description).strip(",")
+        time_stamp = datetime.now().strftime("%y-%m-%d-%H-%M-%S")
+        description = "{}_{}".format(time_stamp, description).strip("_")
 
         self.logdir = root / description
         self.scenes_dir = self.logdir / "scenes"

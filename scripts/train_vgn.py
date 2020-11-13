@@ -20,8 +20,8 @@ def main(args):
     kwargs = {"num_workers": 4, "pin_memory": True} if use_cuda else {}
 
     # create log directory
-    time_stamp = datetime.now().strftime("%y-%m-%d-%H%M")
-    description = "{},dataset={},augment={},net={},batch_size={},lr={:.0e},{}".format(
+    time_stamp = datetime.now().strftime("%y-%m-%d-%H-%M")
+    description = "{}_dataset={},augment={},net={},batch_size={},lr={:.0e},{}".format(
         time_stamp,
         args.dataset.name,
         args.augment,

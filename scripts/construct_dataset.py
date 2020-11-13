@@ -34,34 +34,14 @@ def main(args):
         if f.suffix != ".npz":
             continue
         depth_imgs, extrinsics = read_sensor_data(args.raw, f.stem)
-
-        if args.grid == "tsdf":
-            tsdf = create_tsdf(size, RESOLUTION, depth_imgs, intrinsic, extrinsics)
-            grid = tsdf.get_grid()
-        elif args.grid == "occupancy":
-            grid = create_occupancy_grid(size, depth_imgs, intrinsic, extrinsics)
-        else:
-            raise ValueError
-
+        tsdf = create_tsdf(size, RESOLUTION, depth_imgs, intrinsic, extrinsics)
+        grid = tsdf.get_grid()
         write_voxel_grid(args.dataset, f.stem, grid)
-
-
-def create_occupancy_grid(size, depth_imgs, intrinsic, extrinsics):
-    cloud = create_tsdf(size, 120, depth_imgs, intrinsic, extrinsics).get_cloud()
-    voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud_within_bounds(
-        cloud, size / RESOLUTION, [0.0, 0.0, 0.0], [size, size, size]
-    )
-    grid = np.zeros((1, RESOLUTION, RESOLUTION, RESOLUTION), dtype=np.float32)
-    for voxel in voxel_grid.voxels:
-        i, j, k = voxel.grid_index
-        grid[0, i, j, k] = 1.0
-    return grid
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("raw", type=Path)
     parser.add_argument("dataset", type=Path)
-    parser.add_argument("--grid", choices=["tsdf", "occupancy"], default="tsdf")
     args = parser.parse_args()
     main(args)
