@@ -6,6 +6,12 @@ VGN is a 3D convolutional neural network for real-time 6 DOF grasp pose detectio
 
 ![overview](docs/overview.png)
 
+This repository contains the implementation of the following publication:
+
+* M. Breyer, J. J. Chung, L. Ott, R. Siegwart, and J. Nieto, “Volumetric Grasping Network: Real-time 6 DOF Grasp Detection in Clutter” in Conference on Robot Learning 2020. (arXiv | Video)
+
+If you use this work in your research, please [cite](#citing) accordingly.
+
 The next sections provide instructions for getting started with VGN.
 
 * [Installation](#installation)
@@ -124,6 +130,17 @@ Then in a second terminal, run
 
 ```
 ptyhon scripts/panda_grasp.py --model data/models/vgn_conv.pth.
+```
+
+## Citing
+
+```
+@inproceedings{breyer2020volumetric,
+ title={Volumetric Grasping Network: Real-time 6 DOF Grasp Detection in Clutter},
+ author={Breyer, Michel and Chung, Jen Jen and Ott, Lionel and Roland, Siegwart and Juan, Nieto},
+ booktitle={Conference on Robot Learning},
+ year={2020},
+}
 ```
 
 ## To Do
