@@ -129,7 +129,7 @@ roslaunch vgn panda_grasp.launch
 Then in a second terminal, run
 
 ```
-ptyhon scripts/panda_grasp.py --model data/models/vgn_conv.pth.
+python scripts/panda_grasp.py --model data/models/vgn_conv.pth.
 ```
 
 ## Citing
