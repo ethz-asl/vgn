@@ -2,8 +2,6 @@
 
 VGN is a 3D convolutional neural network for real-time 6 DOF grasp pose detection. The network accepts a Truncated Signed Distance Function (TSDF) representation of the scene and outputs a volume of the same spatial resolution, where each cell contains the predicted quality, orientation, and width of a grasp executed at the center of the voxel. The network is trained on a synthetic grasping dataset generated with physics simulation.
 
-<!-- TODO insert citation -->
-
 ![overview](docs/overview.png)
 
 This repository contains the implementation of the following publication:
@@ -63,7 +61,7 @@ or alternatively install the project locally in "editable" mode using `pip`.
 pip install -e .
 ```
 
-<!-- TODO data download -->
+Finally, download the data folder [here](https://drive.google.com/file/d/1MnWwxkYo9WnLFNseEVSWRT1q-XElYlxJ/view?usp=sharing) and place it in the repo's root.
 
 ## Data Generation
 
