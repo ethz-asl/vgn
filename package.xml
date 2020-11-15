@@ -6,11 +6,10 @@
 
     <maintainer email="mbreyer@ethz.ch">Michel Breyer</maintainer>
 
-    <license>TODO</license>
+    <license>BSD</license>
     <url>https://github.com/ethz-asl/vgn</url>
 
     <buildtool_depend>catkin</buildtool_depend>
-    <buildtool_depend>catkin_simple</buildtool_depend>
 
     <depend>rospy</depend>
 </package>
