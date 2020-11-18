@@ -1,3 +1,4 @@
+catkin_pkg
 black
 jupyterlab
 numpy
