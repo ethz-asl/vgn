@@ -118,7 +118,7 @@ Use the `clutter_removal.ipynb` notebook to compute metrics and visualize failur
 
 This package contains an example of open-loop grasp execution on a Franka Emika Panda with a wrist-mounted Intel Realsense D435 depth sensor.
 
-Frist, launch the robot and sensor drivers
+First, launch the robot and sensor drivers
 
 ```
 roslaunch vgn panda_grasp.launch
@@ -127,7 +127,7 @@ roslaunch vgn panda_grasp.launch
 Then in a second terminal, run
 
 ```
-python scripts/panda_grasp.py --model data/models/vgn_conv.pth.
+python scripts/panda_grasp.py --model data/models/vgn_conv.pth
 ```
 
 ## Citing
