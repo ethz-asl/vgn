@@ -6,7 +6,7 @@ VGN is a 3D convolutional neural network for real-time 6 DOF grasp pose detectio
 
 This repository contains the implementation of the following publication:
 
-* M. Breyer, J. J. Chung, L. Ott, R. Siegwart, and J. Nieto, “Volumetric Grasping Network: Real-time 6 DOF Grasp Detection in Clutter” in Conference on Robot Learning 2020. ([Publication](http://corlconf.github.io/paper_359/))
+* M. Breyer, J. J. Chung, L. Ott, R. Siegwart, and J. Nieto. Volumetric Grasping Network: Real-time 6 DOF Grasp Detection in Clutter. _Conference on Robot Learning (CoRL 2020)_, 2020. [[pdf](http://arxiv.org/abs/2101.01132)][[video](https://youtu.be/FXjvFDcV6E0)]
 
 If you use this work in your research, please [cite](#citing) accordingly.
 
