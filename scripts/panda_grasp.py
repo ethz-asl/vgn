@@ -15,8 +15,7 @@ import rospy
 import sensor_msgs.msg
 
 from vgn import vis
-from vgn.baselines import GPD
-from vgn.experiments.clutter_removal import Logger, State
+from vgn.experiments.clutter_removal import State
 from vgn.detection import VGN
 from vgn.perception import *
 from vgn.utils import ros_utils
@@ -24,7 +23,6 @@ from vgn.utils.transform import Rotation, Transform
 from vgn.utils.panda_control import PandaCommander
 
 
-vis.set_size(0.3)
 # tag lies on the table in the center of the workspace
 T_base_tag = Transform(Rotation.identity(), [0.42, 0.02, 0.21])
 round_id = 0
@@ -47,8 +45,7 @@ class PandaGraspController(object):
         self.define_workspace()
         self.create_planning_scene()
         self.tsdf_server = TSDFServer()
-        self.plan_grasps = self.select_grasp_planner(args.model)
-        self.logger = Logger(args.logdir, args.description)
+        self.plan_grasps = VGN(args.model, rviz=True)
 
         rospy.loginfo("Ready to take action")
 
@@ -82,22 +79,7 @@ class PandaGraspController(object):
         msg.pose.position.z -= 0.01
         self.pc.scene.add_box("table", msg, size=(0.6, 0.6, 0.02))
 
-        # collision box for camera
-        msg = geometry_msgs.msg.PoseStamped()
-        msg.header.frame_id = "panda_hand"
-        msg.pose.position.x = 0.06
-        msg.pose.position.z = 0.03
-        self.pc.scene.add_box("camera", msg, size=(0.04, 0.10, 0.04))
-        touch_links = self.pc.robot.get_link_names(group=self.pc.name)
-        self.pc.scene.attach_box("panda_link8", "camera", touch_links=touch_links)
-
         rospy.sleep(1.0)  # wait for the scene to be updated
-
-    def select_grasp_planner(self, model):
-        if str(args.model) == "gpd":
-            return GPD()
-        else:
-            return VGN(model, rviz=True)
 
     def robot_state_cb(self, msg):
         detected_error = False
@@ -120,18 +102,18 @@ class PandaGraspController(object):
 
     def run(self):
         vis.clear()
-        vis.draw_workspace()
+        vis.draw_workspace(self.size)
         self.pc.move_gripper(0.08)
         self.pc.home()
 
         tsdf, pc = self.acquire_tsdf()
-        vis.draw_tsdf(tsdf.get_volume().squeeze())
+        vis.draw_tsdf(tsdf.get_grid().squeeze(), tsdf.voxel_size)
         vis.draw_points(np.asarray(pc.points))
         rospy.loginfo("Reconstructed scene")
 
         state = State(tsdf, pc)
         grasps, scores, planning_time = self.plan_grasps(state)
-        vis.draw_grasps(grasps, scores)
+        vis.draw_grasps(grasps, scores, self.finger_depth)
         rospy.loginfo("Planned grasps")
 
         if len(grasps) == 0:
@@ -139,14 +121,12 @@ class PandaGraspController(object):
             return
 
         grasp, score = self.select_grasp(grasps, scores)
-        vis.draw_grasp(grasp, score)
+        vis.draw_grasp(grasp, score, self.finger_depth)
         rospy.loginfo("Selected grasp")
 
         self.pc.home()
         label = self.execute_grasp(grasp)
         rospy.loginfo("Grasp execution")
-
-        self.logger.log_grasp(round_id, state, planning_time, grasp, score, label)
 
         if self.robot_error:
             self.recover_robot()
@@ -167,7 +147,7 @@ class PandaGraspController(object):
 
         self.tsdf_server.integrate = False
         tsdf = self.tsdf_server.low_res_tsdf
-        pc = self.tsdf_server.high_res_tsdf.extract_point_cloud()
+        pc = self.tsdf_server.high_res_tsdf.get_cloud()
 
         return tsdf, pc
 
@@ -269,7 +249,5 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=Path, required=True)
-    parser.add_argument("--logdir", type=Path, default="data/experiments")
-    parser.add_argument("--description", type=str, default="")
     args = parser.parse_args()
     main(args)
