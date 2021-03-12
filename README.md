@@ -124,7 +124,7 @@ This package contains an example of open-loop grasp execution with a Franka Emik
 First, on the NUC, start a roscore and launch the robot and sensor drivers: 
 
 ```
-rosocre &
+roscore &
 roslaunch vgn panda_grasp.launch
 ```
 
