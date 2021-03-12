@@ -20,7 +20,7 @@ The next sections provide instructions for getting started with VGN.
 
 ## Installation
 
-The following instructions were tested with `python3.8` on Ubuntu 20.04. A ROS installation is only required for visualizations and interfacing hardware. Simulations and network training should work just fine without.
+The following instructions were tested with `python3.8` on Ubuntu 20.04. A ROS installation is only required for visualizations and interfacing hardware. Simulations and network training should work just fine without. The [Robot Grasping](#robot-grasping) section describes the setup for robotic experiments in more details.
 
 OpenMPI is optionally used to distribute the data generation over multiple cores/machines.
 
@@ -116,17 +116,22 @@ Use the `clutter_removal.ipynb` notebook to compute metrics and visualize failur
 
 ## Robot Grasping
 
-This package contains an example of open-loop grasp execution on a Franka Emika Panda with a wrist-mounted Intel Realsense D435 depth sensor.
+This package contains an example of open-loop grasp execution with a Franka Emika Panda and a wrist-mounted Intel Realsense D435. Since the robot drivers are not officially supported on ROS noetic yet, we used the following workaround:
 
-First, launch the robot and sensor drivers
+- Launch the roscore and hardware drivers on a NUC with [`libfranka`](https://frankaemika.github.io/docs/installation_linux.html) installed.
+- Run MoveIt and the VGN scripts on a second computer with a ROS noetic installation connected to the same roscore following these [instructions](http://wiki.ros.org/ROS/Tutorials/MultipleMachines). This requires the latest version of [`panda_moveit_config`](https://github.com/ros-planning/panda_moveit_config).
+
+First, on the NUC, start a roscore and launch the robot and sensor drivers: 
 
 ```
+roscore &
 roslaunch vgn panda_grasp.launch
 ```
 
-Then in a second terminal, run
+Then, on the 20.04 computer, run
 
 ```
+roslaunch panda_moveit_config move_group.launch
 python scripts/panda_grasp.py --model data/models/vgn_conv.pth
 ```
 
@@ -140,7 +145,3 @@ python scripts/panda_grasp.py --model data/models/vgn_conv.pth
  year={2020},
 }
 ```
-
-## To Do
-
-* [ ] Verify the panda scripts on ROS Noetic.
