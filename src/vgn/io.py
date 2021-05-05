@@ -4,9 +4,9 @@ import uuid
 import numpy as np
 import pandas as pd
 
+from robot_utils.spatial import Rotation, Transform
 from vgn.grasp import Grasp
 from vgn.perception import *
-from vgn.utils.transform import Rotation, Transform
 
 
 def write_setup(root, size, intrinsic, max_opening_width, finger_depth):

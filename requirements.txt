@@ -1,13 +1,11 @@
 catkin_pkg
-black
-jupyterlab
 numpy
 scipy
 pandas
 matplotlib
 mpi4py
 open3d
-pybullet==2.7.9
+pybullet
 torch
 pytorch-ignite
 tensorboard

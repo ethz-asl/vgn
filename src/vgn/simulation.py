@@ -4,10 +4,10 @@ import time
 import numpy as np
 import pybullet
 
+from robot_utils.spatial import Rotation, Transform
 from vgn.grasp import Label
 from vgn.perception import *
 from vgn.utils import btsim, workspace_lines
-from vgn.utils.transform import Rotation, Transform
 
 
 class ClutterRemovalSim(object):
@@ -249,7 +249,7 @@ class Gripper(object):
         self.max_opening_width = 0.08
         self.finger_depth = 0.05
         self.T_body_tcp = Transform(Rotation.identity(), [0.0, 0.0, 0.022])
-        self.T_tcp_body = self.T_body_tcp.inverse()
+        self.T_tcp_body = self.T_body_tcp.inv()
 
     def reset(self, T_world_tcp):
         T_world_body = T_world_tcp * self.T_tcp_body

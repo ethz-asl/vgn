@@ -6,10 +6,10 @@ import numpy as np
 import pandas as pd
 import tqdm
 
+from robot_utils.spatial import Rotation, Transform
 from vgn import io, vis
 from vgn.grasp import *
 from vgn.simulation import ClutterRemovalSim
-from vgn.utils.transform import Rotation, Transform
 
 MAX_CONSECUTIVE_FAILURES = 2
 

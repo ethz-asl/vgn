@@ -4,10 +4,10 @@ from pathlib import Path
 import numpy as np
 import rospy
 
+from robot_utils.spatial import Rotation, Transform
 from vgn import vis
 from vgn.dataset import Dataset
 from vgn.grasp import Grasp
-from vgn.utils.transform import Rotation, Transform
 
 
 def main(args):

@@ -1,10 +1,9 @@
 from math import cos, sin
-import time
 
 import numpy as np
 import open3d as o3d
 
-from vgn.utils.transform import Transform
+from robot_utils.spatial import Transform
 
 
 class CameraIntrinsic(object):
@@ -134,4 +133,27 @@ def camera_on_sphere(origin, radius, theta, phi):
     ]
     target = np.array([0.0, 0.0, 0.0])
     up = np.array([0.0, 0.0, 1.0])  # this breaks when looking straight down
-    return Transform.look_at(eye, target, up) * origin.inverse()
+    return look_at(eye, target, up) * origin.inv()
+
+
+def look_at(eye, center, up):
+
+    eye = np.asarray(eye)
+    center = np.asarray(center)
+
+    forward = center - eye
+    forward /= np.linalg.norm(forward)
+
+    right = np.cross(forward, up)
+    right /= np.linalg.norm(right)
+
+    up = np.asarray(up) / np.linalg.norm(up)
+    up = np.cross(right, forward)
+
+    m = np.eye(4, 4)
+    m[:3, 0] = right
+    m[:3, 1] = -up
+    m[:3, 2] = forward
+    m[:3, 3] = eye
+
+    return Transform.from_matrix(m).inv()

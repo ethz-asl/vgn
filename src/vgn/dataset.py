@@ -2,9 +2,9 @@ import numpy as np
 from scipy import ndimage
 import torch.utils.data
 
+from robot_utils.spatial import Rotation, Transform
 from vgn.io import *
 from vgn.perception import *
-from vgn.utils.transform import Rotation, Transform
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -48,10 +48,10 @@ def apply_transform(voxel_grid, orientation, position):
     T_augment = Transform(R_augment, t_augment)
 
     T_center = Transform(Rotation.identity(), np.r_[20.0, 20.0, 20.0])
-    T = T_center * T_augment * T_center.inverse()
+    T = T_center * T_augment * T_center.inv()
 
     # transform voxel grid
-    T_inv = T.inverse()
+    T_inv = T.inv()
     matrix, offset = T_inv.rotation.as_matrix(), T_inv.translation
     voxel_grid[0] = ndimage.affine_transform(voxel_grid[0], matrix, offset, order=0)
 

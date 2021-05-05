@@ -5,7 +5,7 @@ from sensor_msgs.msg import PointCloud2, PointField
 import std_msgs.msg
 import tf2_ros
 
-from vgn.utils.transform import Rotation, Transform
+from robot_utils.spatial import Rotation, Transform
 
 
 def to_point_msg(position):

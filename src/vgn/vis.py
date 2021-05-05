@@ -7,9 +7,8 @@ import rospy
 from rospy import Publisher
 from visualization_msgs.msg import Marker, MarkerArray
 
+from robot_utils.spatial import Rotation, Transform
 from vgn.utils import ros_utils, workspace_lines
-from vgn.utils.transform import Transform, Rotation
-
 
 cmap = matplotlib.colors.LinearSegmentedColormap.from_list("RedGreen", ["r", "g"])
 DELETE_MARKER_MSG = Marker(action=Marker.DELETEALL)
@@ -27,7 +26,7 @@ def draw_workspace(size):
 
 
 def draw_tsdf(vol, voxel_size, threshold=0.01):
-    msg = _create_vol_msg(vol, voxel_size, threshold)
+    msg = _create_vol_msg(vol.squeeze(), voxel_size, threshold)
     pubs["tsdf"].publish(msg)
 
 
@@ -86,10 +85,10 @@ def draw_grasp(grasp, score, finger_depth):
     pubs["grasp"].publish(MarkerArray(markers=markers))
 
 
-def draw_grasps(grasps, scores, finger_depth):
+def draw_grasps(grasps, finger_depth):
     markers = []
-    for i, (grasp, score) in enumerate(zip(grasps, scores)):
-        msg = _create_grasp_marker_msg(grasp, score, finger_depth)
+    for i, grasp in enumerate(grasps):
+        msg = _create_grasp_marker_msg(grasp, finger_depth)
         msg.id = i
         markers.append(msg)
     msg = MarkerArray(markers=markers)
@@ -145,11 +144,11 @@ def _create_vol_msg(vol, voxel_size, threshold):
     return ros_utils.to_cloud_msg(points, values, frame="task")
 
 
-def _create_grasp_marker_msg(grasp, score, finger_depth):
+def _create_grasp_marker_msg(grasp, finger_depth):
     radius = 0.1 * finger_depth
     w, d = grasp.width, finger_depth
     scale = [radius, 0.0, 0.0]
-    color = cmap(float(score))
+    color = cmap(float(grasp.q))
     msg = _create_marker_msg(Marker.LINE_LIST, "task", grasp.pose, scale, color)
     msg.points = [ros_utils.to_point_msg(point) for point in _gripper_lines(w, d)]
     return msg

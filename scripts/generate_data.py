@@ -7,11 +7,11 @@ import open3d as o3d
 import scipy.signal as signal
 from tqdm import tqdm
 
+from robot_utils.spatial import Rotation, Transform
 from vgn.grasp import Grasp, Label
 from vgn.io import *
 from vgn.perception import *
 from vgn.simulation import ClutterRemovalSim
-from vgn.utils.transform import Rotation, Transform
 
 
 OBJECT_COUNT_LAMBDA = 4

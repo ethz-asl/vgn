@@ -14,12 +14,12 @@ import numpy as np
 import rospy
 import sensor_msgs.msg
 
+from robot_utils.spatial import Rotation, Transform
 from vgn import vis
 from vgn.experiments.clutter_removal import State
 from vgn.detection import VGN
 from vgn.perception import *
 from vgn.utils import ros_utils
-from vgn.utils.transform import Rotation, Transform
 from vgn.utils.panda_control import PandaCommander
 
 
@@ -35,7 +35,7 @@ class PandaGraspController(object):
         self.base_frame_id = rospy.get_param("~base_frame_id")
         self.tool0_frame_id = rospy.get_param("~tool0_frame_id")
         self.T_tool0_tcp = Transform.from_dict(rospy.get_param("~T_tool0_tcp"))  # TODO
-        self.T_tcp_tool0 = self.T_tool0_tcp.inverse()
+        self.T_tcp_tool0 = self.T_tool0_tcp.inv()
         self.finger_depth = rospy.get_param("~finger_depth")
         self.size = 6.0 * self.finger_depth
         self.scan_joints = rospy.get_param("~scan_joints")
