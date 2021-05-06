@@ -1,8 +1,6 @@
-catkin_pkg
 numpy
 scipy
 pandas
-matplotlib
 mpi4py
 open3d
 pybullet

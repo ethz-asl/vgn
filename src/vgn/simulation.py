@@ -4,10 +4,10 @@ import time
 import numpy as np
 import pybullet
 
+from robot_utils.perception import CameraIntrinsic, UniformTSDFVolume
 from robot_utils.spatial import Rotation, Transform
 from vgn.grasp import Label
-from vgn.perception import *
-from vgn.utils import btsim, workspace_lines
+from vgn.utils import btsim, workspace_lines, camera_on_sphere
 
 
 class ClutterRemovalSim(object):
@@ -26,7 +26,7 @@ class ClutterRemovalSim(object):
         self.world = btsim.BtWorld(self.gui)
         self.gripper = Gripper(self.world)
         self.size = 6 * self.gripper.finger_depth
-        intrinsic = CameraIntrinsic(640, 480, 540.0, 540.0, 320.0, 240.0)
+        intrinsic = CameraIntrinsic(480, 640, 540.0, 540.0, 320.0, 240.0)
         self.camera = self.world.add_camera(intrinsic, 0.1, 2.0)
 
     @property
@@ -140,8 +140,8 @@ class ClutterRemovalSim(object):
 
         If N is given, the first n viewpoints on a circular trajectory consisting of N points are rendered.
         """
-        tsdf = TSDFVolume(self.size, 40)
-        high_res_tsdf = TSDFVolume(self.size, 120)
+        tsdf = UniformTSDFVolume(self.size, 40)
+        high_res_tsdf = UniformTSDFVolume(self.size, 120)
 
         origin = Transform(Rotation.identity(), np.r_[self.size / 2, self.size / 2, 0])
         r = 2.0 * self.size

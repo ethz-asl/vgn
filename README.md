@@ -45,7 +45,7 @@ source .venv/bin/activate
 Install the Python dependencies within the activated virtual environment.
 
 ```
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 Build and source the catkin workspace,
@@ -55,10 +55,10 @@ catkin build vgn
 source /path/to/catkin_ws/devel/setup.zsh
 ```
 
-or alternatively install the project locally in "editable" mode using `pip`.
+or alternatively install the project locally in "editable" mode using `pip3`.
 
 ```
-pip install -e .
+pip3 install -e .
 ```
 
 Finally, download the data folder [here](https://drive.google.com/file/d/1MnWwxkYo9WnLFNseEVSWRT1q-XElYlxJ/view?usp=sharing), then unzip and place it in the repo's root.
@@ -68,11 +68,11 @@ Finally, download the data folder [here](https://drive.google.com/file/d/1MnWwxk
 Generate raw synthetic grasping trials using the [pybullet](https://github.com/bulletphysics/bullet3) physics simulator.
 
 ```
-python scripts/generate_data.py data/raw/foo --scene pile --object-set blocks [--num-grasps=...] [--sim-gui]
+python3 scripts/generate_data.py data/raw/foo --scene pile --object-set blocks [--num-grasps=...] [--gui]
 ```
 
-* `python scripts/generate_data.py -h` prints a list with all the options.
-* `mpirun -np <num-workers> python ...` will run multiple simulations in parallel.
+* `python3 scripts/generate_data.py -h` prints a list with all the options.
+* `mpirun -np <num-workers> python3 ...` will run multiple simulations in parallel.
 
 The script will create the following file structure within `data/raw/foo`:
 
@@ -84,7 +84,7 @@ The `data.ipynb` notebook is useful to clean, balance and visualize the generate
 Finally, generate the voxel grids/grasp targets required to train VGN.
 
 ```
-python scripts/construct_dataset.py data/raw/foo data/datasets/foo
+python3 scripts/construct_dataset.py data/raw/foo data/datasets/foo
 ```
 
 * Samples of the dataset can be visualized with the `vis_sample.py` script and `vgn.rviz` configuration. The script includes the option to apply a random affine transform to the input/target pair to check the data augmentation procedure.
@@ -92,7 +92,7 @@ python scripts/construct_dataset.py data/raw/foo data/datasets/foo
 ## Network Training
 
 ```
-python scripts/train_vgn.py --dataset data/datasets/foo [--augment]
+python3 scripts/train_vgn.py --dataset data/datasets/foo [--augment]
 ```
 
 Training and validation metrics are logged to TensorBoard and can be accessed with
@@ -106,10 +106,10 @@ tensorboard --logdir data/runs
 Run simulated clutter removal experiments.
 
 ```
-python scripts/sim_grasp.py --model data/models/vgn_conv.pth [--sim-gui] [--rviz]
+python3 scripts/sim_grasp.py --model data/models/vgn_conv.pth [--sim-gui] [--rviz]
 ```
 
-* `python scripts/sim_grasp.py -h` prints a complete list of optional arguments.
+* `python3 scripts/sim_grasp.py -h` prints a complete list of optional arguments.
 * To detect grasps using GPD, you first need to install and launch the [`gpd_ros`](https://github.com/atenpas/gpd_ros) node (`roslaunch vgn gpd.launch`).
 
 Use the `clutter_removal.ipynb` notebook to compute metrics and visualize failure cases of an experiment.
@@ -132,7 +132,7 @@ Then, on the 20.04 computer, run
 
 ```
 roslaunch panda_moveit_config move_group.launch
-python scripts/panda_grasp.py --model data/models/vgn_conv.pth
+python3 scripts/panda_grasp.py --model data/models/vgn_conv.pth
 ```
 
 ## Citing

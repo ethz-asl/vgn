@@ -7,12 +7,12 @@ import open3d as o3d
 import scipy.signal as signal
 from tqdm import tqdm
 
+from robot_utils.perception import UniformTSDFVolume
 from robot_utils.spatial import Rotation, Transform
 from vgn.grasp import Grasp, Label
 from vgn.io import *
-from vgn.perception import *
 from vgn.simulation import ClutterRemovalSim
-
+from vgn.utils import *
 
 OBJECT_COUNT_LAMBDA = 4
 MAX_VIEWPOINT_COUNT = 6
@@ -21,7 +21,7 @@ GRASPS_PER_SCENE = 120
 
 def main(args):
     workers, rank = setup_mpi()
-    sim = ClutterRemovalSim(args.scene, args.object_set, gui=args.sim_gui)
+    sim = ClutterRemovalSim(args.scene, args.object_set, gui=args.gui)
     finger_depth = sim.gripper.finger_depth
     grasps_per_worker = args.num_grasps // workers
     pbar = tqdm(total=grasps_per_worker, disable=rank != 0)
@@ -48,7 +48,7 @@ def main(args):
 
         # reconstrct point cloud using a subset of the images
         tsdf = create_tsdf(sim.size, 120, depth_imgs, sim.camera.intrinsic, extrinsics)
-        pc = tsdf.get_cloud()
+        pc = tsdf.get_scene_cloud()
 
         # crop surface and borders from point cloud
         bounding_box = o3d.geometry.AxisAlignedBoundingBox(sim.lower, sim.upper)
@@ -99,6 +99,14 @@ def render_images(sim, n):
         depth_imgs[i] = depth_img
 
     return depth_imgs, extrinsics
+
+
+def create_tsdf(size, resolution, depth_imgs, intrinsic, extrinsics):
+    tsdf = UniformTSDFVolume(size, resolution)
+    for i in range(depth_imgs.shape[0]):
+        extrinsic = Transform.from_list(extrinsics[i])
+        tsdf.integrate(depth_imgs[i], intrinsic, extrinsic)
+    return tsdf
 
 
 def sample_grasp_point(point_cloud, finger_depth, eps=0.1):
@@ -156,6 +164,6 @@ if __name__ == "__main__":
     parser.add_argument("--scene", type=str, choices=["pile", "packed"], default="pile")
     parser.add_argument("--object-set", type=str, default="blocks")
     parser.add_argument("--num-grasps", type=int, default=10000)
-    parser.add_argument("--sim-gui", action="store_true")
+    parser.add_argument("--gui", action="store_true")
     args = parser.parse_args()
     main(args)
