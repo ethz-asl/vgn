@@ -159,7 +159,7 @@ class ClutterRemovalSim(object):
             timing += time.time() - tic
             high_res_tsdf.integrate(depth_img, self.camera.intrinsic, extrinsic)
 
-        return tsdf, high_res_tsdf.get_cloud(), timing
+        return tsdf, high_res_tsdf.get_scene_cloud(), timing
 
     def execute_grasp(self, grasp, remove=True, allow_contact=False):
         T_world_grasp = grasp.pose

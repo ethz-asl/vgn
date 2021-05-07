@@ -1,49 +1,67 @@
 import argparse
 from pathlib import Path
 
-from vgn.detection import VGN
-from vgn.experiments import clutter_removal
+import numpy as np
+import tqdm
+
+from robot_utils.perception import create_grid_from_map_cloud
+from vgn.grasp import *
+from vgn.detection import VGN, compute_grasps
+from vgn.simulation import ClutterRemovalSim
+
+MAX_CONSECUTIVE_FAILURES = 2
 
 
 def main(args):
+    # Construct VGN
+    vgn = VGN(args.model)
 
-    if args.rviz or str(args.model) == "gpd":
-        import rospy
+    # Construct the test env
+    sim = ClutterRemovalSim(args.scene, args.object_set, gui=args.gui, seed=args.seed)
 
-        rospy.init_node("sim_grasp", anonymous=True)
+    # Run experiments
+    for _ in tqdm.tqdm(range(args.episode_count)):
+        sim.reset(args.object_count)
 
-    if str(args.model) == "gpd":
-        from vgn.baselines import GPD
+        consecutive_failures = 1
+        last_label = None
 
-        grasp_planner = GPD()
-    else:
-        grasp_planner = VGN(args.model, rviz=args.rviz)
+        while sim.num_objects > 0 and consecutive_failures < MAX_CONSECUTIVE_FAILURES:
+            # Scan the scene
+            tsdf, pc, _ = sim.acquire_tsdf(n=6, N=None)
 
-    clutter_removal.run(
-        grasp_plan_fn=grasp_planner,
-        logdir=args.logdir,
-        description=args.description,
-        scene=args.scene,
-        object_set=args.object_set,
-        num_objects=args.num_objects,
-        num_rounds=args.num_rounds,
-        seed=args.seed,
-        sim_gui=args.sim_gui,
-        rviz=args.rviz,
-    )
+            if pc.is_empty():
+                break  # Empty point cloud, abort this round TODO this should not happen
+
+            # Plan grasps
+            map_cloud = tsdf.get_map_cloud()
+            points = np.asarray(map_cloud.points)
+            distances = np.asarray(map_cloud.colors)[:, 0]
+            tsdf_grid = create_grid_from_map_cloud(points, distances, tsdf.voxel_size)
+            out = vgn.predict(tsdf_grid)
+            grasps = compute_grasps(out, voxel_size=tsdf.voxel_size)
+
+            if len(grasps) == 0:
+                break  # No detections found, abort this round
+
+            # Execute grasp
+            label, _ = sim.execute_grasp(grasps[0], allow_contact=True)
+
+            if last_label == Label.FAILURE and label == Label.FAILURE:
+                consecutive_failures += 1
+            else:
+                consecutive_failures = 1
+            last_label = label
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=Path, required=True)
-    parser.add_argument("--logdir", type=Path, default="data/experiments")
-    parser.add_argument("--description", type=str, default="")
-    parser.add_argument("--scene", type=str, choices=["pile", "packed"], default="pile")
+    parser.add_argument("--scene", type=str, default="pile")
     parser.add_argument("--object-set", type=str, default="blocks")
-    parser.add_argument("--num-objects", type=int, default=5)
-    parser.add_argument("--num-rounds", type=int, default=100)
+    parser.add_argument("--object-count", type=int, default=5)
+    parser.add_argument("--episode-count", type=int, default=100)
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--sim-gui", action="store_true")
-    parser.add_argument("--rviz", action="store_true")
+    parser.add_argument("--gui", action="store_true")
     args = parser.parse_args()
     main(args)

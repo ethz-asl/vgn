@@ -106,13 +106,10 @@ tensorboard --logdir data/runs
 Run simulated clutter removal experiments.
 
 ```
-python3 scripts/sim_grasp.py --model data/models/vgn_conv.pth [--sim-gui] [--rviz]
+python3 scripts/sim_grasp.py --model data/models/vgn_conv.pth [--gui]
 ```
 
 * `python3 scripts/sim_grasp.py -h` prints a complete list of optional arguments.
-* To detect grasps using GPD, you first need to install and launch the [`gpd_ros`](https://github.com/atenpas/gpd_ros) node (`roslaunch vgn gpd.launch`).
-
-Use the `clutter_removal.ipynb` notebook to compute metrics and visualize failure cases of an experiment.
 
 ## Robot Grasping
 

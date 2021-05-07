@@ -1,9 +1,0 @@
-<?xml version="1.0" ?>
-<launch>
-  <node name="detect_grasps" pkg="gpd_ros" type="detect_grasps" output="screen">
-    <param name="cloud_type" value="0"/>
-    <param name="cloud_topic" value="/cloud_stitched"/>
-    <param name="config_file" value="$(find vgn)/config/gpd/ros_eigen_params.cfg"/>
-    <param name="rviz_topic" value="plot_grasps"/>
-  </node>
-</launch>
