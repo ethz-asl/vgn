@@ -1,11 +1,3 @@
-import enum
-
-
-class Label(enum.IntEnum):
-    FAILURE = 0
-    SUCCESS = 1
-
-
 class Grasp(object):
     def __init__(self, pose, width, quality=None):
         self.pose = pose

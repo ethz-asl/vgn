@@ -3,7 +3,6 @@ from builtins import super
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from scipy import ndimage
 
 
 def get_network(name):
