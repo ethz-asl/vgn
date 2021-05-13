@@ -1,5 +1,3 @@
-"""Render volumes, point clouds, and grasp detections in rviz."""
-
 import matplotlib.colors
 import numpy as np
 from sensor_msgs.msg import PointCloud2
@@ -8,7 +6,8 @@ from rospy import Publisher
 from visualization_msgs.msg import Marker, MarkerArray
 
 from robot_utils.spatial import Rotation, Transform
-from vgn.utils import ros_utils, workspace_lines
+from robot_utils.ros.conversions import *
+from vgn.utils import workspace_lines
 
 cmap = matplotlib.colors.LinearSegmentedColormap.from_list("RedGreen", ["r", "g"])
 DELETE_MARKER_MSG = Marker(action=Marker.DELETEALL)
@@ -21,7 +20,7 @@ def draw_workspace(size):
     scale = [scale, 0.0, 0.0]
     color = [0.5, 0.5, 0.5]
     msg = _create_marker_msg(Marker.LINE_LIST, "task", pose, scale, color)
-    msg.points = [ros_utils.to_point_msg(point) for point in workspace_lines(size)]
+    msg.points = [to_point_msg(point) for point in workspace_lines(size)]
     pubs["workspace"].publish(msg)
 
 
@@ -31,7 +30,7 @@ def draw_tsdf(vol, voxel_size, threshold=0.01):
 
 
 def draw_points(points):
-    msg = ros_utils.to_cloud_msg(points, frame="task")
+    msg = to_cloud_msg(points, frame="task")
     pubs["points"].publish(msg)
 
 
@@ -97,16 +96,16 @@ def draw_grasps(grasps, finger_depth):
 
 def clear():
     pubs["workspace"].publish(DELETE_MARKER_MSG)
-    pubs["tsdf"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
-    pubs["points"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
+    pubs["tsdf"].publish(to_cloud_msg(np.array([]), frame="task"))
+    pubs["points"].publish(to_cloud_msg(np.array([]), frame="task"))
     clear_quality()
     pubs["grasp"].publish(DELETE_MARKER_ARRAY_MSG)
     clear_grasps()
-    pubs["debug"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
+    pubs["debug"].publish(to_cloud_msg(np.array([]), frame="task"))
 
 
 def clear_quality():
-    pubs["quality"].publish(ros_utils.to_cloud_msg(np.array([]), frame="task"))
+    pubs["quality"].publish(to_cloud_msg(np.array([]), frame="task"))
 
 
 def clear_grasps():
@@ -131,9 +130,9 @@ def _create_marker_msg(marker_type, frame, pose, scale, color):
     msg.header.stamp = rospy.Time()
     msg.type = marker_type
     msg.action = Marker.ADD
-    msg.pose = ros_utils.to_pose_msg(pose)
-    msg.scale = ros_utils.to_vector3_msg(scale)
-    msg.color = ros_utils.to_color_msg(color)
+    msg.pose = to_pose_msg(pose)
+    msg.scale = to_vector3_msg(scale)
+    msg.color = to_color_msg(color)
     return msg
 
 
@@ -141,7 +140,7 @@ def _create_vol_msg(vol, voxel_size, threshold):
     vol = vol.squeeze()
     points = np.argwhere(vol > threshold) * voxel_size
     values = np.expand_dims(vol[vol > threshold], 1)
-    return ros_utils.to_cloud_msg(points, values, frame="task")
+    return to_cloud_msg(points, values, frame="task")
 
 
 def _create_grasp_marker_msg(grasp, finger_depth):
@@ -150,7 +149,7 @@ def _create_grasp_marker_msg(grasp, finger_depth):
     scale = [radius, 0.0, 0.0]
     color = cmap(float(grasp.q))
     msg = _create_marker_msg(Marker.LINE_LIST, "task", grasp.pose, scale, color)
-    msg.points = [ros_utils.to_point_msg(point) for point in _gripper_lines(w, d)]
+    msg.points = [to_point_msg(point) for point in _gripper_lines(w, d)]
     return msg
 
 
