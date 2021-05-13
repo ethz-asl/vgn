@@ -20,7 +20,6 @@ class ClutterRemovalEnv:
 
     def step(self, grasp):
         score, _ = self.sim.execute_grasp(grasp)
-        info = {}
 
         if score == 0.0 and self.last_score == 0.0:
             self.consecutive_failures += 1
@@ -30,12 +29,12 @@ class ClutterRemovalEnv:
         done = self.sim.num_objects == 0 or self.consecutive_failures == 2
 
         if done:
-            tsdf_grid, voxel_size = None, None
-        else:
-            tsdf_grid, voxel_size = self.get_tsdf()
-            self.last_score = score
+            return (None, None), score, done, {}
 
-        return (tsdf_grid, voxel_size), score, done, info
+        tsdf_grid, voxel_size = self.get_tsdf()
+        self.last_score = score
+
+        return (tsdf_grid, voxel_size), score, done, {}
 
     def get_tsdf(self):
         tsdf = UniformTSDFVolume(self.sim.size, 40)

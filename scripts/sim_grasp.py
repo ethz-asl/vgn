@@ -11,23 +11,35 @@ def main(args):
     env = ClutterRemovalEnv(args.scene, args.object_count, args.gui)
     vgn = VGN(args.model)
 
-    tsdf_grid, voxel_size = env.reset()
-    for _ in tqdm(range(args.grasp_count)):
-        out = vgn.predict(tsdf_grid)
-        grasps = compute_grasps(out, voxel_size)
-        if len(grasps) == 0:
-            tsdf_grid, voxel_size = env.reset()
-            continue
-        (tsdf_grid, voxel_size), score, done, info = env.step(grasps[0])
-        print(score, done)
+    object_count = 0
+    grasp_count = 0
+    cleared_count = 0
 
-        if done:
-            tsdf_grid, voxel_size = env.reset()
+    for _ in tqdm(range(args.episode_count)):
+        tsdf_grid, voxel_size = env.reset()
+        object_count += env.sim.num_objects
+        done = False
+        while not done:
+            out = vgn.predict(tsdf_grid)
+            grasps = compute_grasps(out, voxel_size)
+            if len(grasps) == 0:
+                break
+            (tsdf_grid, voxel_size), score, done, _ = env.step(grasps[0])
+            grasp_count += 1
+            cleared_count += score
+
+    print(
+        "Grasp count: {}, success rate: {:.2f}, percent cleared: {:.2f}".format(
+            grasp_count,
+            (cleared_count / grasp_count) * 100,
+            (cleared_count / object_count) * 100,
+        )
+    )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=Path, required=True)
+    parser.add_argument("--model", type=Path, default="data/models/vgn_conv.pth")
     parser.add_argument(
         "--scene",
         type=str,
@@ -35,7 +47,7 @@ if __name__ == "__main__":
         default="blocks",
     )
     parser.add_argument("--object-count", type=int, default=5)
-    parser.add_argument("--grasp-count", type=int, default=100)
+    parser.add_argument("--episode-count", type=int, default=10)
     parser.add_argument("--gui", action="store_true")
     args = parser.parse_args()
     main(args)
