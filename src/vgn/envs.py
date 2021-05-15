@@ -2,8 +2,9 @@ import numpy as np
 
 from vgn.simulation import GraspSim
 from vgn.utils import camera_on_sphere
-from robot_utils.perception import UniformTSDFVolume, map_cloud_to_grid
-from robot_utils.spatial import Rotation, Transform
+from robot_tools.perception import UniformTSDFVolume
+from robot_tools.spatial import Rotation, Transform
+from robot_tools.utils import map_cloud_to_grid
 
 
 class ClutterRemovalEnv:

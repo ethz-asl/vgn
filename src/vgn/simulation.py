@@ -3,8 +3,8 @@ from pathlib import Path
 import numpy as np
 import pybullet as p
 
-from robot_utils.btsim import BtSim, BtCamera
-from robot_utils.spatial import Rotation, Transform
+from robot_tools.btsim import BtSim, BtCamera
+from robot_tools.spatial import Rotation, Transform
 from vgn.utils import workspace_lines
 
 

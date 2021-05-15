@@ -7,8 +7,8 @@ import open3d as o3d
 import scipy.signal as signal
 from tqdm import tqdm
 
-from robot_utils.perception import UniformTSDFVolume
-from robot_utils.spatial import Rotation, Transform
+from robot_tools.perception import UniformTSDFVolume
+from robot_tools.spatial import Rotation, Transform
 from vgn.grasp import Grasp, Label
 from vgn.io import *
 from vgn.simulation import ClutterRemovalSim

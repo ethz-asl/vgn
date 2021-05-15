@@ -5,8 +5,8 @@ import rospy
 from rospy import Publisher
 from visualization_msgs.msg import Marker, MarkerArray
 
-from robot_utils.spatial import Rotation, Transform
-from robot_utils.ros.conversions import *
+from robot_tools.spatial import Rotation, Transform
+from robot_tools.ros.conversions import *
 from vgn.utils import workspace_lines
 
 cmap = matplotlib.colors.LinearSegmentedColormap.from_list("RedGreen", ["r", "g"])

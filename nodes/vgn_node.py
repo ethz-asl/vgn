@@ -4,8 +4,8 @@ from pathlib import Path
 
 import rospy
 
-from robot_utils.ros.conversions import to_pose_msg, from_cloud_msg
-from robot_utils.utils import map_cloud_to_grid
+from robot_tools.ros.conversions import to_pose_msg, from_cloud_msg
+from robot_tools.utils import map_cloud_to_grid
 from vgn.detection import VGN, compute_grasps
 from vgn.msg import Grasp
 import vgn.srv

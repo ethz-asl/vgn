@@ -2,7 +2,7 @@ from math import cos, sin
 
 import numpy as np
 
-from robot_utils.spatial import Transform
+from robot_tools.spatial import Transform
 
 
 def camera_on_sphere(origin, radius, theta, phi):
