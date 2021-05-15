@@ -21,7 +21,7 @@ def main(args):
         done = False
         while not done:
             out = vgn.predict(tsdf_grid)
-            grasps = compute_grasps(out, voxel_size)
+            grasps = compute_grasps(voxel_size, out)
             if len(grasps) == 0:
                 break
             (tsdf_grid, voxel_size), score, done, _ = env.step(grasps[0])

@@ -44,10 +44,10 @@ def draw_volume(vol, voxel_size, threshold=0.01):
     pubs["debug"].publish(msg)
 
 
-def draw_grasp(grasp, score, finger_depth):
+def draw_grasp(grasp, finger_depth):
     radius = 0.1 * finger_depth
     w, d = grasp.width, finger_depth
-    color = cmap(float(score))
+    color = cmap(float(grasp.quality))
 
     markers = []
 
@@ -147,7 +147,7 @@ def _create_grasp_marker_msg(grasp, finger_depth):
     radius = 0.1 * finger_depth
     w, d = grasp.width, finger_depth
     scale = [radius, 0.0, 0.0]
-    color = cmap(float(grasp.q))
+    color = cmap(float(grasp.quality))
     msg = _create_marker_msg(Marker.LINE_LIST, "task", grasp.pose, scale, color)
     msg.points = [to_point_msg(point) for point in _gripper_lines(w, d)]
     return msg

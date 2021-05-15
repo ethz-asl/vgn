@@ -49,5 +49,5 @@ class ClutterRemovalEnv:
         map_cloud = tsdf.get_map_cloud()
         points = np.asarray(map_cloud.points)
         distances = np.asarray(map_cloud.colors)[:, 0]
-        tsdf_grid = map_cloud_to_grid(points, distances, tsdf.voxel_size)
+        tsdf_grid = map_cloud_to_grid(tsdf.voxel_size, points, distances)
         return tsdf_grid, tsdf.voxel_size
