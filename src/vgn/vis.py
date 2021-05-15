@@ -30,7 +30,7 @@ def draw_tsdf(vol, voxel_size, threshold=0.01):
 
 
 def draw_points(points):
-    msg = to_cloud_msg(points, frame="task")
+    msg = to_cloud_msg(points, frame_id="task")
     pubs["points"].publish(msg)
 
 
@@ -96,16 +96,16 @@ def draw_grasps(grasps, finger_depth):
 
 def clear():
     pubs["workspace"].publish(DELETE_MARKER_MSG)
-    pubs["tsdf"].publish(to_cloud_msg(np.array([]), frame="task"))
-    pubs["points"].publish(to_cloud_msg(np.array([]), frame="task"))
+    pubs["tsdf"].publish(to_cloud_msg(np.array([]), frame_id="task"))
+    pubs["points"].publish(to_cloud_msg(np.array([]), frame_id="task"))
     clear_quality()
     pubs["grasp"].publish(DELETE_MARKER_ARRAY_MSG)
     clear_grasps()
-    pubs["debug"].publish(to_cloud_msg(np.array([]), frame="task"))
+    pubs["debug"].publish(to_cloud_msg(np.array([]), frame_id="task"))
 
 
 def clear_quality():
-    pubs["quality"].publish(to_cloud_msg(np.array([]), frame="task"))
+    pubs["quality"].publish(to_cloud_msg(np.array([]), frame_id="task"))
 
 
 def clear_grasps():
@@ -140,7 +140,7 @@ def _create_vol_msg(vol, voxel_size, threshold):
     vol = vol.squeeze()
     points = np.argwhere(vol > threshold) * voxel_size
     values = np.expand_dims(vol[vol > threshold], 1)
-    return to_cloud_msg(points, values, frame="task")
+    return to_cloud_msg(points, values, frame_id="task")
 
 
 def _create_grasp_marker_msg(grasp, finger_depth):

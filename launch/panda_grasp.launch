@@ -6,16 +6,11 @@
     <!-- Load configuration -->
     <rosparam command="load" file="$(find vgn)/config/panda_grasp.yaml" subst_value="true" />
 
-    <!-- Transform required by Moveit -->
-    <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster" args="0 0 0 0 0 0 world panda_link0" />
-
-    <!-- Launch franka control -->
-    <include file="$(find franka_control)/launch/franka_control.launch">
+    <!-- Launch MoveIt -->
+    <include file="$(find panda_moveit_config)/launch/panda_control_moveit_rviz.launch">
         <arg name="robot_ip" value="$(arg robot_ip)" />
+        <arg name="launch_rviz" value="false" />
     </include>
-
-    <!-- Start a joint trajectory controller -->
-    <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="position_joint_trajectory_controller"/>
 
     <!-- Launch camera driver -->
     <include file="$(find realsense2_camera)/launch/rs_camera.launch">
@@ -27,6 +22,6 @@
     <node pkg="tf2_ros" type="static_transform_publisher" name="hand_eye_broadcaster" args="0.03226862 -0.06137175  0.04107702 0.00099995 0. 0.39898185 0.91695828 panda_link8 camera_depth_optical_frame" />
 
     <!-- Task space calibration -->
-    <node pkg="tf2_ros" type="static_transform_publisher" name="task_frame_broadcaster" args="0.25 -0.15 0.15 0.0 0.0 0.0 1.0 panda_link0 task" />
+    <node pkg="tf2_ros" type="static_transform_publisher" name="task_frame_broadcaster" args="0.25 -0.15 0.0 0.0 0.0 0.0 1.0 panda_link0 task" />
 
 </launch>

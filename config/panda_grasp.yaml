@@ -20,5 +20,5 @@ tsdf_node:
     depth_topic: /camera/depth/image_rect_raw
 
 vgn_node:
-  model: $(find vgn)/data/models/vgn_conv.pth
+  model: /home/michel/catkin_ws/src/vgn/data/models/vgn_conv.pth
   finger_depth: 0.05
