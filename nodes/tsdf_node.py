@@ -18,7 +18,7 @@ class UniformTSDFServer:
         self.resolution = rospy.get_param("~resolution")
         self.cam_frame_id = rospy.get_param("~camera/frame_id")
         info_topic = rospy.get_param("~camera/info_topic")
-        depth_topic = rospy.get_param("~camera/depth_name")
+        depth_topic = rospy.get_param("~camera/depth_topic")
         msg = rospy.wait_for_message(info_topic, CameraInfo)
         self.intrinsic = from_camera_info_msg(msg)
         self.cv_bridge = cv_bridge.CvBridge()
@@ -65,8 +65,9 @@ class UniformTSDFServer:
     def get_map_cloud(self, req):
         map_cloud = self.tsdf.get_map_cloud()
         points = np.asarray(map_cloud.points)
-        distances = np.asarray(map_cloud.colors)[:, 0]
-        msg = to_cloud_msg(points, distances, frame_id=self.frame_id)
+        distances = np.asarray(map_cloud.colors)[:, [0]]
+
+        msg = to_cloud_msg(points, distances=distances, frame_id=self.frame_id)
         self.map_cloud_pub.publish(msg)
         res = vgn.srv.GetMapCloudResponse()
         res.voxel_size = self.tsdf.voxel_size
