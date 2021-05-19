@@ -93,24 +93,24 @@ class PandaGraspController(object):
 
         # Execute grasp
         rospy.loginfo("Executing grasp")
-        self.moveit.goto("ready")
+        self.moveit.move("ready")
         success = self.execute_grasp(grasp)
 
         # Drop object
         if success:
             rospy.loginfo("Dropping object")
-            self.moveit.goto([0.678, 0.097, 0.237, -1.63, -0.031, 1.756, 0.931])
+            self.moveit.move([0.678, 0.097, 0.237, -1.63, -0.031, 1.756, 0.931])
             self.gripper.move(0.08)
 
-        self.moveit.goto("ready")
+        self.moveit.move("ready")
 
     def scan_scene(self):
-        self.moveit.goto("ready")
+        self.moveit.move("ready")
         self.reset_map()
         rospy.loginfo("calling toggle integration")
         self.toggle_integration(True)
         for joint_target in self.scan_joints:
-            self.moveit.goto(joint_target)
+            self.moveit.move(joint_target)
         self.toggle_integration(False)
 
     def execute_grasp(self, grasp):
@@ -122,14 +122,14 @@ class PandaGraspController(object):
         T_base_pregrasp = T_base_grasp * T_grasp_pregrasp
         T_base_retreat = T_base_grasp * T_grasp_retreat
 
-        self.moveit.goto(T_base_pregrasp * self.grasp_ee_offset, velocity_scaling=0.2)
-        self.moveit.goto(T_base_grasp * self.grasp_ee_offset)
+        self.moveit.move(T_base_pregrasp * self.grasp_ee_offset, velocity_scaling=0.2)
+        self.moveit.move(T_base_grasp * self.grasp_ee_offset)
         self.gripper.grasp(width=0.0, force=20.0)
-        self.moveit.goto(T_base_retreat * self.grasp_ee_offset)
+        self.moveit.move(T_base_retreat * self.grasp_ee_offset)
 
         T_retreat_lift_base = Transform(Rotation.identity(), [0.0, 0.0, 0.1])
         T_base_lift = T_retreat_lift_base * T_base_retreat
-        self.moveit.goto(T_base_lift * self.grasp_ee_offset)
+        self.moveit.move(T_base_lift * self.grasp_ee_offset)
 
         return self.gripper.read() > 0.004
 

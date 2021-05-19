@@ -47,9 +47,9 @@ class VGN:
 def compute_grasps(
     voxel_size,
     out,
+    score_fn=lambda g: g.quality,
     threshold=0.9,
     max_filter_size=4.0,
-    score_fn=lambda g: g.q,
 ):
     # Threshold on grasp quality
     qual = out.qual.copy()
