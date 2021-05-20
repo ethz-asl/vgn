@@ -41,6 +41,7 @@ class GraspSim(BtSim):
 
     def reset(self, scene, object_count):
         p.resetSimulation()
+        p.setPhysicsEngineParameter(fixedTimeStep=self.dt, numSolverIterations=200)
         p.setGravity(0.0, 0.0, -9.81)
         p.resetDebugVisualizerCamera(1.0, 0.0, -45, [0.15, 0.5, -0.3])
         p.loadURDF("data/urdfs/setup/plane.urdf", self.origin, globalScaling=0.6)
