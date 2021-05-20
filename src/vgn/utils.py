@@ -33,30 +33,18 @@ def look_at(eye, center, up):
     return Transform.from_matrix(m).inv()
 
 
-def workspace_lines(size):
+def task_lines(size):
     return [
-        [0.0, 0.0, 0.0],
-        [size, 0.0, 0.0],
-        [size, 0.0, 0.0],
-        [size, size, 0.0],
-        [size, size, 0.0],
-        [0.0, size, 0.0],
-        [0.0, size, 0.0],
-        [0.0, 0.0, 0.0],
-        [0.0, 0.0, size],
-        [size, 0.0, size],
-        [size, 0.0, size],
-        [size, size, size],
-        [size, size, size],
-        [0.0, size, size],
-        [0.0, size, size],
-        [0.0, 0.0, size],
-        [0.0, 0.0, 0.0],
-        [0.0, 0.0, size],
-        [size, 0.0, 0.0],
-        [size, 0.0, size],
-        [size, size, 0.0],
-        [size, size, size],
-        [0.0, size, 0.0],
-        [0.0, size, size],
+        ([0.0, 0.0, 0.0], [size, 0.0, 0.0]),
+        ([size, 0.0, 0.0], [size, size, 0.0]),
+        ([size, size, 0.0], [0.0, size, 0.0]),
+        ([0.0, size, 0.0], [0.0, 0.0, 0.0]),
+        ([0.0, 0.0, size], [size, 0.0, size]),
+        ([size, 0.0, size], [size, size, size]),
+        ([size, size, size], [0.0, size, size]),
+        ([0.0, size, size], [0.0, 0.0, size]),
+        ([0.0, 0.0, 0.0], [0.0, 0.0, size]),
+        ([size, 0.0, 0.0], [size, 0.0, size]),
+        ([size, size, 0.0], [size, size, size]),
+        ([0.0, size, 0.0], [0.0, size, size]),
     ]

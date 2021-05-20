@@ -20,13 +20,7 @@ The next sections provide instructions for getting started with VGN.
 
 ## Installation
 
-The following instructions were tested with `python3.8` on Ubuntu 20.04. A ROS installation is only required for visualizations and interfacing hardware. Simulations and network training should work just fine without. The [Robot Grasping](#robot-grasping) section describes the setup for robotic experiments in more details.
-
-OpenMPI is optionally used to distribute the data generation over multiple cores/machines.
-
-```
-sudo apt install libopenmpi-dev
-```
+The following instructions were tested on Ubuntu 20.04 with ROS Noetic. The setup for robotic experiments is described in more details in the [Robot Grasping](#robot-grasping) section.
 
 Clone the repository into the `src` folder of a catkin workspace.
 
@@ -34,12 +28,18 @@ Clone the repository into the `src` folder of a catkin workspace.
 git clone https://github.com/ethz-asl/vgn
 ```
 
+OpenMPI is optionally used to distribute the data generation over multiple cores/machines.
+
+```
+sudo apt install libopenmpi-dev
+```
+
 Create and activate a new virtual environment.
 
 ```
 cd /path/to/vgn
-python3 -m venv --system-site-packages .venv
-source .venv/bin/activate
+python3 -m venv --system-site-packages /path/to/venv
+source /path/to/venv/bin/activate
 ```
 
 Install the Python dependencies within the activated virtual environment.
@@ -48,17 +48,11 @@ Install the Python dependencies within the activated virtual environment.
 pip3 install -r requirements.txt
 ```
 
-Build and source the catkin workspace,
+Build and source the catkin workspace.
 
 ```
 catkin build vgn
 source /path/to/catkin_ws/devel/setup.zsh
-```
-
-or alternatively install the project locally in "editable" mode using `pip3`.
-
-```
-pip3 install -e .
 ```
 
 Finally, download the data folder [here](https://drive.google.com/file/d/1MnWwxkYo9WnLFNseEVSWRT1q-XElYlxJ/view?usp=sharing), then unzip and place it in the repo's root.
@@ -113,10 +107,10 @@ python3 scripts/sim_grasp.py --model data/models/vgn_conv.pth [--gui]
 
 ## Robot Grasping
 
-This package contains an example of open-loop grasp execution with a Franka Emika Panda and a wrist-mounted Intel Realsense D435. Since the robot drivers are not officially supported on ROS noetic yet, we used the following workaround:
+This package contains an example of open-loop grasp execution with a Franka Emika Panda and a wrist-mounted Intel Realsense D435. Since the robot drivers are not officially supported on ROS Noetic yet, we used the following workaround:
 
 - Run the roscore and hardware drivers on a NUC with [`libfranka`](https://frankaemika.github.io/docs/installation_linux.html) installed.
-- Run the TSDF and VGN nodes on a second computer with ROS noetic connected to the same roscore  ([instructions](http://wiki.ros.org/ROS/Tutorials/MultipleMachines)).
+- Run the TSDF and VGN nodes on a second computer with ROS Noetic connected to the same roscore  ([instructions](http://wiki.ros.org/ROS/Tutorials/MultipleMachines)).
 
 First, on the NUC, start a roscore and launch the robot and sensor drivers.
 
@@ -125,14 +119,14 @@ roscore &
 roslaunch vgn panda_grasp.launch
 ```
 
-Next, launch the TSDF and VGN nodes on the 20.04 machine.
+Next, launch the TSDF and VGN nodes on the ROS Noetic machine.
 
 ```
 rosrun vgn tsdf_node.py
 rosrun vgn vgn_node.py
 ```
 
-Now, run the experiment by executing the following command on the NUC.
+Now, run the experiment by executing the main script on the NUC.
 
 ```
 rosrun vgn panda_grasp.py

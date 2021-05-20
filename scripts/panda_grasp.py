@@ -64,7 +64,6 @@ class PandaGraspController(object):
 
     def run(self):
         vis.clear()
-        vis.draw_workspace(self.size)
         self.gripper.move(0.08)
 
         rospy.loginfo("Reconstructing scene")

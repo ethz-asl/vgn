@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 
+import numpy as np
 from tqdm import tqdm
 
 from vgn.detection import VGN, compute_grasps
@@ -8,8 +9,9 @@ from vgn.envs import ClutterRemovalEnv
 
 
 def main(args):
-    env = ClutterRemovalEnv(args.scene, args.object_count, args.gui)
+    env = ClutterRemovalEnv(args.scene, args.object_count, args.seed, args.gui)
     vgn = VGN(args.model)
+    score_fn = lambda g: np.random.uniform(0.0, 1.0)
 
     object_count = 0
     grasp_count = 0
@@ -21,7 +23,7 @@ def main(args):
         done = False
         while not done:
             out = vgn.predict(tsdf_grid)
-            grasps = compute_grasps(voxel_size, out)
+            grasps = compute_grasps(voxel_size, out, score_fn, threshold=0.90)
             if len(grasps) == 0:
                 break
             (tsdf_grid, voxel_size), score, done, _ = env.step(grasps[0])
@@ -48,6 +50,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--object-count", type=int, default=5)
     parser.add_argument("--episode-count", type=int, default=10)
+    parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--gui", action="store_true")
     args = parser.parse_args()
     main(args)

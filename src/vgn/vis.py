@@ -7,21 +7,10 @@ from visualization_msgs.msg import Marker, MarkerArray
 
 from robot_tools.spatial import Rotation, Transform
 from robot_tools.ros.conversions import *
-from vgn.utils import workspace_lines
 
 cmap = matplotlib.colors.LinearSegmentedColormap.from_list("RedGreen", ["r", "g"])
 DELETE_MARKER_MSG = Marker(action=Marker.DELETEALL)
 DELETE_MARKER_ARRAY_MSG = MarkerArray(markers=[DELETE_MARKER_MSG])
-
-
-def draw_workspace(size):
-    scale = size * 0.005
-    pose = Transform.identity()
-    scale = [scale, 0.0, 0.0]
-    color = [0.5, 0.5, 0.5]
-    msg = _create_marker_msg(Marker.LINE_LIST, "task", pose, scale, color)
-    msg.points = [to_point_msg(point) for point in workspace_lines(size)]
-    pubs["workspace"].publish(msg)
 
 
 def draw_tsdf(vol, voxel_size, threshold=0.01):
@@ -95,7 +84,6 @@ def draw_grasps(grasps, finger_depth):
 
 
 def clear():
-    pubs["workspace"].publish(DELETE_MARKER_MSG)
     pubs["tsdf"].publish(to_cloud_msg(np.array([]), frame_id="task"))
     pubs["points"].publish(to_cloud_msg(np.array([]), frame_id="task"))
     clear_quality()
@@ -114,7 +102,6 @@ def clear_grasps():
 
 def _create_publishers():
     pubs = dict()
-    pubs["workspace"] = Publisher("/workspace", Marker, queue_size=1, latch=True)
     pubs["tsdf"] = Publisher("/tsdf", PointCloud2, queue_size=1, latch=True)
     pubs["points"] = Publisher("/points", PointCloud2, queue_size=1, latch=True)
     pubs["quality"] = Publisher("/quality", PointCloud2, queue_size=1, latch=True)

@@ -69,14 +69,13 @@ def compute_grasps(
     # Sort according to the score function
     scores = np.asarray([score_fn(g) for g in grasps])
     ind = np.argsort(-scores)
-
     return grasps[ind]
 
 
 def select_at(out, index):
     i, j, k = index
-    q = out.qual[i, j, k]
     ori = Rotation.from_quat(out.rot[:, i, j, k])
     pos = np.array([i, j, k], dtype=np.float64)
     width = out.width[i, j, k]
-    return Grasp(Transform(ori, pos), width, q)
+    quality = out.qual[i, j, k]
+    return Grasp(Transform(ori, pos), width, quality)

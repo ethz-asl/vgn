@@ -1,9 +1,10 @@
+black
 numpy
 scipy
 pandas
 mpi4py
 open3d
-pybullet
+pybullet==2.7.9
 torch
 pytorch-ignite
 tensorboard

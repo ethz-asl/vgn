@@ -4,14 +4,13 @@ from vgn.simulation import GraspSim
 from vgn.utils import camera_on_sphere
 from robot_tools.perception import UniformTSDFVolume
 from robot_tools.spatial import Rotation, Transform
-from robot_tools.utils import map_cloud_to_grid
 
 
 class ClutterRemovalEnv:
-    def __init__(self, scene, object_count, gui):
+    def __init__(self, scene, object_count, seed, gui):
         self.scene = scene
         self.object_count = object_count
-        self.sim = GraspSim(gui)
+        self.sim = GraspSim(gui, np.random.RandomState(seed))
 
     def reset(self):
         self.sim.reset(self.scene, self.object_count)
@@ -20,7 +19,13 @@ class ClutterRemovalEnv:
         return self.get_tsdf()
 
     def step(self, grasp):
-        score, _ = self.sim.execute_grasp(grasp)
+        grasp_pose = grasp.pose
+        init_pose = grasp_pose * Transform(Rotation.identity(), [0.0, 0.0, -0.05])
+        self.sim.gripper.spawn(init_pose)
+        self.sim.gripper.move_linear(grasp_pose)
+        score = self.sim.execute_grasp()
+        self.sim.gripper.remove()
+        self.sim.remove_objects_that_rolled_away()
 
         if score == 0.0 and self.last_score == 0.0:
             self.consecutive_failures += 1
@@ -42,13 +47,9 @@ class ClutterRemovalEnv:
         origin = Transform(Rotation.identity(), self.sim.origin)
         r = 2.0 * self.sim.size
         theta = np.pi / 6.0
-        angles = np.linspace(0.0, 2.0 * np.pi, 5)
-        extrinsics = [camera_on_sphere(origin, r, theta, phi) for phi in angles]
+        phis = np.linspace(0.0, 2.0 * np.pi, 5)
+        extrinsics = [camera_on_sphere(origin, r, theta, phi) for phi in phis]
         for extrinsic in extrinsics:
-            _, depth = self.sim.camera.render(extrinsic.inv())
+            _, depth = self.sim.camera.get_image(extrinsic.inv())
             tsdf.integrate(depth, self.sim.camera.intrinsic, extrinsic)
-        map_cloud = tsdf.get_map_cloud()
-        points = np.asarray(map_cloud.points)
-        distances = np.asarray(map_cloud.colors)[:, 0]
-        tsdf_grid = map_cloud_to_grid(tsdf.voxel_size, points, distances)
-        return tsdf_grid, tsdf.voxel_size
+        return tsdf.get_grid(), tsdf.voxel_size
