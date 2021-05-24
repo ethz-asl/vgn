@@ -218,7 +218,7 @@ class Gripper(object):
         T_W_COM = T_W_EE * self.T_EE_COM
         self._update_constraint(T_W_COM)
 
-    def move_linear(self, end, stop_on_contact=True, velocity=0.1, ee_step=0.005):
+    def move_linear(self, end, stop_on_contact=True, velocity=0.1, ee_step=0.002):
         start = self.get_pose()
         length = np.linalg.norm(end.translation - start.translation)
         direction = (end.translation - start.translation) / length
