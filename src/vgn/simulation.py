@@ -25,7 +25,7 @@ class GraspSim(BtSim):
         self.rng = random_state if random_state else np.random
         self.urdfs = discover_urdfs(Path("data/urdfs"))
         self.gripper = Gripper(self)
-        self.camera = BtCamera(640, 480, 1.047, 0.1, 2.0, renderer=p.ER_TINY_RENDERER)
+        self.camera = BtCamera(320, 240, 1.047, 0.1, 2.0, renderer=p.ER_TINY_RENDERER)
         self.size = 0.3  # = 6 * gripper.finger_depth
         self.origin = [0.15, 0.15, 0.05]
 
