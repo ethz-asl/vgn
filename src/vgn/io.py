@@ -4,8 +4,8 @@ import uuid
 import numpy as np
 import pandas as pd
 
-from robot_tools.perception import CameraIntrinsic
-from robot_tools.spatial import Rotation, Transform
+from robot_utils.perception import CameraIntrinsic
+from robot_utils.spatial import Rotation, Transform
 from vgn.grasp import Grasp
 
 

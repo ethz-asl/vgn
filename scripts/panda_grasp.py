@@ -8,11 +8,11 @@ import numpy as np
 import rospy
 from std_srvs.srv import SetBool, Trigger
 
-from robot_tools.ros.conversions import *
-from robot_tools.ros.panda import PandaGripperClient
-from robot_tools.ros.moveit import MoveItClient
-from robot_tools.ros.tf import TransformTree
-from robot_tools.spatial import Rotation, Transform
+from robot_utils.ros.conversions import *
+from robot_utils.ros.panda import PandaGripperClient
+from robot_utils.ros.moveit import MoveItClient
+from robot_utils.ros.tf import TransformTree
+from robot_utils.spatial import Rotation, Transform
 from vgn import vis
 from vgn.grasp import Grasp
 from vgn.srv import GetMapCloud, GetSceneCloud, PredictGrasps, PredictGraspsRequest

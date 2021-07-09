@@ -4,7 +4,7 @@ import numpy as np
 from scipy import ndimage
 import torch
 
-from robot_tools.spatial import Rotation, Transform
+from robot_utils.spatial import Rotation, Transform
 from vgn.grasp import *
 from vgn.networks import load_network
 

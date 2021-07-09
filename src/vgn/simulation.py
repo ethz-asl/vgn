@@ -3,8 +3,8 @@ from pathlib import Path
 import numpy as np
 import pybullet as p
 
-from robot_tools.bullet import BtSim, BtCamera
-from robot_tools.spatial import Rotation, Transform
+from robot_utils.bullet import BtSim, BtCamera
+from robot_utils.spatial import Rotation, Transform
 from vgn.utils import task_lines
 
 
@@ -21,9 +21,9 @@ def discover_urdfs(root):
 
 class GraspSim(BtSim):
     def __init__(self, gui, random_state=None):
-        super().__init__(gui, sleep=gui)
+        super().__init__(gui=gui, sleep=gui)
         self.rng = random_state if random_state else np.random
-        self.urdfs = discover_urdfs(Path("data/urdfs"))
+        self.urdfs = discover_urdfs(Path("assets/urdfs"))
         self.gripper = Gripper(self)
         self.camera = BtCamera(320, 240, 1.047, 0.1, 2.0, renderer=p.ER_TINY_RENDERER)
         self.size = 0.3  # = 6 * gripper.finger_depth
@@ -41,10 +41,10 @@ class GraspSim(BtSim):
 
     def reset(self, scene, object_count):
         p.resetSimulation()
-        p.setPhysicsEngineParameter(fixedTimeStep=self.dt, numSolverIterations=200)
+        p.setPhysicsEngineParameter(numSolverIterations=200)
         p.setGravity(0.0, 0.0, -9.81)
         p.resetDebugVisualizerCamera(1.0, 0.0, -45, [0.15, 0.5, -0.3])
-        p.loadURDF("data/urdfs/setup/plane.urdf", self.origin, globalScaling=0.6)
+        p.loadURDF("assets/urdfs/setup/plane.urdf", self.origin, globalScaling=0.6)
         self.draw_task_space()
         self.object_uids = []
         if scene == "blocks":
@@ -62,7 +62,7 @@ class GraspSim(BtSim):
 
     def spawn_pile(self, object_urdfs, count, scaling_factor=1.0):
         box_uid = p.loadURDF(
-            "data/urdfs/setup/box.urdf",
+            "assets/urdfs/setup/box.urdf",
             [0.02, 0.02, 0.05],
             globalScaling=1.3,
         )
@@ -173,7 +173,7 @@ class Gripper(object):
         # loadURDF uses URDF link frame
         T_W_B = T_W_EE * self.T_EE_B
         self.uid = p.loadURDF(
-            "data/urdfs/panda/hand.urdf",
+            "assets/urdfs/panda/hand.urdf",
             T_W_B.translation,
             T_W_B.rotation.as_quat(),
         )

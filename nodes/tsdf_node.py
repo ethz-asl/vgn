@@ -2,12 +2,14 @@
 
 import cv_bridge
 import rospy
-from sensor_msgs.msg import CameraInfo, Image
+import sensor_msgs.msg as sensor_msgs
 import std_srvs.srv
 
-from robot_tools.perception import *
-from robot_tools.ros.conversions import *
-from robot_tools.ros.tf import TransformTree
+from robot_utils.perception import Image
+from robot_utils.ros import tf
+from robot_utils.ros.conversions import *
+from vgn.perception import UniformTSDFVolume
+from vgn.utils import *
 import vgn.srv
 
 
@@ -19,10 +21,9 @@ class UniformTSDFServer:
         self.cam_frame_id = rospy.get_param("~camera/frame_id")
         info_topic = rospy.get_param("~camera/info_topic")
         depth_topic = rospy.get_param("~camera/depth_topic")
-        msg = rospy.wait_for_message(info_topic, CameraInfo)
+        msg = rospy.wait_for_message(info_topic, sensor_msgs.CameraInfo)
         self.intrinsic = from_camera_info_msg(msg)
         self.cv_bridge = cv_bridge.CvBridge()
-        self.tf = TransformTree()
         self.integrate = False
 
         rospy.Service("reset_map", std_srvs.srv.Trigger, self.reset)
@@ -33,7 +34,7 @@ class UniformTSDFServer:
         self.scene_cloud_pub = rospy.Publisher("scene_cloud", PointCloud2, queue_size=1)
         self.map_cloud_pub = rospy.Publisher("map_cloud", PointCloud2, queue_size=1)
 
-        rospy.Subscriber(depth_topic, Image, self.sensor_cb)
+        rospy.Subscriber(depth_topic, sensor_msgs.Image, self.sensor_cb)
 
     def reset(self, req):
         self.tsdf = UniformTSDFVolume(self.length, self.resolution)
@@ -46,13 +47,14 @@ class UniformTSDFServer:
     def sensor_cb(self, msg):
         if self.integrate:
             depth = self.cv_bridge.imgmsg_to_cv2(msg).astype(np.float32) * 0.001
-            extrinsic = self.tf.lookup(
+            extrinsic = tf.lookup(
                 self.cam_frame_id,
                 self.frame_id,
                 msg.header.stamp,
                 rospy.Duration(0.1),
             )
-            self.tsdf.integrate(depth, self.intrinsic, extrinsic)
+            img = Image(depth=depth)
+            self.tsdf.integrate(img, self.intrinsic, extrinsic)
 
     def get_scene_cloud(self, req):
         scene_cloud = self.tsdf.get_scene_cloud()

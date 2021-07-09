@@ -41,7 +41,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=Path, default="data/models/vgn_conv.pth")
+    parser.add_argument("--model", type=Path, default="assets/models/vgn_conv.pth")
     parser.add_argument(
         "--scene",
         type=str,

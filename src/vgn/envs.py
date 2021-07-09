@@ -1,9 +1,9 @@
 import numpy as np
 
+from vgn.perception import UniformTSDFVolume
 from vgn.simulation import GraspSim
 from vgn.utils import camera_on_sphere
-from robot_tools.perception import UniformTSDFVolume
-from robot_tools.spatial import Rotation, Transform
+from robot_utils.spatial import Rotation, Transform
 
 
 class ClutterRemovalEnv:
@@ -50,6 +50,6 @@ class ClutterRemovalEnv:
         phis = np.linspace(0.0, 2.0 * np.pi, 5)
         extrinsics = [camera_on_sphere(origin, r, theta, phi) for phi in phis]
         for extrinsic in extrinsics:
-            _, depth = self.sim.camera.get_image(extrinsic.inv())
-            tsdf.integrate(depth, self.sim.camera.intrinsic, extrinsic)
+            img = self.sim.camera.get_image(extrinsic.inv())
+            tsdf.integrate(img, self.sim.camera.intrinsic, extrinsic)
         return tsdf.get_grid(), tsdf.voxel_size

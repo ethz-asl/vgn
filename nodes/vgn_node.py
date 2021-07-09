@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
 from pathlib import Path
-
 import rospy
 
-from robot_tools.ros.conversions import to_pose_msg, from_cloud_msg
-from robot_tools.utils import map_cloud_to_grid
+from robot_utils.ros.conversions import to_pose_msg
 from vgn.detection import VGN, compute_grasps
+from vgn.utils import *
 from vgn.msg import Grasp
 import vgn.srv
 from vgn import vis
