@@ -15,4 +15,5 @@
     <exec_depend>message_runtime</exec_depend>
 
     <depend>rospy</depend>
+    <depend>ros_numpy</depend>
 </package>
