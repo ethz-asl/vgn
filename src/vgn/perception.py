@@ -105,14 +105,14 @@ class TSDFVolume(object):
         self._volume.integrate(rgbd, intrinsic, extrinsic)
 
     def get_grid(self):
-        # TODO(mbreyer) very slow (~35 ms / 50 ms of the whole pipeline)
-        shape = (1, self.resolution, self.resolution, self.resolution)
-        tsdf_grid = np.zeros(shape, dtype=np.float32)
-        voxels = self._volume.extract_voxel_grid().get_voxels()
-        for voxel in voxels:
-            i, j, k = voxel.grid_index
-            tsdf_grid[0, i, j, k] = voxel.color[0]
-        return tsdf_grid
+        cloud = self._volume.extract_voxel_point_cloud()
+        points = np.asarray(cloud.points)
+        distances = np.asarray(cloud.colors)[:, [0]]
+        grid = np.zeros((1, 40, 40, 40), dtype=np.float32)
+        for idx, point in enumerate(points):
+            i, j, k = np.floor(point / self.voxel_size).astype(int)
+            grid[0, i, j, k] = distances[idx]
+        return grid
 
     def get_cloud(self):
         return self._volume.extract_point_cloud()
