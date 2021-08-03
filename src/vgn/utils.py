@@ -5,8 +5,8 @@ from visualization_msgs.msg import Marker, MarkerArray
 import ros_numpy
 from sensor_msgs.msg import PointCloud2, PointField
 
-from robot_utils.ros.rviz import *
-from robot_utils.spatial import Transform
+from robot_helpers.ros.rviz import *
+from robot_helpers.spatial import Transform
 
 cmap = matplotlib.colors.LinearSegmentedColormap.from_list("RedGreen", ["r", "g"])
 

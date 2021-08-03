@@ -17,10 +17,10 @@ class UniformTSDFVolume:
             color_type=o3d.pipelines.integration.TSDFVolumeColorType.NoColor,
         )
 
-    def integrate(self, img, intrinsic, extrinsic):
+    def integrate(self, depth_img, intrinsic, extrinsic):
         rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(
-            o3d.geometry.Image(np.empty_like(img.depth)),
-            o3d.geometry.Image(img.depth),
+            o3d.geometry.Image(np.empty_like(depth_img)),
+            o3d.geometry.Image(depth_img),
             depth_scale=1.0,
             convert_rgb_to_intensity=False,
         )
