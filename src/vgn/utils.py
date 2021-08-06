@@ -12,11 +12,9 @@ cmap = matplotlib.colors.LinearSegmentedColormap.from_list("RedGreen", ["r", "g"
 
 
 def map_cloud_to_grid(voxel_size, points, distances):
-    # TODO sooooooo slow
     grid = np.zeros((40, 40, 40), dtype=np.float32)
-    for idx, point in enumerate(points):
-        i, j, k = np.floor(point / voxel_size).astype(int)
-        grid[i, j, k] = distances[idx]
+    indices = (points // voxel_size).astype(int)
+    grid[tuple(indices.T)] = distances.squeeze()
     return grid
 
 
