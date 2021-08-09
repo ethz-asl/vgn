@@ -51,25 +51,23 @@ def compute_grasps(
     threshold=0.9,
     max_filter_size=4.0,
 ):
-    # Threshold on grasp quality
-    qual = out.qual.copy()
-    qual[qual < threshold] = 0.0
+    qual = threshold_quality(out.qual, threshold)
+    index_list = select_local_maxima(qual, max_filter_size)
+    grasps = [select_at(out, i) for i in index_list]
+    grasps = [from_voxel_coordinates(g, voxel_size) for g in grasps]
+    return sort_grasps(grasps, score_fn)
 
-    # Non maximum suppression
+
+def threshold_quality(qual, threshold):
+    qual[qual < threshold] = 0.0
+    return qual
+
+
+def select_local_maxima(qual, max_filter_size):
     max = ndimage.maximum_filter(qual, size=max_filter_size)
     qual = np.where(qual == max, qual, 0.0)
     mask = np.where(qual, 1.0, 0.0)
-
-    # Construct grasp list
-    grasps = [select_at(out, i) for i in np.argwhere(mask)]
-
-    # Compute Cartesian coordinates
-    grasps = np.asarray([from_voxel_coordinates(g, voxel_size) for g in grasps])
-
-    # Sort according to the score function
-    scores = np.asarray([score_fn(g) for g in grasps])
-    ind = np.argsort(-scores)
-    return grasps[ind]
+    return np.argwhere(mask)
 
 
 def select_at(out, index):
@@ -79,3 +77,8 @@ def select_at(out, index):
     width = out.width[i, j, k]
     quality = out.qual[i, j, k]
     return Grasp(Transform(ori, pos), width, quality)
+
+
+def sort_grasps(grasps, score_fn):
+    scores = np.asarray([score_fn(g) for g in grasps])
+    return np.asarray(grasps)[np.argsort(-scores)]
