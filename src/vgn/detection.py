@@ -51,19 +51,15 @@ def compute_grasps(
     threshold=0.9,
     max_filter_size=4.0,
 ):
-    qual = threshold_quality(out.qual, threshold)
-    index_list = select_local_maxima(qual, max_filter_size)
+    index_list = select_local_maxima(out.qual, threshold, max_filter_size)
     grasps = [select_at(out, i) for i in index_list]
     grasps = [from_voxel_coordinates(g, voxel_size) for g in grasps]
     return sort_grasps(grasps, score_fn)
 
 
-def threshold_quality(qual, threshold):
+def select_local_maxima(qual, threshold, max_filter_size):
+    qual = qual.copy()
     qual[qual < threshold] = 0.0
-    return qual
-
-
-def select_local_maxima(qual, max_filter_size):
     max = ndimage.maximum_filter(qual, size=max_filter_size)
     qual = np.where(qual == max, qual, 0.0)
     mask = np.where(qual, 1.0, 0.0)
