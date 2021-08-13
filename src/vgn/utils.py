@@ -23,15 +23,19 @@ def grid_to_map_cloud(voxel_size, grid, threshold=1e-2):
     return points, distances
 
 
-def camera_on_sphere(origin, radius, theta, phi):
-    eye = np.r_[
-        radius * sin(theta) * cos(phi),
-        radius * sin(theta) * sin(phi),
-        radius * cos(theta),
-    ]
+def camera_on_sphere(origin, r, theta, phi):
+    eye = spherical_to_cartesian(r, theta, phi)
     target = np.array([0.0, 0.0, 0.0])
     up = np.array([0.0, 0.0, 1.0])  # this breaks when looking straight down
     return look_at(eye, target, up) * origin.inv()
+
+
+def spherical_to_cartesian(r, theta, phi):
+    return np.r_[
+        r * sin(theta) * cos(phi),
+        r * sin(theta) * sin(phi),
+        r * cos(theta),
+    ]
 
 
 def look_at(eye, center, up):
