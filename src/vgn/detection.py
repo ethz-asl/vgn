@@ -49,7 +49,7 @@ def compute_grasps(
     out,
     score_fn=lambda g: g.quality,
     threshold=0.9,
-    max_filter_size=4.0,
+    max_filter_size=3.0,
 ):
     index_list = select_local_maxima(out.qual, threshold, max_filter_size)
     grasps = [select_at(out, i) for i in index_list]
@@ -58,12 +58,8 @@ def compute_grasps(
 
 
 def select_local_maxima(qual, threshold, max_filter_size):
-    qual = qual.copy()
-    qual[qual < threshold] = 0.0
     max = ndimage.maximum_filter(qual, size=max_filter_size)
-    qual = np.where(qual == max, qual, 0.0)
-    mask = np.where(qual, 1.0, 0.0)
-    return np.argwhere(mask)
+    return np.argwhere(np.logical_and(qual == max, qual > threshold))
 
 
 def select_at(out, index):
