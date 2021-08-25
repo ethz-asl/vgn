@@ -44,22 +44,27 @@ class VGN:
         return Output(qual, rot, width)
 
 
-def compute_grasps(
+def select_local_maxima(
     voxel_size,
     out,
-    score_fn=lambda g: g.quality,
     threshold=0.9,
     max_filter_size=3.0,
 ):
-    index_list = select_local_maxima(out.qual, threshold, max_filter_size)
+    max = ndimage.maximum_filter(out.qual, size=max_filter_size)
+    index_list = np.argwhere(np.logical_and(out.qual == max, out.qual > threshold))
     grasps = [select_at(out, i) for i in index_list]
-    grasps = [from_voxel_coordinates(g, voxel_size) for g in grasps]
-    return sort_grasps(grasps, score_fn)
+    return [from_voxel_coordinates(g, voxel_size) for g in grasps]
 
 
-def select_local_maxima(qual, threshold, max_filter_size):
-    max = ndimage.maximum_filter(qual, size=max_filter_size)
-    return np.argwhere(np.logical_and(qual == max, qual > threshold))
+def select_grid(voxel_size, out, threshold=0.9, step=2):
+    grasps = []
+    N = out.qual.shape[0]
+    for i in range(0, N, step):
+        for j in range(0, N, step):
+            for k in range(0, N, step):
+                if out.qual[i, j, k] > threshold:
+                    grasps.append(select_at(out, (i, j, k)))
+    return [from_voxel_coordinates(g, voxel_size) for g in grasps]
 
 
 def select_at(out, index):
@@ -69,8 +74,3 @@ def select_at(out, index):
     width = out.width[i, j, k]
     quality = out.qual[i, j, k]
     return Grasp(Transform(ori, pos), width, quality)
-
-
-def sort_grasps(grasps, score_fn):
-    scores = np.asarray([score_fn(g) for g in grasps])
-    return np.asarray(grasps)[np.argsort(-scores)]
