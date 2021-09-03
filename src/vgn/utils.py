@@ -27,7 +27,7 @@ def camera_on_sphere(origin, r, theta, phi):
     eye = spherical_to_cartesian(r, theta, phi)
     target = np.array([0.0, 0.0, 0.0])
     up = np.array([0.0, 0.0, 1.0])  # this breaks when looking straight down
-    return look_at(eye, target, up) * origin.inv()
+    return (origin * look_at(eye, target, up)).inv()
 
 
 def spherical_to_cartesian(r, theta, phi):
@@ -39,7 +39,7 @@ def spherical_to_cartesian(r, theta, phi):
 
 
 def look_at(eye, center, up):
-    # Returns T_cam_ref
+    # Returns T_ref_cam
     eye = np.asarray(eye)
     center = np.asarray(center)
     forward = center - eye
@@ -53,7 +53,7 @@ def look_at(eye, center, up):
     m[:3, 1] = -up
     m[:3, 2] = forward
     m[:3, 3] = eye
-    return Transform.from_matrix(m).inv()
+    return Transform.from_matrix(m)
 
 
 def task_lines(size):
