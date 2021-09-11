@@ -38,6 +38,14 @@ def spherical_to_cartesian(r, theta, phi):
     ]
 
 
+def cartesian_to_spherical(p):
+    x, y, z = p
+    r = np.linalg.norm(p)
+    theta = np.arccos(z / r)
+    phi = np.arctan2(y, x)
+    return r, theta, phi
+
+
 def look_at(eye, center, up):
     # Returns T_ref_cam
     eye = np.asarray(eye)
