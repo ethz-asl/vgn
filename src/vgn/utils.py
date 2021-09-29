@@ -3,11 +3,22 @@ import matplotlib.colors
 import numpy as np
 import ros_numpy
 from sensor_msgs.msg import PointCloud2, PointField
+import yaml
 
 from robot_helpers.ros.rviz import *
 from robot_helpers.spatial import Transform
 
 cmap = matplotlib.colors.LinearSegmentedColormap.from_list("RedGreen", ["r", "g"])
+
+
+def load_cfg(path):
+    with path.open("r") as f:
+        cfg = yaml.load(f)
+    return cfg
+
+
+def find_urdfs(root):
+    return [d / "model.urdf" for d in root.iterdir() if d.is_dir()]
 
 
 def map_cloud_to_grid(voxel_size, points, distances):
@@ -27,7 +38,7 @@ def camera_on_sphere(origin, r, theta, phi):
     eye = spherical_to_cartesian(r, theta, phi)
     target = np.array([0.0, 0.0, 0.0])
     up = np.array([0.0, 0.0, 1.0])  # this breaks when looking straight down
-    return (origin * look_at(eye, target, up)).inv()
+    return origin * look_at(eye, target, up)
 
 
 def spherical_to_cartesian(r, theta, phi):
@@ -62,23 +73,6 @@ def look_at(eye, center, up):
     m[:3, 2] = forward
     m[:3, 3] = eye
     return Transform.from_matrix(m)
-
-
-def task_lines(size):
-    return [
-        ([0.0, 0.0, 0.0], [size, 0.0, 0.0]),
-        ([size, 0.0, 0.0], [size, size, 0.0]),
-        ([size, size, 0.0], [0.0, size, 0.0]),
-        ([0.0, size, 0.0], [0.0, 0.0, 0.0]),
-        ([0.0, 0.0, size], [size, 0.0, size]),
-        ([size, 0.0, size], [size, size, size]),
-        ([size, size, size], [0.0, size, size]),
-        ([0.0, size, size], [0.0, 0.0, size]),
-        ([0.0, 0.0, 0.0], [0.0, 0.0, size]),
-        ([size, 0.0, 0.0], [size, 0.0, size]),
-        ([size, size, 0.0], [size, size, size]),
-        ([0.0, size, 0.0], [0.0, size, size]),
-    ]
 
 
 def from_cloud_msg(msg):

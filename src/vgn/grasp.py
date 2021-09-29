@@ -1,8 +1,7 @@
-class Grasp(object):
-    def __init__(self, pose, width, quality=None):
+class ParallelJawGrasp(object):
+    def __init__(self, pose, width):
         self.pose = pose
         self.width = width
-        self.quality = quality
 
 
 def to_voxel_coordinates(grasp, voxel_size):

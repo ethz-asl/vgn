@@ -5,7 +5,7 @@ from scipy import ndimage
 import torch
 
 from robot_helpers.spatial import Rotation, Transform
-from vgn.grasp import *
+from vgn.grasp import ParallelJawGrasp
 from vgn.networks import load_network
 
 
@@ -52,19 +52,25 @@ def select_local_maxima(
 ):
     max = ndimage.maximum_filter(out.qual, size=max_filter_size)
     index_list = np.argwhere(np.logical_and(out.qual == max, out.qual > threshold))
-    grasps = [select_at(out, i) for i in index_list]
-    return [from_voxel_coordinates(g, voxel_size) for g in grasps]
+    grasps, qualities = [], []
+    for index in index_list:
+        grasp, quality = select_at(out, index)
+        grasps.append(grasp)
+        qualities.append(quality)
+    return [from_voxel_coordinates(voxel_size, g) for g in grasps], qualities
 
 
 def select_grid(voxel_size, out, threshold=0.9, step=2):
-    grasps = []
+    grasps, qualities = [], []
     N = out.qual.shape[0]
     for i in range(0, N, step):
         for j in range(0, N, step):
             for k in range(0, N, step):
                 if out.qual[i, j, k] > threshold:
-                    grasps.append(select_at(out, (i, j, k)))
-    return [from_voxel_coordinates(g, voxel_size) for g in grasps]
+                    grasp, quality = select_at(out, (i, j, k))
+                    grasps.append(grasp)
+                    qualities.append(quality)
+    return [from_voxel_coordinates(voxel_size, g) for g in grasps], qualities
 
 
 def select_at(out, index):
@@ -73,4 +79,18 @@ def select_at(out, index):
     pos = np.array([i, j, k], dtype=np.float64)
     width = out.width[i, j, k]
     quality = out.qual[i, j, k]
-    return Grasp(Transform(ori, pos), width, quality)
+    return ParallelJawGrasp(Transform(ori, pos), width), quality
+
+
+def to_voxel_coordinates(voxel_size, grasp):
+    pose = grasp.pose
+    pose.translation /= voxel_size
+    width = grasp.width / voxel_size
+    return ParallelJawGrasp(pose, width)
+
+
+def from_voxel_coordinates(voxel_size, grasp):
+    pose = grasp.pose
+    pose.translation *= voxel_size
+    width = grasp.width * voxel_size
+    return ParallelJawGrasp(pose, width)

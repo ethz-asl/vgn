@@ -1,0 +1,7 @@
+sim:
+  gui: True
+  metric: physics
+  scene: packed
+
+urdf_root: ../urdf_zoo/models/blocks
+object_count: 5

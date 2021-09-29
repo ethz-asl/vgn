@@ -1,11 +1,12 @@
 black
-numpy
-scipy
-pandas
 mpi4py
+numpy
 open3d
-pybullet==2.7.9
-torch
+pandas
+pybullet
 pytorch-ignite
+pyyaml
+scipy
 tensorboard
+torch
 tqdm
