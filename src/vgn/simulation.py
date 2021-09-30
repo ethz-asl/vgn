@@ -7,6 +7,8 @@ from robot_helpers.spatial import Rotation, Transform
 
 
 SLEEP = False
+LATERAL_FFRICITON = 0.4
+MAX_GRASP_FORCE = 2
 
 
 class GraspSim:
@@ -104,7 +106,7 @@ class PandaGripper:
             [0, 1],
             p.VELOCITY_CONTROL,
             targetVelocities=[-0.1] * 2,
-            forces=[5, 5],
+            forces=[MAX_GRASP_FORCE] * 2,
         )
         for _ in range(60):
             p.stepSimulation()
@@ -134,8 +136,8 @@ class PhysicsMetric(GraspQualityMetric):
         if not self.gripper.contacts:
             self.gripper.close_fingers()
             self.gripper.lift()
-            if self.gripper.width > 0.1 * self.gripper.max_width:
-                contacts = self.gripper.contacts
+            contacts = self.gripper.contacts
+            if self.gripper.width > 0.1 * self.gripper.max_width and contacts:
                 return 1.0, {"object_uid": contacts[0][2]}
         return 0.0, {}
 
@@ -172,6 +174,7 @@ class Scene:
     def add_object(self, urdf, pose, scaling):
         uid = load_urdf(urdf, pose, scaling)
         self.object_uids.append(uid)
+        p.changeDynamics(uid, -1, lateralFriction=LATERAL_FFRICITON)
         return uid
 
     def remove_support(self):
