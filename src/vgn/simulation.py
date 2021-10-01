@@ -49,7 +49,7 @@ class GraspSim:
 class PandaGripper:
     def __init__(self):
         self.max_width = 0.08
-        self.depth = 0.05
+        self.max_depth = 0.05
         self.T_ee_com = Transform(Rotation.identity(), [0.0, 0.0, -0.025])
         self.uid = p.loadURDF("assets/panda/hand.urdf")
         self.create_joints()

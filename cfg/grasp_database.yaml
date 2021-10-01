@@ -1,0 +1,9 @@
+sim:
+  gui: False
+  metric: physics
+  scene: pile
+
+urdf_root: ../urdf_zoo/models/blocks
+object_count_lambda: 4
+max_view_count: 4
+scene_grasp_count: 200
