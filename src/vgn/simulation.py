@@ -8,7 +8,7 @@ from robot_helpers.spatial import Rotation, Transform
 
 SLEEP = False
 LATERAL_FFRICITON = 0.4
-MAX_GRASP_FORCE = 2
+MAX_GRASP_FORCE = 5
 
 
 class GraspSim:
@@ -19,7 +19,7 @@ class GraspSim:
         self.gripper = PandaGripper()
         self.camera = BtCamera(320, 240, 1.047, 0.1, 2.0, renderer=p.ER_TINY_RENDERER)
         self.quality = PhysicsMetric(self.gripper)
-        self.scene = PackedScene(self.rng)
+        self.init_scene(cfg["scene"])
 
     def configure_physics_engine(self, gui, rate=60, sub_step_count=4):
         self.rate = rate
@@ -27,6 +27,14 @@ class GraspSim:
         p.connect(p.GUI if gui else p.DIRECT)
         p.setPhysicsEngineParameter(fixedTimeStep=self.dt, numSubSteps=sub_step_count)
         p.setGravity(0.0, 0.0, -9.81)
+
+    def init_scene(self, name):
+        if name == "pile":
+            self.scene = PileScene(self.rng)
+        elif name == "packed":
+            self.scene = PackedScene(self.rng)
+        else:
+            raise ValueError("{} scene does not exist.".format(name))
 
     def configure_visualizer(self):
         p.resetDebugVisualizerCamera(1.2, 30, -30, [0.4, 0.0, 0.2])
@@ -230,4 +238,20 @@ class PackedScene(Scene):
                     break
             else:
                 self.remove_object(uid)
+        self.remove_outside_objects()
+
+
+class PileScene(Scene):
+    def generate(self, origin, urdfs, scaling=1.0):
+        self.origin = origin
+        self.center = origin * Transform.t([0.5 * self.size, 0.5 * self.size, 0])
+        self.add_support(self.center)
+        uid = load_urdf("assets/box/model.urdf", Transform.t([0.02, 0.02, 0.05]), 1.3)
+        for urdf in urdfs:
+            loc_ori = Rotation.random(random_state=self.rng)
+            loc_pos = np.r_[self.rng.uniform(self.size / 3, 2 * self.size / 3, 2), 0.25]
+            pose = origin * Transform(loc_ori, loc_pos)
+            self.add_object(urdf, pose, scaling)
+            self.wait_for_objects_to_rest()
+        p.removeBody(uid)
         self.remove_outside_objects()

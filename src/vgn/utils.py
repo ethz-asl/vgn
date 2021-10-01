@@ -18,7 +18,7 @@ def load_cfg(path):
 
 
 def find_urdfs(root):
-    return [d / "model.urdf" for d in root.iterdir() if d.is_dir()]
+    return list(root.glob("**/*.urdf"))
 
 
 def map_cloud_to_grid(voxel_size, points, distances):
