@@ -29,9 +29,9 @@ class GraspDatabase:
             imgs[i] = img_list[i]
         np.savez_compressed(self.root / (id + ".npz"), views=views, depth_imgs=imgs)
 
-    def write_grasps(self, id, grasps, quality):
+    def write_grasps(self, id, grasps, qualities):
         rows = []
-        for g, q in zip(grasps, quality):
+        for g, q in zip(grasps, qualities):
             ori, pos = g.pose.rotation.as_quat(), g.pose.translation
             config = {
                 "scene_id": id,
@@ -43,7 +43,7 @@ class GraspDatabase:
                 "y": pos[1],
                 "z": pos[2],
                 "width": g.width,
-                "physics": quality,
+                "physics": q,
             }
             rows.append(config)
         df = pd.DataFrame.from_records(rows)

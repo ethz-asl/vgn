@@ -105,6 +105,7 @@ def create_pc(sim, imgs, views):
 
 
 def evaluate_grasp_point(sim, grasp, rot_count=6):
+    # If a stable configuration is found, changes the rotation of the grasp in place
     angles = np.linspace(0.0, np.pi, rot_count)
     R = grasp.pose.rotation
     for angle in angles:
