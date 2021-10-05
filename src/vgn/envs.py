@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 
 from vgn.perception import UniformTSDFVolume
-from vgn.simulation import GraspSim
+from vgn.simulation import GraspSim, get_quality_fn
 from vgn.utils import camera_on_sphere, find_urdfs
 from robot_helpers.spatial import Transform
 
@@ -15,6 +15,7 @@ class ClutterRemovalEnv:
         self.target_object_count = cfg["object_count"]
         self.origin = Transform.t([0.0, 0.0, 0.05])
         self.sim = GraspSim(cfg["sim"], self.rng)
+        self.quality_fn = get_quality_fn(cfg["metric"], self.sim)
 
     @property
     def object_count(self):
@@ -30,7 +31,7 @@ class ClutterRemovalEnv:
     def step(self, grasp):
         # Execute grasp
         grasp.width = self.sim.gripper.max_width  # TODO
-        quality, info = self.sim.quality(grasp)
+        quality, info = self.quality_fn(grasp)
         self.outcomes.append(quality)
 
         # Cleanup

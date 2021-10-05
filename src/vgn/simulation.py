@@ -6,7 +6,6 @@ from robot_helpers.bullet import BtCamera
 from robot_helpers.spatial import Rotation, Transform
 
 
-SLEEP = False
 LATERAL_FFRICITON = 0.4
 MAX_GRASP_FORCE = 5
 
@@ -15,11 +14,11 @@ class GraspSim:
     def __init__(self, cfg, rng):
         self.configure_physics_engine(cfg["gui"])
         self.configure_visualizer()
+        self.sleep = cfg["sleep"]
         self.rng = rng
-        self.gripper = PandaGripper()
+        self.gripper = PandaGripper(self)
         self.camera = BtCamera(320, 240, 1.047, 0.1, 2.0, renderer=p.ER_TINY_RENDERER)
-        self.quality = PhysicsMetric(self.gripper)
-        self.init_scene(cfg["scene"])
+        self.scene = get_scene(cfg["scene"], self)
 
     def configure_physics_engine(self, gui, rate=60, sub_step_count=4):
         self.rate = rate
@@ -27,14 +26,6 @@ class GraspSim:
         p.connect(p.GUI if gui else p.DIRECT)
         p.setPhysicsEngineParameter(fixedTimeStep=self.dt, numSubSteps=sub_step_count)
         p.setGravity(0.0, 0.0, -9.81)
-
-    def init_scene(self, name):
-        if name == "pile":
-            self.scene = PileScene(self.rng)
-        elif name == "packed":
-            self.scene = PackedScene(self.rng)
-        else:
-            raise ValueError("{} scene does not exist.".format(name))
 
     def configure_visualizer(self):
         p.resetDebugVisualizerCamera(1.2, 30, -30, [0.4, 0.0, 0.2])
@@ -45,9 +36,15 @@ class GraspSim:
     def restore_state(self):
         p.restoreState(stateId=self.snapshot_id)
 
+    def step(self):
+        p.stepSimulation()
+        if self.sleep:
+            time.sleep(self.dt)
+
 
 class PandaGripper:
-    def __init__(self):
+    def __init__(self, sim):
+        self.sim = sim
         self.max_width = 0.08
         self.max_depth = 0.05
         self.T_ee_com = Transform(Rotation.identity(), [0.0, 0.0, -0.025])
@@ -98,7 +95,7 @@ class PandaGripper:
         self.update_fixed_joint(pose)
         p.resetJointState(self.uid, 0, 0.5 * width)
         p.resetJointState(self.uid, 1, 0.5 * width)
-        p.stepSimulation()
+        self.sim.step()
 
     def update_fixed_joint(self, target):
         p.changeConstraint(
@@ -117,9 +114,7 @@ class PandaGripper:
             forces=[MAX_GRASP_FORCE] * 2,
         )
         for _ in range(60):
-            p.stepSimulation()
-            if SLEEP:
-                time.sleep(1 / 60)
+            self.sim.step()
 
     def lift(self):
         # Lift the object by 10 cm
@@ -128,14 +123,26 @@ class PandaGripper:
         for i in range(60):
             target = pos + np.r_[0, 0, i * 1.0 / 60.0 * 0.1]
             self.update_fixed_joint(Transform(ori, target))
-            p.stepSimulation()
-            if SLEEP:
-                time.sleep(1 / 60)
+            self.sim.step()
+
+
+def get_scene(name, sim):
+    if name in scenes:
+        return scenes[name](sim)
+    else:
+        raise ValueError("{} scene does not exist.".format(name))
+
+
+def get_quality_fn(name, sim):
+    if name in quality_fns:
+        return quality_fns[name](sim)
+    else:
+        raise ValueError("{} quality_fn does not exist.".format(name))
 
 
 class GraspQualityMetric:
-    def __init__(self, gripper):
-        self.gripper = gripper
+    def __init__(self, sim):
+        self.gripper = sim.gripper
 
 
 class PhysicsMetric(GraspQualityMetric):
@@ -156,9 +163,10 @@ def load_urdf(urdf, pose, scaling=1.0):
 
 
 class Scene:
-    def __init__(self, rng):
+    def __init__(self, sim):
         self.support_urdf = "assets/plane/model.urdf"
-        self.rng = rng
+        self.sim = sim
+        self.rng = sim.rng
         self.size = 0.3
         self.origin = None
         self.center = None
@@ -207,9 +215,7 @@ class Scene:
 
     def wait_for_objects_to_rest(self):
         for _ in range(60):  # TODO
-            p.stepSimulation()
-            if SLEEP:
-                time.sleep(1 / 60)
+            self.sim.step()
 
 
 class PackedScene(Scene):
@@ -231,7 +237,7 @@ class PackedScene(Scene):
                     pose.translation,
                     pose.rotation.as_quat(),
                 )
-                p.stepSimulation()
+                self.sim.step()
                 if p.getContactPoints(uid):
                     p.restoreState(stateId=state_id)
                 else:
@@ -255,3 +261,7 @@ class PileScene(Scene):
             self.wait_for_objects_to_rest()
         p.removeBody(uid)
         self.remove_outside_objects()
+
+
+scenes = {"packed": PackedScene, "pile": PileScene}
+quality_fns = {"physics": PhysicsMetric}

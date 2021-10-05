@@ -1,7 +1,8 @@
 sim:
   gui: True
-  metric: physics
-  scene: packed
+  sleep: True
+  scene: pile
 
 urdf_root: ../urdf_zoo/models/blocks
 object_count: 5
+metric: physics
