@@ -8,7 +8,6 @@ class GraspDatabase:
         self.root = root
         self.root.mkdir(exist_ok=True)
         self.df_path = root / "grasps.csv"
-        self.header = not self.df_path.exists()
 
     def write(self, views, imgs, grasps, qualities):
         scene_id = uuid.uuid4().hex
@@ -47,4 +46,4 @@ class GraspDatabase:
             }
             rows.append(config)
         df = pd.DataFrame.from_records(rows)
-        df.to_csv(self.df_path, mode="a", header=self.header, index=False)
+        df.to_csv(self.df_path, mode="a", header=not self.df_path.exists(), index=False)
