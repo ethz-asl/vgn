@@ -46,3 +46,10 @@ class UniformTSDFVolume:
         points = np.asarray(map_cloud.points)
         distances = np.asarray(map_cloud.colors)[:, [0]]
         return map_cloud_to_grid(self.voxel_size, points, distances)
+
+
+def create_tsdf(size, resolution, imgs, intrinsic, views):
+    tsdf = UniformTSDFVolume(size, resolution)
+    for img, view in zip(imgs, views):
+        tsdf.integrate(img, intrinsic, view.inv())
+    return tsdf

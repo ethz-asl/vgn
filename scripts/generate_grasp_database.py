@@ -7,9 +7,9 @@ import open3d as o3d
 from tqdm import tqdm
 
 from robot_helpers.spatial import Rotation, Transform
-from vgn.database import GraspDatabase
+import vgn.database as db
 from vgn.grasp import UniformPointCloudSampler
-from vgn.perception import UniformTSDFVolume
+from vgn.perception import create_tsdf
 from vgn.simulation import GraspSim, get_quality_fn
 from vgn.utils import load_cfg, find_urdfs, camera_on_sphere
 
@@ -21,6 +21,8 @@ def main():
     args = parser.parse_args()
     cfg = load_cfg(args.cfg)
 
+    args.root.mkdir(exist_ok=True)
+
     rng = np.random.RandomState(args.seed + 100 * rank)
     urdfs = find_urdfs(Path(cfg["urdf_root"]))
     origin = Transform.t([0.0, 0.0, 0.05])
@@ -28,8 +30,6 @@ def main():
     sim = GraspSim(cfg["sim"], rng)
     grasp_sampler = UniformPointCloudSampler(sim.gripper, rng)
     quality_fn = get_quality_fn(cfg["metric"], sim)
-
-    database = GraspDatabase(args.root)
 
     grasp_count = args.count // worker_count
     scene_count = grasp_count // cfg["scene_grasp_count"]
@@ -51,7 +51,7 @@ def main():
         imgs = render_imgs(views, sim.camera)
 
         # Reconstruct point cloud
-        pc = create_pc(sim.scene, sim.camera.intrinsic, imgs, views)
+        pc = create_pc(sim.scene, imgs, sim.camera.intrinsic, views)
 
         # Sample grasps
         grasps = grasp_sampler(pc, cfg["scene_grasp_count"])
@@ -60,7 +60,7 @@ def main():
         qualities = [evaluate_grasp_point(grasp, sim, quality_fn) for grasp in grasps]
 
         # Write
-        database.write(views, imgs, grasps, qualities)
+        db.write(args.root, views, imgs, grasps, qualities)
 
 
 def create_parser():
@@ -92,10 +92,8 @@ def render_imgs(views, camera):
     return [camera.get_image(view)[1] for view in views]
 
 
-def create_pc(scene, intrinsic, imgs, views):
-    tsdf = UniformTSDFVolume(scene.size, 120)
-    for img, view in zip(imgs, views):
-        tsdf.integrate(img, intrinsic, view.inv())
+def create_pc(scene, imgs, intrinsic, views):
+    tsdf = create_tsdf(scene.size, 120, imgs, intrinsic, views)
     pc = tsdf.get_scene_cloud()
 
     lower = np.r_[0.02, 0.02, scene.center.translation[2] + 0.01]
