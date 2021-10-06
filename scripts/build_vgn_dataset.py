@@ -1,4 +1,5 @@
 import argparse
+import numpy as np
 from pathlib import Path
 from tqdm import tqdm
 
@@ -39,7 +40,7 @@ def create_df(voxel_size, db):
     df.y = (df.y / voxel_size).round()
     df.z = (df.z / voxel_size).round()
     df.width /= voxel_size
-    df = df.rename(columns={"x": "i", "y": "j", "z": "k"})
+    df = df.rename(columns={"x": "i", "y": "j", "z": "k", "physics": "label"})
     return df
 
 
@@ -47,7 +48,7 @@ def write_grids(root, size, resolution, db, intrinsic):
     for scene_id in tqdm(db.scenes):
         imgs, views = db.read_scene(scene_id)
         tsdf = create_tsdf(size, resolution, imgs, intrinsic, views)
-        grid = tsdf.get_grid()
+        grid = np.expand_dims(tsdf.get_grid(), 0)  # Add channel dimension
         write_grid(root, scene_id, grid)
 
 

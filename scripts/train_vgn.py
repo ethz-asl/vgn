@@ -14,7 +14,10 @@ from vgn.dataset import Dataset
 from vgn.networks import get_network
 
 
-def main(args):
+def main():
+    parser = create_parser()
+    args = parser.parse_args()
+
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
     kwargs = {"num_workers": 4, "pin_memory": True} if use_cuda else {}
@@ -84,6 +87,20 @@ def main(args):
 
     # run the training loop
     trainer.run(train_loader, max_epochs=args.epochs)
+
+
+def create_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--net", default="conv")
+    parser.add_argument("--dataset", type=Path, required=True)
+    parser.add_argument("--logdir", type=Path, default="data/runs")
+    parser.add_argument("--description", type=str, default="")
+    parser.add_argument("--epochs", type=int, default=30)
+    parser.add_argument("--batch-size", type=int, default=32)
+    parser.add_argument("--lr", type=float, default=3e-4)
+    parser.add_argument("--val-split", type=float, default=0.1)
+    parser.add_argument("--augment", action="store_true")
+    return parser
 
 
 def create_train_val_loaders(root, batch_size, val_split, augment, kwargs):
@@ -202,15 +219,4 @@ def create_summary_writers(net, device, log_dir):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--net", default="conv")
-    parser.add_argument("--dataset", type=Path, required=True)
-    parser.add_argument("--logdir", type=Path, default="data/runs")
-    parser.add_argument("--description", type=str, default="")
-    parser.add_argument("--epochs", type=int, default=30)
-    parser.add_argument("--batch-size", type=int, default=32)
-    parser.add_argument("--lr", type=float, default=3e-4)
-    parser.add_argument("--val-split", type=float, default=0.1)
-    parser.add_argument("--augment", action="store_true")
-    args = parser.parse_args()
-    main(args)
+    main()
