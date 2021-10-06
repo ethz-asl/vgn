@@ -41,28 +41,25 @@ class Dataset(torch.utils.data.Dataset):
         return np.load(path)["grid"]
 
 
-def apply_transform(voxel_grid, orientation, position):
+def apply_transform(grid, orientation, position):
     angle = np.pi / 2.0 * np.random.choice(4)
     R_augment = Rotation.from_rotvec(np.r_[0.0, 0.0, angle])
-
     z_offset = np.random.uniform(6, 34) - position[2]
-
     t_augment = np.r_[0.0, 0.0, z_offset]
     T_augment = Transform(R_augment, t_augment)
-
     T_center = Transform(Rotation.identity(), np.r_[20.0, 20.0, 20.0])
     T = T_center * T_augment * T_center.inv()
 
-    # transform voxel grid
+    # Transform voxel grid
     T_inv = T.inv()
     matrix, offset = T_inv.rotation.as_matrix(), T_inv.translation
-    voxel_grid[0] = ndimage.affine_transform(voxel_grid[0], matrix, offset, order=0)
+    grid[0] = ndimage.affine_transform(grid[0], matrix, offset, order=0)
 
-    # transform grasp pose
-    position = T.transform_point(position)
+    # Transform grasp pose
+    position = T.apply(position)
     orientation = T.rotation * orientation
 
-    return voxel_grid, orientation, position
+    return grid, orientation, position
 
 
 def write_grid(root, scene_id, grid):
