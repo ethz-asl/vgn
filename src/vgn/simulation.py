@@ -178,7 +178,7 @@ class RobustPhysicsMetric(PhysicsMetric):
             t_err = self.rng.uniform(-self.xyz, self.xyz)
             grasp = ParallelJawGrasp(pose * Transform(R_err, t_err), width)
             self.sim.restore_state()
-            if not self.quality(grasp):
+            if not self.quality(grasp)[0]:
                 return 0.0, {}
         return 1.0, {}
 
