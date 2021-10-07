@@ -10,7 +10,6 @@ import vgn.visualizer as vis
 
 
 def main():
-    print("hi")
     parser = create_parser()
     args = parser.parse_args()
 
