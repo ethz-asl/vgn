@@ -29,7 +29,7 @@ def main():
 
     sim = GraspSim(cfg["sim"], rng)
     grasp_sampler = UniformPointCloudSampler(sim.gripper, rng)
-    quality_fn = get_quality_fn(cfg["metric"], sim)
+    quality_fn = get_quality_fn(cfg["metric"], sim, cfg.get(cfg["metric"], {}))
 
     grasp_count = args.count // worker_count
     scene_count = grasp_count // cfg["scene_grasp_count"]

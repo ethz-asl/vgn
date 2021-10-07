@@ -4,7 +4,14 @@ sim:
   scene: pile
 
 urdf_root: ../urdf_zoo/models/blocks
-object_count_lambda: 4
+object_count_lambda: 3
 view_count_lambda: 1
 scene_grasp_count: 200
-metric: physics
+
+metric: robust_physics
+
+robust_physics:
+  uncertainty:
+    xyz: [0.005, 0.005, 0.005]
+    rpy: [0.02, 0.02, 0.02]
+  sample_count: 5

@@ -4,6 +4,7 @@ import time
 
 from robot_helpers.bullet import BtCamera
 from robot_helpers.spatial import Rotation, Transform
+from vgn.grasp import ParallelJawGrasp
 
 
 LATERAL_FFRICITON = 0.4
@@ -133,20 +134,25 @@ def get_scene(name, sim):
         raise ValueError("{} scene does not exist.".format(name))
 
 
-def get_quality_fn(name, sim):
+def get_quality_fn(name, sim, cfg):
     if name in quality_fns:
-        return quality_fns[name](sim)
+        return quality_fns[name](sim, cfg)
     else:
         raise ValueError("{} quality_fn does not exist.".format(name))
 
 
 class GraspQualityMetric:
-    def __init__(self, sim):
+    def __init__(self, sim, cfg=None):
+        self.sim = sim
         self.gripper = sim.gripper
+        self.rng = sim.rng
 
 
 class PhysicsMetric(GraspQualityMetric):
     def __call__(self, grasp):
+        return self.quality(grasp)
+
+    def quality(self, grasp):
         self.gripper.reset(grasp.pose, grasp.width)
         if not self.gripper.contacts:
             self.gripper.close_fingers()
@@ -155,6 +161,26 @@ class PhysicsMetric(GraspQualityMetric):
             if self.gripper.width > 0.1 * self.gripper.max_width and contacts:
                 return 1.0, {"object_uid": contacts[0][2]}
         return 0.0, {}
+
+
+class RobustPhysicsMetric(PhysicsMetric):
+    def __init__(self, sim, cfg):
+        super().__init__(sim)
+        self.rng = sim.rng
+        self.xyz = np.asarray(cfg["uncertainty"]["xyz"])
+        self.rpy = np.asarray(cfg["uncertainty"]["rpy"])
+        self.sample_count = cfg["sample_count"]
+
+    def __call__(self, grasp):
+        pose, width = grasp.pose, grasp.width
+        for _ in range(self.sample_count):
+            R_err = Rotation.from_euler("xyz", self.rng.uniform(-self.rpy, self.rpy))
+            t_err = self.rng.uniform(-self.xyz, self.xyz)
+            grasp = ParallelJawGrasp(pose * Transform(R_err, t_err), width)
+            self.sim.restore_state()
+            if not self.quality(grasp):
+                return 0.0, {}
+        return 1.0, {}
 
 
 def load_urdf(urdf, pose, scaling=1.0):
@@ -264,4 +290,4 @@ class PileScene(Scene):
 
 
 scenes = {"packed": PackedScene, "pile": PileScene}
-quality_fns = {"physics": PhysicsMetric}
+quality_fns = {"physics": PhysicsMetric, "robust_physics": RobustPhysicsMetric}
