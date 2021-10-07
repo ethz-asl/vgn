@@ -39,8 +39,9 @@ def main():
         sim.scene.clear()
         object_count = rng.poisson(cfg["object_count_lambda"]) + 1
         urdfs = rng.choice(urdfs, object_count)
+        scales = rng.uniform(cfg["scaling"]["low"], cfg["scaling"]["high"], len(urdfs))
         sim.gripper.reset(Transform.t(np.full(3, 100)), sim.gripper.max_width)
-        sim.scene.generate(origin, urdfs, scaling=1.6)
+        sim.scene.generate(origin, urdfs, scales)
         sim.save_state()
 
         # Sample camera views

@@ -245,11 +245,13 @@ class Scene:
 
 
 class PackedScene(Scene):
-    def generate(self, origin, urdfs, scaling=1.0, max_attempts=10):
+    def generate(self, origin, urdfs, scalings=1.0, max_attempts=10):
+        if isinstance(scalings, float):
+            scalings = [scalings] * len(urdfs)
         self.origin = origin
         self.center = origin * Transform.t([0.5 * self.size, 0.5 * self.size, 0])
         self.add_support(self.center)
-        for urdf in urdfs:
+        for urdf, scaling in zip(urdfs, scalings):
             uid = self.add_object(urdf, Transform.identity(), scaling)
             lower, upper = p.getAABB(uid)
             z_offset = 0.5 * (upper[2] - lower[2]) + 0.002
@@ -274,12 +276,14 @@ class PackedScene(Scene):
 
 
 class PileScene(Scene):
-    def generate(self, origin, urdfs, scaling=1.0):
+    def generate(self, origin, urdfs, scalings=1.0):
+        if isinstance(scalings, float):
+            scalings = [scalings] * len(urdfs)
         self.origin = origin
         self.center = origin * Transform.t([0.5 * self.size, 0.5 * self.size, 0])
         self.add_support(self.center)
         uid = load_urdf("assets/box/model.urdf", Transform.t([0.02, 0.02, 0.05]), 1.3)
-        for urdf in urdfs:
+        for urdf, scaling in zip(urdfs, scalings):
             loc_ori = Rotation.random(random_state=self.rng)
             loc_pos = np.r_[self.rng.uniform(self.size / 3, 2 * self.size / 3, 2), 0.25]
             pose = origin * Transform(loc_ori, loc_pos)
