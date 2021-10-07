@@ -1,7 +1,8 @@
 black
+# mayavi
 mpi4py
 numpy
-open3d
+# open3d
 pandas
 pybullet
 pytorch-ignite
