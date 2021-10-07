@@ -1,14 +1,10 @@
 from math import cos, sin
-import matplotlib.colors
 import numpy as np
 import ros_numpy
 from sensor_msgs.msg import PointCloud2, PointField
 import yaml
 
-from robot_helpers.ros.rviz import *
 from robot_helpers.spatial import Transform
-
-cmap = matplotlib.colors.LinearSegmentedColormap.from_list("RedGreen", ["r", "g"])
 
 
 def load_cfg(path):
@@ -21,24 +17,12 @@ def find_urdfs(root):
     return list(root.glob("**/*.urdf"))
 
 
-def map_cloud_to_grid(voxel_size, points, distances):
-    grid = np.zeros((40, 40, 40), dtype=np.float32)
-    indices = (points // voxel_size).astype(int)
-    grid[tuple(indices.T)] = distances.squeeze()
-    return grid
-
-
-def grid_to_map_cloud(voxel_size, grid, threshold=1e-2):
-    points = np.argwhere(grid > threshold) * voxel_size
-    distances = np.expand_dims(grid[grid > threshold], 1)
-    return points, distances
-
-
-def camera_on_sphere(origin, r, theta, phi):
-    eye = spherical_to_cartesian(r, theta, phi)
-    target = np.array([0.0, 0.0, 0.0])
-    up = np.array([0.0, 0.0, 1.0])  # this breaks when looking straight down
-    return origin * look_at(eye, target, up)
+def cartesian_to_spherical(p):
+    x, y, z = p
+    r = np.linalg.norm(p)
+    theta = np.arccos(z / r)
+    phi = np.arctan2(y, x)
+    return r, theta, phi
 
 
 def spherical_to_cartesian(r, theta, phi):
@@ -49,16 +33,7 @@ def spherical_to_cartesian(r, theta, phi):
     ]
 
 
-def cartesian_to_spherical(p):
-    x, y, z = p
-    r = np.linalg.norm(p)
-    theta = np.arccos(z / r)
-    phi = np.arctan2(y, x)
-    return r, theta, phi
-
-
 def look_at(eye, center, up):
-    # Returns T_ref_cam
     eye = np.asarray(eye)
     center = np.asarray(center)
     forward = center - eye
@@ -73,6 +48,26 @@ def look_at(eye, center, up):
     m[:3, 2] = forward
     m[:3, 3] = eye
     return Transform.from_matrix(m)
+
+
+def view_on_sphere(origin, r, theta, phi):
+    eye = spherical_to_cartesian(r, theta, phi)
+    target = np.array([0.0, 0.0, 0.0])
+    up = np.array([0.0, 0.0, 1.0])  # this breaks when looking straight down
+    return origin * look_at(eye, target, up)
+
+
+def map_cloud_to_grid(voxel_size, points, distances):
+    grid = np.zeros((40, 40, 40), dtype=np.float32)
+    indices = (points // voxel_size).astype(int)
+    grid[tuple(indices.T)] = distances.squeeze()
+    return grid
+
+
+def grid_to_map_cloud(voxel_size, grid, threshold=1e-2):
+    points = np.argwhere(grid > threshold) * voxel_size
+    distances = np.expand_dims(grid[grid > threshold], 1)
+    return points, distances
 
 
 def from_cloud_msg(msg):

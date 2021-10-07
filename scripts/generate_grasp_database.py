@@ -11,7 +11,7 @@ import vgn.database as db
 from vgn.grasp import UniformPointCloudSampler
 from vgn.perception import create_tsdf
 from vgn.simulation import GraspSim, get_quality_fn
-from vgn.utils import load_cfg, find_urdfs, camera_on_sphere
+from vgn.utils import load_cfg, find_urdfs, view_on_sphere
 
 
 def main():
@@ -85,7 +85,7 @@ def sample_views(scene, view_count, rng):
         r = rng.uniform(1.6, 2.4) * scene.size
         theta = rng.uniform(0.0, np.pi / 4.0)
         phi = rng.uniform(0.0, 2.0 * np.pi)
-        views.append(camera_on_sphere(scene.center, r, theta, phi))
+        views.append(view_on_sphere(scene.center, r, theta, phi))
     return views
 
 

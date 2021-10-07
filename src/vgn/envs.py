@@ -4,7 +4,7 @@ import numpy as np
 
 from vgn.perception import UniformTSDFVolume
 from vgn.simulation import GraspSim, get_quality_fn
-from vgn.utils import camera_on_sphere, find_urdfs
+from vgn.utils import view_on_sphere, find_urdfs
 from robot_helpers.spatial import Transform
 
 
@@ -53,7 +53,7 @@ class ClutterRemovalEnv:
         r = 2.0 * self.sim.scene.size
         theta = np.pi / 6.0
         phis = np.linspace(0.0, 2.0 * np.pi, 5)
-        views = [camera_on_sphere(self.sim.scene.center, r, theta, phi) for phi in phis]
+        views = [view_on_sphere(self.sim.scene.center, r, theta, phi) for phi in phis]
         for view in views:
             depth_img = self.sim.camera.get_image(view)[1]
             tsdf.integrate(depth_img, self.sim.camera.intrinsic, view.inv())
