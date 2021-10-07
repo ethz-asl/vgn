@@ -3,6 +3,7 @@ import pandas as pd
 import uuid
 
 from robot_helpers.spatial import Transform
+from vgn.grasp import ParallelJawGrasp
 
 
 class GraspDatabase:
@@ -26,7 +27,12 @@ class GraspDatabase:
         return imgs, views
 
     def read_grasps(self, id):
-        pass  # TODO
+        grasps, qualities = [], []
+        for _, r in self.df[self.df.scene_id == id].iterrows():
+            pose = Transform.from_list([r.qx, r.qy, r.qz, r.qw, r.x, r.y, r.z])
+            grasps.append(ParallelJawGrasp(pose, r.width))
+            qualities.append(r.physics)
+        return np.asarray(grasps), np.asarray(qualities)
 
 
 def write(root, views, imgs, grasps, qualities):
