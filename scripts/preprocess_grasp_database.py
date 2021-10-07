@@ -34,7 +34,9 @@ df.drop(
 #%% Balance
 pos = df[df.physics == 1]
 neg = df[df.physics == 0]
-i = np.random.choice(neg.index, len(neg.index) - len(pos.index), replace=False)
+pos_count = len(pos.index)
+neg_count = len(neg.index)
+i = np.random.choice(neg.index, neg_count - 2 * pos_count, replace=False)
 df = df.drop(i)
 
 #%% Delete unreferenced scenes (DANGER)

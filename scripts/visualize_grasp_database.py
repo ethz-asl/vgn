@@ -26,7 +26,7 @@ def main():
 
     vis.scene_cloud(tsdf.voxel_size, tsdf.get_scene_cloud())
     # vis.map_cloud(tsdf.voxel_size, tsdf.get_map_cloud())
-    vis.grasps(grasps, qualities, 0.05, max_grasps=5)
+    vis.grasps(grasps, qualities, 0.05, max_grasps=20)
     vis.show()
 
 

@@ -9,12 +9,12 @@ scaling:
   high: 1.4 
 object_count_lambda: 3
 view_count_lambda: 1
-scene_grasp_count: 200
+scene_grasp_count: 400
 
 metric: robust_physics
 
 robust_physics:
   uncertainty:
-    xyz: [0.004, 0.004, 0.004]
-    rpy: [0.02, 0.02, 0.02]
-  sample_count: 6
+    xyz: [0.005, 0.005, 0.005]
+    rpy: [0.0, 0.0, 0.08]
+  sample_count: 8
