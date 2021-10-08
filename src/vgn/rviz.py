@@ -46,24 +46,10 @@ class Visualizer:
         self.draw(markers)
 
     def workspace(self, frame, size):
-        scale = size * 0.005
         pose = Transform.identity()
-        scale = [scale, 0.0, 0.0]
+        scale = [size * 0.005, 0.0, 0.0]
         color = [0.5, 0.5, 0.5]
-        lines = [
-            ([0.0, 0.0, 0.0], [size, 0.0, 0.0]),
-            ([size, 0.0, 0.0], [size, size, 0.0]),
-            ([size, size, 0.0], [0.0, size, 0.0]),
-            ([0.0, size, 0.0], [0.0, 0.0, 0.0]),
-            ([0.0, 0.0, size], [size, 0.0, size]),
-            ([size, 0.0, size], [size, size, size]),
-            ([size, size, size], [0.0, size, size]),
-            ([0.0, size, size], [0.0, 0.0, size]),
-            ([0.0, 0.0, 0.0], [0.0, 0.0, size]),
-            ([size, 0.0, 0.0], [size, 0.0, size]),
-            ([size, size, 0.0], [size, size, size]),
-            ([0.0, size, 0.0], [0.0, size, size]),
-        ]
+        lines = box_lines(np.full(3, 0), np.full(3, size))
         msg = create_line_list_marker(frame, pose, scale, color, lines, ns="workspace")
         self.draw([msg])
 

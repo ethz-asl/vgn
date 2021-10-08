@@ -70,6 +70,25 @@ def grid_to_map_cloud(voxel_size, grid, threshold=1e-2):
     return points, distances
 
 
+def box_lines(lower, upper):
+    x_l, y_l, z_l = lower
+    x_u, y_u, z_u = upper
+    return [
+        ([x_l, y_l, z_l], [x_u, y_l, z_l]),
+        ([x_u, y_l, z_l], [x_u, y_u, z_l]),
+        ([x_u, y_u, z_l], [x_l, y_u, z_l]),
+        ([x_l, y_u, z_l], [x_l, y_l, z_l]),
+        ([x_l, y_l, z_u], [x_u, y_l, z_u]),
+        ([x_u, y_l, z_u], [x_u, y_u, z_u]),
+        ([x_u, y_u, z_u], [x_l, y_u, z_u]),
+        ([x_l, y_u, z_u], [x_l, y_l, z_u]),
+        ([x_l, y_l, z_l], [x_l, y_l, z_u]),
+        ([x_u, y_l, z_l], [x_u, y_l, z_u]),
+        ([x_u, y_u, z_l], [x_u, y_u, z_u]),
+        ([x_l, y_u, z_l], [x_l, y_u, z_u]),
+    ]
+
+
 def from_cloud_msg(msg):
     data = ros_numpy.numpify(msg)
     points = np.column_stack((data["x"], data["y"], data["z"]))

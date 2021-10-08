@@ -1,5 +1,5 @@
 sim:
-  gui: True
+  gui: False
   sleep: False
   scene: pile
 
