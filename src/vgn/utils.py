@@ -9,7 +9,7 @@ from robot_helpers.spatial import Transform
 
 def load_cfg(path):
     with path.open("r") as f:
-        cfg = yaml.load(f)
+        cfg = yaml.load(f, Loader=yaml.FullLoader)
     return cfg
 
 

@@ -1,6 +1,6 @@
 sim:
   gui: True
-  sleep: True
+  sleep: False
   scene: pile
 
 urdf_root: ../urdf_zoo/models/blocks
