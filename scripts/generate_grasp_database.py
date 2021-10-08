@@ -54,6 +54,10 @@ def main():
         # Reconstruct point cloud
         pc = create_pc(sim.scene, imgs, sim.camera.intrinsic, views)
 
+        if pc.is_empty():
+            print("TODO why does this happen?")
+            continue
+
         # Sample grasps
         grasps = grasp_sampler(pc, cfg["scene_grasp_count"])
 
