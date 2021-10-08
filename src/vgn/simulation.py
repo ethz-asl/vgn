@@ -1,5 +1,6 @@
 import numpy as np
 import pybullet as p
+import skimage.transform
 import time
 
 from robot_helpers.bullet import BtCamera
@@ -295,3 +296,12 @@ class PileScene(Scene):
 
 scenes = {"packed": PackedScene, "pile": PileScene}
 quality_fns = {"physics": PhysicsMetric, "robust_physics": RobustPhysicsMetric}
+
+
+def apply_noise(img, k=1000, theta=0.001, sigma=0.005, l=4.0):
+    # Multiplicative and additive noise
+    img *= np.random.gamma(k, theta)
+    h, w = img.shape
+    noise = np.random.randn(int(h / l), int(w / l)) * sigma
+    img += skimage.transform.resize(noise, img.shape, order=1, mode="constant")
+    return img
