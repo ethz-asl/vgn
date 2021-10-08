@@ -24,7 +24,7 @@ def main():
     args.root.mkdir(exist_ok=True)
 
     rng = np.random.RandomState(args.seed + 100 * rank)
-    urdfs = find_urdfs(Path(cfg["urdf_root"]))
+    all_urdfs = find_urdfs(Path(cfg["urdf_root"]))
     origin = Transform.t([0.0, 0.0, 0.05])
 
     sim = GraspSim(cfg["sim"], rng)
@@ -38,7 +38,7 @@ def main():
         # Generate a new scene
         sim.scene.clear()
         object_count = rng.poisson(cfg["object_count_lambda"]) + 1
-        urdfs = rng.choice(urdfs, object_count)
+        urdfs = rng.choice(all_urdfs, object_count)
         scales = rng.uniform(cfg["scaling"]["low"], cfg["scaling"]["high"], len(urdfs))
         sim.gripper.reset(Transform.t(np.full(3, 100)), sim.gripper.max_width)
         sim.scene.generate(origin, urdfs, scales)
