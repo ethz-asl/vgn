@@ -1,8 +1,12 @@
 from math import cos, sin
 import numpy as np
-import ros_numpy
-from sensor_msgs.msg import PointCloud2, PointField
 import yaml
+
+try:
+    import ros_numpy
+    from sensor_msgs.msg import PointCloud2, PointField
+except:
+    pass
 
 from robot_helpers.spatial import Transform
 

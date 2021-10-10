@@ -6,7 +6,7 @@ sim:
 urdf_root: ../urdf_zoo/models/blocks
 scaling:
   low: 0.8
-  high: 1.4 
+  high: 2.0
 object_count_lambda: 3
 view_count_lambda: 1
 scene_grasp_count: 400
