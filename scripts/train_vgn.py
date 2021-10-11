@@ -93,7 +93,7 @@ def create_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--net", default="conv")
     parser.add_argument("--dataset", type=Path, required=True)
-    parser.add_argument("--logdir", type=Path, default="data/runs")
+    parser.add_argument("--logdir", type=Path, default="data/training")
     parser.add_argument("--description", type=str, default="")
     parser.add_argument("--epochs", type=int, default=30)
     parser.add_argument("--batch-size", type=int, default=32)
