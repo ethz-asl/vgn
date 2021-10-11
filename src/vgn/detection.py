@@ -57,7 +57,9 @@ def select_local_maxima(
         grasp, quality = select_at(out, index)
         grasps.append(grasp)
         qualities.append(quality)
-    return [from_voxel_coordinates(voxel_size, g) for g in grasps], qualities
+    grasps = np.array([from_voxel_coordinates(voxel_size, g) for g in grasps])
+    qualities = np.asarray(qualities)
+    return grasps, qualities
 
 
 def select_grid(voxel_size, out, threshold=0.9, step=2):
