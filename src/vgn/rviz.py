@@ -45,12 +45,12 @@ class Visualizer:
         markers = [Marker(action=Marker.DELETE, ns="grasp", id=i) for i in range(4)]
         self.draw(markers)
 
-    def workspace(self, frame, size):
+    def roi(self, frame, size):
         pose = Transform.identity()
         scale = [size * 0.005, 0.0, 0.0]
         color = [0.5, 0.5, 0.5]
         lines = box_lines(np.full(3, 0), np.full(3, size))
-        msg = create_line_list_marker(frame, pose, scale, color, lines, ns="workspace")
+        msg = create_line_list_marker(frame, pose, scale, color, lines, ns="roi")
         self.draw([msg])
 
     def scene_cloud(self, frame, cloud):
