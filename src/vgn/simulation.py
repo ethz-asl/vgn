@@ -135,7 +135,7 @@ def get_scene(name, sim):
         raise ValueError("{} scene does not exist.".format(name))
 
 
-def get_quality_fn(name, sim, cfg):
+def get_quality_fn(name, sim, cfg=None):
     if name in quality_fns:
         return quality_fns[name](sim, cfg)
     else:
@@ -228,7 +228,7 @@ class Scene:
         self.object_uids.remove(uid)
 
     def remove_all_objects(self):
-        for uid in self.object_uids:
+        for uid in list(self.object_uids):
             self.remove_object(uid)
 
     def remove_outside_objects(self):
