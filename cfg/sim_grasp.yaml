@@ -4,5 +4,9 @@ sim:
   scene: pile
 
 urdf_root: ../urdf_zoo/models/blocks
-object_count: 5
+scaling:
+  low: 1.2
+  high: 1.6
+object_count: 3
+
 metric: physics

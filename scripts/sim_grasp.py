@@ -23,8 +23,8 @@ def main():
 
     def compute_best_grasp(voxel_size, tsdf_grid):
         out = vgn.predict(tsdf_grid)
-        grasps, qualities = select_local_maxima(voxel_size, out, threshold=0.9)
-        return grasps[np.argmax(qualities)] if grasps else None
+        grasps, qualities = select_local_maxima(voxel_size, out, threshold=0.8)
+        return grasps[np.argmax(qualities)] if len(grasps) > 0 else None
 
     for _ in tqdm(range(args.episode_count)):
         voxel_size, tsdf_grid = env.reset()
