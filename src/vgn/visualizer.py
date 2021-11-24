@@ -1,6 +1,7 @@
 import numpy as np
 from mayavi import mlab
 
+from vgn.utils import grid_to_map_cloud
 
 cm = lambda s: tuple([float(1 - s), float(s), float(0)])
 
@@ -31,6 +32,21 @@ def map_cloud(voxel_size, cloud):
         mode="cube",
         scale_factor=voxel_size,
         scale_mode="none",
+    )
+
+
+def quality(voxel_size, grid, vmin=0.9):
+    points, values = grid_to_map_cloud(voxel_size, grid, vmin)
+    mlab.points3d(
+        points[:, 0],
+        points[:, 1],
+        points[:, 2],
+        values.squeeze(),
+        mode="cube",
+        scale_factor=voxel_size,
+        scale_mode="none",
+        vmin=vmin,
+        vmax=1.0,
     )
 
 
