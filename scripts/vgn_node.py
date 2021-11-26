@@ -3,18 +3,18 @@
 from pathlib import Path
 import rospy
 
-from robot_utils.ros.conversions import to_pose_msg
-from vgn.detection import VGN, compute_grasps
-from vgn.utils import *
-from vgn.msg import Grasp
+from vgn.detection import VGN, select_local_maxima
+from vgn.rviz import Visualizer
 import vgn.srv
-from vgn import vis
+from vgn.utils import *
 
 
 class VGNServer:
     def __init__(self):
+        self.frame = rospy.get_param("~frame_id")
         self.vgn = VGN(Path(rospy.get_param("~model")))
         self.finger_depth = rospy.get_param("~finger_depth")
+        self.vis = Visualizer()
         rospy.Service("predict_grasps", vgn.srv.PredictGrasps, self.predict_grasps)
 
     def predict_grasps(self, req):
@@ -24,19 +24,15 @@ class VGNServer:
         tsdf_grid = map_cloud_to_grid(voxel_size, points, distances)
 
         # Compute grasps
-        out = self.vgn.predict(tsdf_grid)
-        grasps = compute_grasps(
-            voxel_size,
-            out,
-            score_fn=lambda grasp: grasp.pose.translation[2],
-        )
+        out = vgn.predict(tsdf_grid)
+        grasps, qualities = select_local_maxima(voxel_size, out, threshold=0.9)
 
         # Visualize detections
-        vis.draw_grasps(grasps, self.finger_depth)
+        self.vis.grasps(self.frame, grasps, qualities)
 
         # Construct the response message
         res = vgn.srv.PredictGraspsResponse()
-        res.grasps = [Grasp(to_pose_msg(g.pose), g.width, g.quality) for g in grasps]
+        res.grasps = [to_grasp_config_msg(g, q) for g, q in zip(grasps, qualities)]
         return res
 
 

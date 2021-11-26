@@ -12,7 +12,7 @@ catkin_python_setup()
 
 add_message_files(
   FILES
-  Grasp.msg
+  GraspConfig.msg
 )
 
 add_service_files(

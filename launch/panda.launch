@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<launch>
+  <!-- Parameters -->
+  <arg name="robot_ip" default="172.16.0.2" />
+  <arg name="load_gripper" default="true" />
+
+  <!-- Load configuration -->
+  <rosparam command="load" file="$(find vgn)/config/panda_grasp.yaml" subst_value="true" />
+
+  <!-- Panda control node -->
+  <include file="$(find franka_control)/launch/franka_control.launch">
+    <arg name="robot_ip" value="$(arg robot_ip)" />
+    <arg name="load_gripper" value="$(arg load_gripper)" />
+  </include>
+
+  <!-- Panda controllers -->
+  <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="position_joint_trajectory_controller"/>
+
+  <!-- Camera driver -->
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="enable_pointcloud" value="true" />
+    <arg name="publish_tf" value="false" />
+  </include>
+
+  <!-- Hand-eye calibration -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="hand_eye_broadcaster" args="0.03226862 -0.06137175  0.04107702 0.00099995 0. 0.39898185 0.91695828 panda_link8 camera_depth_optical_frame" />
+
+  <!-- Task space calibration -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="task_frame_broadcaster" args="0.25 -0.15 0.0 0.0 0.0 0.0 1.0 panda_link0 task" />
+</launch>

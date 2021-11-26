@@ -3,8 +3,11 @@ import numpy as np
 import yaml
 
 try:
+    from robot_helpers.ros.conversions import from_pose_msg, to_pose_msg
     import ros_numpy
     from sensor_msgs.msg import PointCloud2, PointField
+    from vgn.grasp import ParallelJawGrasp
+    from vgn.msg import GraspConfig
 except:
     pass
 
@@ -131,4 +134,17 @@ def to_cloud_msg(frame, points, colors=None, intensities=None, distances=None):
     msg.row_step = msg.point_step * points.shape[0]
     msg.data = data.astype(np.float32).tostring()
 
+    return msg
+
+
+def from_grasp_config_msg(msg):
+    pose = from_pose_msg(msg.pose)
+    return ParallelJawGrasp(pose, msg.width), msg.quality
+
+
+def to_grasp_config_msg(grasp, quality):
+    msg = GraspConfig()
+    msg.pose = to_pose_msg(grasp.pose)
+    msg.width = grasp.width
+    msg.quality = quality
     return msg

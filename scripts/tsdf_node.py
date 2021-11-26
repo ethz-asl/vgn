@@ -5,12 +5,11 @@ import rospy
 import sensor_msgs.msg as sensor_msgs
 import std_srvs.srv
 
-from robot_utils.perception import Image
-from robot_utils.ros import tf
-from robot_utils.ros.conversions import *
+from robot_helpers.ros import tf
+from robot_helpers.ros.conversions import *
 from vgn.perception import UniformTSDFVolume
-from vgn.utils import *
 import vgn.srv
+from vgn.utils import *
 
 
 class UniformTSDFServer:
@@ -25,6 +24,7 @@ class UniformTSDFServer:
         self.intrinsic = from_camera_info_msg(msg)
         self.cv_bridge = cv_bridge.CvBridge()
         self.integrate = False
+        tf.init()
 
         rospy.Service("reset_map", std_srvs.srv.Trigger, self.reset)
         rospy.Service("toggle_integration", std_srvs.srv.SetBool, self.toggle)
@@ -53,12 +53,12 @@ class UniformTSDFServer:
                 msg.header.stamp,
                 rospy.Duration(0.1),
             )
-            img = Image(depth=depth)
-            self.tsdf.integrate(img, self.intrinsic, extrinsic)
+            self.tsdf.integrate(depth, self.intrinsic, extrinsic)
 
     def get_scene_cloud(self, req):
         scene_cloud = self.tsdf.get_scene_cloud()
-        msg = to_cloud_msg(np.asarray(scene_cloud.points), frame_id=self.frame_id)
+        points = np.asarray(scene_cloud.points)
+        msg = to_cloud_msg(self.frame_id, points)
         self.scene_cloud_pub.publish(msg)
         res = vgn.srv.GetSceneCloudResponse()
         res.scene_cloud = msg
@@ -68,8 +68,7 @@ class UniformTSDFServer:
         map_cloud = self.tsdf.get_map_cloud()
         points = np.asarray(map_cloud.points)
         distances = np.asarray(map_cloud.colors)[:, [0]]
-
-        msg = to_cloud_msg(points, distances=distances, frame_id=self.frame_id)
+        msg = to_cloud_msg(self.frame_id, points, distances=distances)
         self.map_cloud_pub.publish(msg)
         res = vgn.srv.GetMapCloudResponse()
         res.voxel_size = self.tsdf.voxel_size

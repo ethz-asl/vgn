@@ -3,7 +3,6 @@ panda_grasp:
   base_frame_id: panda_link0
   ee_frame_id: panda_link8
   ee_grasp_offset: [0.0, 0.0, -0.382, 0.924, 0.0, 0.0, 0.065]  # TODO check this
-  finger_depth: 0.05
   scan_joints:
     - [0.010, -1.479, 0.10027132190633238, -2.416246868493765, 0.08994288870361117, 1.4022499498261343, 0.8516519819506339]
     - [-0.520, -0.796, 0.9121961832112832, -1.6720657872605567, 0.0914094145960278, 1.2810500415696036, 0.8710614908889162]
@@ -20,5 +19,6 @@ tsdf_node:
     depth_topic: /camera/depth/image_rect_raw
 
 vgn_node:
-  model: /home/michel/catkin_ws/src/vgn/data/models/vgn_conv.pth
+  frame_id: task
+  model: $(find vgn)/assets/models/vgn_conv.pth
   finger_depth: 0.05
