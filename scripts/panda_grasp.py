@@ -10,7 +10,6 @@ from robot_helpers.ros.panda import PandaGripperClient
 from robot_helpers.ros.moveit import MoveItClient
 from robot_helpers.ros import tf
 from robot_helpers.spatial import Rotation, Transform
-from vgn.grasp import Grasp
 from vgn.rviz import Visualizer
 from vgn.srv import GetMapCloud, GetSceneCloud, PredictGrasps, PredictGraspsRequest
 from vgn.utils import from_grasp_config_msg
@@ -23,6 +22,7 @@ class PandaGraspController(object):
         self.init_robot_connection()
         self.init_services()
         self.vis = Visualizer()
+        rospy.sleep(1.0)  # Wait for all connections to be established
         rospy.loginfo("Ready to take action")
 
     def load_parameters(self):
@@ -45,9 +45,8 @@ class PandaGraspController(object):
         msg = geometry_msgs.msg.PoseStamped()
         msg.header.frame_id = self.base_frame
         msg.pose.position.x = 0.4
-        msg.pose.position.z = 0.0
+        msg.pose.position.z = 0.08
         self.moveit.scene.add_box("table", msg, size=(0.6, 0.6, 0.02))
-        rospy.sleep(1.0)  # wait for the scene to be updated
 
     def init_services(self):
         self.reset_map = rospy.ServiceProxy("reset_map", Trigger)
@@ -59,6 +58,8 @@ class PandaGraspController(object):
     def run(self):
         self.vis.clear()
         self.gripper.move(0.08)
+
+        self.vis.roi(self.task_frame, 0.3)
 
         rospy.loginfo("Reconstructing scene")
         self.scan_scene()
@@ -77,7 +78,7 @@ class PandaGraspController(object):
         grasps = []
         for msg in res.grasps:
             grasp, _ = from_grasp_config_msg(msg)
-            grasps.append(grasps)
+            grasps.append(grasp)
 
         # Select the highest grasp
         scores = [grasp.pose.translation[2] for grasp in grasps]
@@ -99,7 +100,6 @@ class PandaGraspController(object):
     def scan_scene(self):
         self.moveit.goto("ready")
         self.reset_map()
-        rospy.loginfo("calling toggle integration")
         self.toggle_integration(True)
         for joint_target in self.scan_joints:
             self.moveit.goto(joint_target)
@@ -111,7 +111,7 @@ class PandaGraspController(object):
 
         # Ensure that the camera is pointing forward.
         rot = grasp.pose.rotation
-        axis = rot.as_dcm()[:, 0]
+        axis = rot.as_matrix()[:, 0]
         if axis[0] < 0:
             grasp.pose.rotation = rot * Rotation.from_euler("z", np.pi)
 
@@ -122,14 +122,14 @@ class PandaGraspController(object):
         T_base_pregrasp = T_base_grasp * T_grasp_pregrasp
         T_base_retreat = T_base_grasp * T_grasp_retreat
 
-        self.moveit.move(T_base_pregrasp * self.grasp_ee_offset, velocity_scaling=0.2)
-        self.moveit.move(T_base_grasp * self.grasp_ee_offset)
+        self.moveit.goto(T_base_pregrasp * self.grasp_ee_offset, velocity_scaling=0.2)
+        self.moveit.gotoL(T_base_grasp * self.grasp_ee_offset)
         self.gripper.grasp(width=0.0, force=20.0)
-        self.moveit.move(T_base_retreat * self.grasp_ee_offset)
+        self.moveit.gotoL(T_base_retreat * self.grasp_ee_offset)
 
         T_retreat_lift_base = Transform(Rotation.identity(), [0.0, 0.0, 0.1])
         T_base_lift = T_retreat_lift_base * T_base_retreat
-        self.moveit.move(T_base_lift * self.grasp_ee_offset)
+        self.moveit.goto(T_base_lift * self.grasp_ee_offset)
 
         return self.gripper.read() > 0.004
 

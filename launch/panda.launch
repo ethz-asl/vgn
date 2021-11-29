@@ -22,7 +22,7 @@
     <arg name="publish_tf" value="false" />
   </include>
 
-  <!-- Hand-eye calibration -->
+  <!-- Hand-eye calibration TODO CHECK THIS -->
   <node pkg="tf2_ros" type="static_transform_publisher" name="hand_eye_broadcaster" args="0.03226862 -0.06137175  0.04107702 0.00099995 0. 0.39898185 0.91695828 panda_link8 camera_depth_optical_frame" />
 
   <!-- Task space calibration -->

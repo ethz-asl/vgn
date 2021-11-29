@@ -110,20 +110,19 @@ python3 scripts/sim_grasp.py --model data/models/vgn_conv.pth [--gui]
 This package contains an example of open-loop grasp execution with a Franka Emika Panda and a wrist-mounted Intel Realsense D435. Since the robot drivers are not officially supported on ROS Noetic yet, we used the following workaround:
 
 - Run the roscore and hardware drivers on a NUC with [`libfranka`](https://frankaemika.github.io/docs/installation_linux.html) installed.
-- Run the TSDF and VGN nodes on a second computer with ROS Noetic connected to the same roscore  ([instructions](http://wiki.ros.org/ROS/Tutorials/MultipleMachines)).
+- Run MoveIt, the TSDF and VGN nodes on a second computer with ROS Noetic connected to the same roscore  ([instructions](http://wiki.ros.org/ROS/Tutorials/MultipleMachines)).
 
 First, on the NUC, start a roscore and launch the robot and sensor drivers.
 
 ```
 roscore &
-roslaunch vgn panda_grasp.launch
+roslaunch vgn panda.launch
 ```
 
-Next, launch the TSDF and VGN nodes on the ROS Noetic machine.
+Next, launch Moveit and the TSDF and VGN nodes on the ROS Noetic machine.
 
 ```
-rosrun vgn tsdf_node.py
-rosrun vgn vgn_node.py
+roslaunch vgn nodes.launch
 ```
 
 Now, run the experiment by executing the main script on the NUC.

@@ -13,9 +13,9 @@ class VGNServer:
     def __init__(self):
         self.frame = rospy.get_param("~frame_id")
         self.vgn = VGN(Path(rospy.get_param("~model")))
-        self.finger_depth = rospy.get_param("~finger_depth")
-        self.vis = Visualizer()
         rospy.Service("predict_grasps", vgn.srv.PredictGrasps, self.predict_grasps)
+        self.vis = Visualizer()
+        rospy.loginfo("VGN node ready")
 
     def predict_grasps(self, req):
         # Construct the input grid
@@ -24,7 +24,7 @@ class VGNServer:
         tsdf_grid = map_cloud_to_grid(voxel_size, points, distances)
 
         # Compute grasps
-        out = vgn.predict(tsdf_grid)
+        out = self.vgn.predict(tsdf_grid)
         grasps, qualities = select_local_maxima(voxel_size, out, threshold=0.9)
 
         # Visualize detections

@@ -2,7 +2,7 @@
 
 import cv_bridge
 import rospy
-import sensor_msgs.msg as sensor_msgs
+from sensor_msgs.msg import CameraInfo, Image
 import std_srvs.srv
 
 from robot_helpers.ros import tf
@@ -14,27 +14,34 @@ from vgn.utils import *
 
 class UniformTSDFServer:
     def __init__(self):
+        self.load_parameters()
+        tf.init()
+        self.init_topics()
+        self.advertise_services()
+        self.cv_bridge = cv_bridge.CvBridge()
+        self.integrate = False
+        rospy.loginfo("TSDF node ready")
+
+    def load_parameters(self):
         self.frame_id = rospy.get_param("~frame_id")
         self.length = rospy.get_param("~length")
         self.resolution = rospy.get_param("~resolution")
         self.cam_frame_id = rospy.get_param("~camera/frame_id")
         info_topic = rospy.get_param("~camera/info_topic")
-        depth_topic = rospy.get_param("~camera/depth_topic")
-        msg = rospy.wait_for_message(info_topic, sensor_msgs.CameraInfo)
+        self.depth_topic = rospy.get_param("~camera/depth_topic")
+        msg = rospy.wait_for_message(info_topic, CameraInfo)
         self.intrinsic = from_camera_info_msg(msg)
-        self.cv_bridge = cv_bridge.CvBridge()
-        self.integrate = False
-        tf.init()
 
+    def init_topics(self):
+        self.scene_cloud_pub = rospy.Publisher("scene_cloud", PointCloud2, queue_size=1)
+        self.map_cloud_pub = rospy.Publisher("map_cloud", PointCloud2, queue_size=1)
+        rospy.Subscriber(self.depth_topic, Image, self.sensor_cb)
+
+    def advertise_services(self):
         rospy.Service("reset_map", std_srvs.srv.Trigger, self.reset)
         rospy.Service("toggle_integration", std_srvs.srv.SetBool, self.toggle)
         rospy.Service("get_scene_cloud", vgn.srv.GetSceneCloud, self.get_scene_cloud)
         rospy.Service("get_map_cloud", vgn.srv.GetMapCloud, self.get_map_cloud)
-
-        self.scene_cloud_pub = rospy.Publisher("scene_cloud", PointCloud2, queue_size=1)
-        self.map_cloud_pub = rospy.Publisher("map_cloud", PointCloud2, queue_size=1)
-
-        rospy.Subscriber(depth_topic, sensor_msgs.Image, self.sensor_cb)
 
     def reset(self, req):
         self.tsdf = UniformTSDFVolume(self.length, self.resolution)

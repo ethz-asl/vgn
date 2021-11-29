@@ -1,5 +1,13 @@
 <?xml version="1.0" ?>
 <launch>
+  <!-- MoveIt -->
   <node pkg="tf2_ros" type="static_transform_publisher" name="to_panda" args="0 0 0 0 0 0  world panda_link0" />
   <include file="$(find panda_moveit_config)/launch/move_group.launch" />
+
+  <!-- TSDF node -->
+  <node pkg="vgn" type="tsdf_node.py" name="tsdf_node" />
+
+  <!-- VGN node -->
+  <node pkg="vgn" type="vgn_node.py" name="vgn_node" />
+
 </launch>
