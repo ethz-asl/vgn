@@ -5,7 +5,7 @@
   <arg name="load_gripper" default="true" />
 
   <!-- Load configuration -->
-  <rosparam command="load" file="$(find vgn)/config/panda_grasp.yaml" subst_value="true" />
+  <rosparam command="load" file="$(find vgn)/cfg/panda_grasp.yaml" subst_value="true" />
 
   <!-- Panda control node -->
   <include file="$(find franka_control)/launch/franka_control.launch">

@@ -20,5 +20,5 @@ tsdf_node:
 
 vgn_node:
   frame_id: task
-  model: $(find vgn)/assets/models/vgn_conv.pth
+  model: /home/michel/Developer/catkin_ws/src/vgn/assets/models/vgn_conv.pth
   finger_depth: 0.05
