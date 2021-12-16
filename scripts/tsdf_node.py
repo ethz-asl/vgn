@@ -2,7 +2,7 @@
 
 import cv_bridge
 import rospy
-from sensor_msgs.msg import CameraInfo, Image
+from sensor_msgs.msg import CameraInfo, Image, PointCloud2
 import std_srvs.srv
 
 from robot_helpers.ros import tf
@@ -26,6 +26,7 @@ class UniformTSDFServer:
         self.frame_id = rospy.get_param("~frame_id")
         self.length = rospy.get_param("~length")
         self.resolution = rospy.get_param("~resolution")
+        self.depth_scaling = rospy.get_param("~depth_scaling")
         self.cam_frame_id = rospy.get_param("~camera/frame_id")
         info_topic = rospy.get_param("~camera/info_topic")
         self.depth_topic = rospy.get_param("~camera/depth_topic")
@@ -53,12 +54,12 @@ class UniformTSDFServer:
 
     def sensor_cb(self, msg):
         if self.integrate:
-            depth = self.cv_bridge.imgmsg_to_cv2(msg).astype(np.float32) * 0.001
+            depth = (
+                self.cv_bridge.imgmsg_to_cv2(msg).astype(np.float32)
+                * self.depth_scaling
+            )
             extrinsic = tf.lookup(
-                self.cam_frame_id,
-                self.frame_id,
-                msg.header.stamp,
-                rospy.Duration(0.1),
+                self.cam_frame_id, self.frame_id, msg.header.stamp, rospy.Duration(0.1)
             )
             self.tsdf.integrate(depth, self.intrinsic, extrinsic)
 

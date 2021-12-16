@@ -1,6 +1,8 @@
 from vgn.utils import *
 from robot_helpers.ros.rviz import *
 
+from sensor_msgs.msg import PointCloud2
+
 cm = lambda s: tuple([float(1 - s), float(s), float(0)])
 
 

@@ -33,11 +33,7 @@ def cartesian_to_spherical(p):
 
 
 def spherical_to_cartesian(r, theta, phi):
-    return np.r_[
-        r * sin(theta) * cos(phi),
-        r * sin(theta) * sin(phi),
-        r * cos(theta),
-    ]
+    return np.r_[r * sin(theta) * cos(phi), r * sin(theta) * sin(phi), r * cos(theta)]
 
 
 def look_at(eye, center, up):
