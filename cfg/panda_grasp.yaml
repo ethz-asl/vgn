@@ -13,7 +13,7 @@ tsdf_node:
   frame_id: task
   length: 0.3
   resolution: 40
-  depth_scaling: 1.0  # Should be 1.0 for gazebo and 0.001 for hardware
+  depth_scaling: 0.001  # Set to 1.0 for Gazebo, 0.001 for a RealSense
   camera:
     frame_id: camera_depth_optical_frame
     info_topic: /camera/depth/camera_info
