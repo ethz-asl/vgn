@@ -2,7 +2,6 @@ import argparse
 import numpy as np
 from pathlib import Path
 
-
 from robot_helpers.perception import CameraIntrinsic
 from vgn.database import GraspDatabase
 from vgn.perception import create_tsdf
@@ -10,9 +9,7 @@ import vgn.visualizer as vis
 
 
 def main():
-    parser = create_parser()
-    args = parser.parse_args()
-
+    args = parse_args()
     db = GraspDatabase(args.root)
 
     def show(scene_id):
@@ -34,11 +31,11 @@ def main():
             show(np.random.choice(db.scenes))
 
 
-def create_parser():
+def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("root", type=Path)
+    parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--scene-id", type=str)
-    return parser
+    return parser.parse_args()
 
 
 if __name__ == "__main__":

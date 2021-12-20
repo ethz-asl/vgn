@@ -3,18 +3,12 @@ sim:
   sleep: False
   scene: pile
 
-urdf_root: ../urdf_zoo/models/blocks
+urdf_root: assets/urdfs/blocks
 scaling:
   low: 0.8
   high: 2.0
 object_count_lambda: 3
 view_count_lambda: 1
-scene_grasp_count: 400
+scene_grasp_count: 200
 
-metric: robust_physics
-
-robust_physics:
-  uncertainty:
-    xyz: [0.005, 0.005, 0.005]
-    rpy: [0.0, 0.0, 0.08]
-  sample_count: 8
+metric: physics

@@ -6,21 +6,19 @@ import numpy as np
 import open3d as o3d
 from tqdm import tqdm
 
+from robot_helpers.io import load_yaml
 from robot_helpers.spatial import Rotation, Transform
 import vgn.database as db
-from vgn.grasp import UniformPointCloudSampler
+from vgn.samplers import UniformPointCloudSampler
 from vgn.perception import create_tsdf
 from vgn.simulation import GraspSim, get_quality_fn
-from vgn.utils import load_cfg, find_urdfs, view_on_sphere
+from vgn.utils import find_urdfs, view_on_sphere
 
 
 def main():
     worker_count, rank = setup_mpi()
-
-    parser = create_parser()
-    args = parser.parse_args()
-    cfg = load_cfg(args.cfg)
-
+    args = parse_args()
+    cfg = load_yaml(args.cfg)
     args.root.mkdir(exist_ok=True)
 
     rng = np.random.RandomState(args.seed + 100 * rank)
@@ -55,7 +53,6 @@ def main():
         pc = create_pc(sim.scene, imgs, sim.camera.intrinsic, views)
 
         if pc.is_empty():
-            print("TODO why does this happen?")
             continue
 
         # Sample grasps
@@ -68,13 +65,13 @@ def main():
         db.write(args.root, views, imgs, grasps, qualities)
 
 
-def create_parser():
+def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root", type=Path, default="data/grasps")
+    parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--cfg", type=Path, default="cfg/grasp_database.yaml")
     parser.add_argument("--count", type=int, default=200000)
     parser.add_argument("--seed", type=int, default=1)
-    return parser
+    return parser.parse_args()
 
 
 def setup_mpi():
@@ -105,12 +102,12 @@ def create_pc(scene, imgs, intrinsic, views):
     upper = np.r_[scene.size - 0.02, scene.size - 0.02, scene.size]
     bounding_box = o3d.geometry.AxisAlignedBoundingBox(lower, upper)
     pc = pc.crop(bounding_box)
-    # o3d.visualization.draw_geometries([pc])
+
     return pc
 
 
 def evaluate_grasp_point(grasp, sim, quality_fn, rot_count=6):
-    # If a stable configuration is found, changes the rotation of the grasp in place
+    # Changes the rotation of the grasp in place
     angles = np.linspace(0.0, np.pi, rot_count)
     R = grasp.pose.rotation
     for angle in angles:

@@ -5,11 +5,6 @@ import time
 
 from robot_helpers.bullet import BtCamera
 from robot_helpers.spatial import Rotation, Transform
-from vgn.grasp import ParallelJawGrasp
-
-
-LATERAL_FFRICITON = 0.4
-MAX_GRASP_FORCE = 5
 
 
 class GraspSim:
@@ -17,6 +12,7 @@ class GraspSim:
         self.configure_physics_engine(cfg["gui"])
         self.configure_visualizer()
         self.sleep = cfg["sleep"]
+        self.lateral_friction = cfg.get("lateral_friction", 0.4)
         self.rng = rng
         self.gripper = PandaGripper(self)
         self.camera = BtCamera(320, 240, 1.047, 0.1, 2.0, renderer=p.ER_TINY_RENDERER)
@@ -50,9 +46,9 @@ class PandaGripper:
         self.max_width = 0.08
         self.max_depth = 0.05
         self.T_ee_com = Transform(Rotation.identity(), [0.0, 0.0, -0.025])
-        self.uid = p.loadURDF("assets/panda/hand.urdf")
+        self.uid = p.loadURDF("assets/urdfs/panda/hand.urdf")
         self.create_joints()
-        self.reset(Transform.translation(np.full(3, 100)), self.max_width)
+        self.reset(Transform.t(np.full(3, 100)), self.max_width)
 
     @property
     def width(self):
@@ -107,13 +103,13 @@ class PandaGripper:
             maxForce=50,
         )
 
-    def close_fingers(self):
+    def grasp(self, force=5):
         p.setJointMotorControlArray(
             self.uid,
             [0, 1],
             p.VELOCITY_CONTROL,
             targetVelocities=[-0.1] * 2,
-            forces=[MAX_GRASP_FORCE] * 2,
+            forces=[force] * 2,
         )
         for _ in range(60):
             self.sim.step()
@@ -156,32 +152,12 @@ class PhysicsMetric(GraspQualityMetric):
     def quality(self, grasp):
         self.gripper.reset(grasp.pose, grasp.width)
         if not self.gripper.contacts:
-            self.gripper.close_fingers()
+            self.gripper.grasp()
             self.gripper.lift()
             contacts = self.gripper.contacts
             if self.gripper.width > 0.1 * self.gripper.max_width and contacts:
                 return 1.0, {"object_uid": contacts[0][2]}
         return 0.0, {}
-
-
-class RobustPhysicsMetric(PhysicsMetric):
-    def __init__(self, sim, cfg):
-        super().__init__(sim)
-        self.rng = sim.rng
-        self.xyz = np.asarray(cfg["uncertainty"]["xyz"])
-        self.rpy = np.asarray(cfg["uncertainty"]["rpy"])
-        self.sample_count = cfg["sample_count"]
-
-    def __call__(self, grasp):
-        pose, width = grasp.pose, grasp.width
-        for _ in range(self.sample_count):
-            R_err = Rotation.from_euler("xyz", self.rng.uniform(-self.rpy, self.rpy))
-            t_err = self.rng.uniform(-self.xyz, self.xyz)
-            grasp = ParallelJawGrasp(pose * Transform(R_err, t_err), width)
-            self.sim.restore_state()
-            if not self.quality(grasp)[0]:
-                return 0.0, {}
-        return 1.0, {}
 
 
 def load_urdf(urdf, pose, scaling=1.0):
@@ -191,7 +167,7 @@ def load_urdf(urdf, pose, scaling=1.0):
 
 class Scene:
     def __init__(self, sim):
-        self.support_urdf = "assets/plane/model.urdf"
+        self.support_urdf = "assets/urdfs/plane/model.urdf"
         self.sim = sim
         self.rng = sim.rng
         self.size = 0.3
@@ -217,7 +193,7 @@ class Scene:
     def add_object(self, urdf, pose, scaling):
         uid = load_urdf(urdf, pose, scaling)
         self.object_uids.append(uid)
-        p.changeDynamics(uid, -1, lateralFriction=LATERAL_FFRICITON)
+        p.changeDynamics(uid, -1, lateralFriction=self.sim.lateral_friction)
         return uid
 
     def remove_support(self):
@@ -283,7 +259,9 @@ class PileScene(Scene):
         self.origin = origin
         self.center = origin * Transform.t([0.5 * self.size, 0.5 * self.size, 0])
         self.add_support(self.center)
-        uid = load_urdf("assets/box/model.urdf", Transform.t([0.02, 0.02, 0.05]), 1.3)
+        uid = load_urdf(
+            "assets/urdfs/box/model.urdf", Transform.t([0.02, 0.02, 0.05]), 1.3
+        )
         for urdf, scaling in zip(urdfs, scalings):
             loc_ori = Rotation.random(random_state=self.rng)
             loc_pos = np.r_[self.rng.uniform(self.size / 3, 2 * self.size / 3, 2), 0.25]
@@ -295,7 +273,7 @@ class PileScene(Scene):
 
 
 scenes = {"packed": PackedScene, "pile": PileScene}
-quality_fns = {"physics": PhysicsMetric, "robust_physics": RobustPhysicsMetric}
+quality_fns = {"physics": PhysicsMetric}
 
 
 def apply_noise(img, k=1000, theta=0.001, sigma=0.005, l=4.0):

@@ -10,11 +10,9 @@ from vgn.perception import create_tsdf
 
 
 def main():
-    parser = create_parser()
-    args = parser.parse_args()
-
+    args = parse_args()
     db = GraspDatabase(args.grasps)
-    args.root.mkdir()
+    args.root.mkdir(parents=True)
 
     size = 0.3
     resolution = 40
@@ -26,21 +24,21 @@ def main():
     write_grids(args.root, size, resolution, db, intrinsic)
 
 
-def create_parser():
+def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("grasps", type=Path)
     parser.add_argument("root", type=Path)
-    return parser
+    return parser.parse_args()
 
 
 def create_df(voxel_size, db):
     # Snap grasps to closest grid indices
     df = db.df.copy()
-    df.x = (df.x / voxel_size).round()
-    df.y = (df.y / voxel_size).round()
-    df.z = (df.z / voxel_size).round()
+    df.x = (df.x / voxel_size).round().astype(int)
+    df.y = (df.y / voxel_size).round().astype(int)
+    df.z = (df.z / voxel_size).round().astype(int)
     df.width /= voxel_size
-    df = df.rename(columns={"x": "i", "y": "j", "z": "k", "physics": "label"})
+    df = df.rename(columns={"x": "i", "y": "j", "z": "k", "quality": "label"})
     return df
 
 

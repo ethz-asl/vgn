@@ -1,6 +1,5 @@
 from math import cos, sin
 import numpy as np
-import yaml
 
 try:
     from robot_helpers.ros.conversions import from_pose_msg, to_pose_msg
@@ -12,12 +11,6 @@ except:
     pass
 
 from robot_helpers.spatial import Transform
-
-
-def load_cfg(path):
-    with path.open("r") as f:
-        cfg = yaml.load(f, Loader=yaml.FullLoader)
-    return cfg
 
 
 def find_urdfs(root):

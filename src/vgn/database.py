@@ -31,7 +31,7 @@ class GraspDatabase:
         for _, r in self.df[self.df.scene_id == id].iterrows():
             pose = Transform.from_list([r.qx, r.qy, r.qz, r.qw, r.x, r.y, r.z])
             grasps.append(ParallelJawGrasp(pose, r.width))
-            qualities.append(r.physics)
+            qualities.append(r.quality)
         return np.asarray(grasps), np.asarray(qualities)
 
 
@@ -65,7 +65,7 @@ def write_grasps(path, id, grasps, qualities):
             "y": pos[1],
             "z": pos[2],
             "width": g.width,
-            "physics": q,
+            "quality": q,
         }
         rows.append(config)
     df = pd.DataFrame.from_records(rows)
