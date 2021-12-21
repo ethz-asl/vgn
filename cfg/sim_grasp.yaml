@@ -3,10 +3,10 @@ sim:
   sleep: True
   scene: pile
 
-urdf_root: ../urdf_zoo/models/blocks
-scaling:
-  low: 1.2
-  high: 1.6
+urdf_root: assets/urdfs/blocks
 object_count: 3
+scaling:
+  low: 1.0
+  high: 1.0
 
 metric: physics

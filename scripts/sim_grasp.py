@@ -3,15 +3,14 @@ import numpy as np
 from pathlib import Path
 from tqdm import tqdm
 
+from robot_helpers.io import load_yaml
 from vgn.detection import VGN, select_local_maxima
 from vgn.envs import ClutterRemovalEnv
-from vgn.utils import load_cfg
 
 
 def main():
-    parser = create_parser()
-    args = parser.parse_args()
-    cfg = load_cfg(args.cfg)
+    args = parse_args()
+    cfg = load_yaml(args.cfg)
     rng = np.random.RandomState(args.seed)
 
     env = ClutterRemovalEnv(cfg, rng)
@@ -48,13 +47,13 @@ def main():
     )
 
 
-def create_parser():
+def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=Path, default="assets/models/vgn_conv.pth")
     parser.add_argument("--cfg", type=Path, default="cfg/sim_grasp.yaml")
     parser.add_argument("--episode-count", type=int, default=10)
     parser.add_argument("--seed", type=int, default=1)
-    return parser
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
