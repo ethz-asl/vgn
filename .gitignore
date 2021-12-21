@@ -110,5 +110,6 @@ venv.bak/
 .vscode
 
 # data
+assets/models
 assets/urdfs
 data
