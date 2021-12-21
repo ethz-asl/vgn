@@ -1,0 +1,16 @@
+<?xml version="1.0" ?>
+<launch>
+  <!-- Load configuration -->
+  <rosparam command="load" file="$(find vgn)/cfg/panda_grasp.yaml" subst_value="true" />
+
+  <!-- Launch MoveIt -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="to_panda" args="0 0 0 0 0 0  world panda_link0" />
+  <include file="$(find panda_moveit_config)/launch/move_group.launch" />
+
+  <!-- Launch Nodes -->
+  <node pkg="vgn" type="tsdf_server.py" name="tsdf_server" />
+  <node pkg="vgn" type="vgn_server.py" name="vgn_server" />
+
+  <!-- ROI -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="task_frame_broadcaster" args="0.25 -0.15 0.0 0.0 0.0 0.0 1.0 panda_link0 task" />
+</launch>

@@ -2,13 +2,15 @@
 
 VGN is a 3D convolutional neural network for real-time 6 DOF grasp pose detection. The network accepts a Truncated Signed Distance Function (TSDF) representation of the scene and outputs a volume of the same spatial resolution, where each cell contains the predicted quality, orientation, and width of a grasp executed at the center of the voxel. The network is trained on a synthetic grasping dataset generated with physics simulation.
 
-![overview](docs/overview.png)
+![overview](assets/overview.png)
 
 This repository contains the implementation of the following publication:
 
 * M. Breyer, J. J. Chung, L. Ott, R. Siegwart, and J. Nieto. Volumetric Grasping Network: Real-time 6 DOF Grasp Detection in Clutter. _Conference on Robot Learning (CoRL 2020)_, 2020. [[pdf](http://arxiv.org/abs/2101.01132)][[video](https://youtu.be/FXjvFDcV6E0)]
 
 If you use this work in your research, please [cite](#citing) accordingly.
+
+**Note:** This is a cleaned-up version including major reformatting and several smaller improvements. For the original code, checkout the `corl2020` branch.
 
 The next sections provide instructions for getting started with VGN.
 
@@ -20,7 +22,7 @@ The next sections provide instructions for getting started with VGN.
 
 ## Installation
 
-The following instructions were tested on Ubuntu 20.04 with ROS Noetic. The setup for robotic experiments is described in more details in the [Robot Grasping](#robot-grasping) section.
+The following instructions were tested on Ubuntu 20.04 with ROS Noetic.
 
 Clone the repository into the `src` folder of a catkin workspace.
 
@@ -55,77 +57,60 @@ catkin build vgn
 source /path/to/catkin_ws/devel/setup.zsh
 ```
 
-Finally, download the data folder [here](https://drive.google.com/file/d/1MnWwxkYo9WnLFNseEVSWRT1q-XElYlxJ/view?usp=sharing), then unzip and place it in the repo's root.
+Finally, download the URDF models [here](TODO) and place them inside of `assets`.
 
 ## Data Generation
 
-Generate raw synthetic grasping trials using the [pybullet](https://github.com/bulletphysics/bullet3) physics simulator.
+Generate a database of labeled grasp configurations.
 
 ```
-python3 scripts/generate_data.py data/raw/foo --scene pile --object-set blocks [--num-grasps=...] [--gui]
+mpirun -np <num-workers> python3 scripts/generate_data.py --root=data/grasps/blocks
 ```
 
-* `python3 scripts/generate_data.py -h` prints a list with all the options.
-* `mpirun -np <num-workers> python3 ...` will run multiple simulations in parallel.
+Next, clean and balance the data using the `process_data.ipynb` notebook.
 
-The script will create the following file structure within `data/raw/foo`:
-
-* `grasps.csv` contains the configuration, label, and associated scene for each grasp,
-* `scenes/<scene_id>.npz` contains the synthetic sensor data of each scene.
-
-The `data.ipynb` notebook is useful to clean, balance and visualize the generated data.
-
-Finally, generate the voxel grids/grasp targets required to train VGN.
+You can also visualize a scene and the associated grasp configurations.
 
 ```
-python3 scripts/construct_dataset.py data/raw/foo data/datasets/foo
+python3 scripts/visualize_data.py --root=data/grasps/blocks
 ```
 
-* Samples of the dataset can be visualized with the `vis_sample.py` script and `vgn.rviz` configuration. The script includes the option to apply a random affine transform to the input/target pair to check the data augmentation procedure.
+Finally, generate the voxel grid / grasp target pairs to train VGN.
+
+```
+python3 scripts/build_dataset.py data/grasps/blocks data/datasets/blocks
+```
 
 ## Network Training
 
 ```
-python3 scripts/train_vgn.py --dataset data/datasets/foo [--augment]
-```
-
-Training and validation metrics are logged to TensorBoard and can be accessed with
-
-```
-tensorboard --logdir data/runs
+python3 scripts/train_vgn.py --dataset data/datasets/blocks --augment
 ```
 
 ## Simulated Grasping
 
-Run simulated clutter removal experiments.
-
 ```
-python3 scripts/sim_grasp.py --model data/models/vgn_conv.pth [--gui]
+python3 scripts/sim_grasp.py
 ```
-
-* `python3 scripts/sim_grasp.py -h` prints a complete list of optional arguments.
 
 ## Robot Grasping
 
-This package contains an example of open-loop grasp execution with a Franka Emika Panda and a wrist-mounted Intel Realsense D435. Since the robot drivers are not officially supported on ROS Noetic yet, we used the following workaround:
+This package contains an example of open-loop grasp execution with a Franka Emika Panda and a wrist-mounted Intel Realsense D435. Since the robot drivers are not officially supported on ROS Noetic yet, we used the following workaround.
 
-- Run the roscore and hardware drivers on a NUC with [`libfranka`](https://frankaemika.github.io/docs/installation_linux.html) installed.
-- Run MoveIt, the TSDF and VGN nodes on a second computer with ROS Noetic connected to the same roscore  ([instructions](http://wiki.ros.org/ROS/Tutorials/MultipleMachines)).
-
-First, on the NUC, start a roscore and launch the robot and sensor drivers.
+Start a roscore and launch the hardware drivers on the computer with `libfranka` installed.
 
 ```
 roscore &
-roslaunch vgn panda.launch
+roslaunch vgn hw.launch
 ```
 
-Next, launch Moveit and the TSDF and VGN nodes on the ROS Noetic machine.
+Launch MoveIt and the VGN ROS nodes on a second computer connected to the same roscore.
 
 ```
-roslaunch vgn nodes.launch
+roslaunch vgn panda_grasp.launch
 ```
 
-Now, run the experiment by executing the main script on the NUC.
+Run the grasping experiment.
 
 ```
 rosrun vgn panda_grasp.py
