@@ -14,6 +14,6 @@
     <build_depend>message_generation</build_depend>
     <exec_depend>message_runtime</exec_depend>
 
+    <depend>robot_helpers</depend>
     <depend>rospy</depend>
-    <depend>ros_numpy</depend>
 </package>
