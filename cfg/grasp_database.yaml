@@ -6,9 +6,9 @@ sim:
 urdf_root: assets/urdfs/blocks
 scaling:
   low: 0.8
-  high: 2.0
-object_count_lambda: 3
-view_count_lambda: 1
+  high: 1.2
+object_count_lambda: 4
+max_view_count: 4
 scene_grasp_count: 200
 
 metric: physics

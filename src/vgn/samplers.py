@@ -10,7 +10,7 @@ class UniformPointCloudSampler:
         self.max_depth = gripper.max_depth
         self.rng = rng
 
-    def __call__(self, pc, count, eps=0.1):
+    def __call__(self, count, pc, eps=0.1):
         # TODO erode point cloud to avoid sampling at boundaries
         points, normals = np.asarray(pc.points), np.asarray(pc.normals)
         grasps = []

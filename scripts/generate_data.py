@@ -43,7 +43,7 @@ def main():
         sim.save_state()
 
         # Sample camera views
-        view_count = rng.poisson(cfg["view_count_lambda"]) + 1
+        view_count = rng.randint(cfg["max_view_count"]) + 1
         views = sample_views(sim.scene, view_count, rng)
 
         # Render images
@@ -56,7 +56,7 @@ def main():
             continue
 
         # Sample grasps
-        grasps = grasp_sampler(pc, cfg["scene_grasp_count"])
+        grasps = grasp_sampler(cfg["scene_grasp_count"], pc)
 
         # Evaluate grasps
         qualities = [evaluate_grasp_point(grasp, sim, quality_fn) for grasp in grasps]
@@ -97,13 +97,10 @@ def render_imgs(views, camera):
 def create_pc(scene, imgs, intrinsic, views):
     tsdf = create_tsdf(scene.size, 120, imgs, intrinsic, views)
     pc = tsdf.get_scene_cloud()
-
     lower = np.r_[0.02, 0.02, scene.center.translation[2] + 0.01]
     upper = np.r_[scene.size - 0.02, scene.size - 0.02, scene.size]
     bounding_box = o3d.geometry.AxisAlignedBoundingBox(lower, upper)
-    pc = pc.crop(bounding_box)
-
-    return pc
+    return pc.crop(bounding_box)
 
 
 def evaluate_grasp_point(grasp, sim, quality_fn, rot_count=6):
