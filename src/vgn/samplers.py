@@ -11,12 +11,14 @@ class UniformPointCloudSampler:
         self.rng = rng
 
     def __call__(self, count, pc, eps=0.1):
-        # TODO erode point cloud to avoid sampling at boundaries
         points, normals = np.asarray(pc.points), np.asarray(pc.normals)
         grasps = []
         for _ in range(count):
-            i = self.rng.choice(len(points))
-            point, normal = points[i], normals[i]
+            ok = False
+            while not ok:  # This could result in an infinite loop, though unlikely.
+                i = self.rng.randint(len(points))
+                point, normal = points[i], normals[i]
+                ok = normal[2] > -0.1
             pose = self.construct_grasp_frame(pc, point, normal)
             depth = self.rng.uniform(-eps * self.max_depth, (1 + eps) * self.max_depth)
             pose *= Transform.t([0, 0, -depth])
