@@ -1,13 +1,13 @@
 sim:
   gui: False
   sleep: False
-  scene: pile
+  scene: packed
 
-urdf_root: assets/urdfs/blocks
+urdf_root: assets/urdfs/packed/train
 scaling:
-  low: 0.8
-  high: 1.2
-object_count_lambda: 4
+  low: 0.7
+  high: 0.9
+object_count_lambda: 3
 max_view_count: 4
 scene_grasp_count: 200
 
