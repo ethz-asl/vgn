@@ -14,7 +14,7 @@ class ClutterRemovalEnv:
         self.urdfs = find_urdfs(Path(cfg["urdf_root"]))
         self.scaling = cfg["scaling"]
         self.target_object_count = cfg["object_count"]
-        self.origin = Transform.t([0.0, 0.0, 0.05])
+        self.origin = Transform.t_[0.0, 0.0, 0.05]
         self.sim = GraspSim(cfg["sim"], self.rng)
         self.quality_fn = get_quality_fn(cfg["metric"], self.sim)
 
@@ -39,7 +39,7 @@ class ClutterRemovalEnv:
         # Cleanup
         if quality == 1.0:
             self.sim.scene.remove_object(info["object_uid"])
-        self.sim.gripper.reset(Transform.t(np.full(3, 100)), self.sim.gripper.max_width)
+        self.sim.gripper.reset(Transform.t_[0, 0, 10], self.sim.gripper.max_width)
         self.sim.scene.remove_outside_objects()
 
         # Check stopping criteria

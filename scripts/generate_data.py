@@ -23,7 +23,7 @@ def main():
 
     rng = np.random.RandomState(args.seed + 100 * rank)
     all_urdfs = find_urdfs(Path(cfg["urdf_root"]))
-    origin = Transform.t([0.0, 0.0, 0.05])
+    origin = Transform.t_[0.0, 0.0, 0.05]
 
     sim = GraspSim(cfg["sim"], rng)
     grasp_sampler = UniformPointCloudSampler(sim.gripper, rng)
@@ -38,7 +38,7 @@ def main():
         object_count = rng.poisson(cfg["object_count_lambda"]) + 1
         urdfs = rng.choice(all_urdfs, object_count)
         scales = rng.uniform(cfg["scaling"]["low"], cfg["scaling"]["high"], len(urdfs))
-        sim.gripper.reset(Transform.t(np.full(3, 100)), sim.gripper.max_width)
+        sim.gripper.reset(Transform.t_[np.full(3, 100)], sim.gripper.max_width)
         sim.scene.generate(origin, urdfs, scales)
         sim.save_state()
 

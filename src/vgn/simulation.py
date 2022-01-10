@@ -48,7 +48,7 @@ class PandaGripper:
         self.T_ee_com = Transform(Rotation.identity(), [0.0, 0.0, -0.025])
         self.uid = p.loadURDF("assets/urdfs/panda/hand.urdf")
         self.create_joints()
-        self.reset(Transform.t(np.full(3, 100)), self.max_width)
+        self.reset(Transform.t_[np.full(3, 100)], self.max_width)
 
     @property
     def width(self):
@@ -226,7 +226,7 @@ class PackedScene(Scene):
         if isinstance(scalings, float):
             scalings = [scalings] * len(urdfs)
         self.origin = origin
-        self.center = origin * Transform.t([0.5 * self.size, 0.5 * self.size, 0])
+        self.center = origin * Transform.t_[0.5 * self.size, 0.5 * self.size, 0]
         self.add_support(self.center)
         for urdf, scaling in zip(urdfs, scalings):
             uid = self.add_object(urdf, Transform.identity(), scaling)
@@ -257,10 +257,10 @@ class PileScene(Scene):
         if isinstance(scalings, float):
             scalings = [scalings] * len(urdfs)
         self.origin = origin
-        self.center = origin * Transform.t([0.5 * self.size, 0.5 * self.size, 0])
+        self.center = origin * Transform.t_[0.5 * self.size, 0.5 * self.size, 0]
         self.add_support(self.center)
         uid = load_urdf(
-            "assets/urdfs/box/model.urdf", Transform.t([0.02, 0.02, 0.05]), 1.3
+            "assets/urdfs/box/model.urdf", Transform.t_[0.02, 0.02, 0.05], 1.3
         )
         for urdf, scaling in zip(urdfs, scalings):
             loc_ori = Rotation.random(random_state=self.rng)

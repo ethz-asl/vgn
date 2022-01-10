@@ -21,7 +21,7 @@ class UniformPointCloudSampler:
                 ok = normal[2] > -0.1
             pose = self.construct_grasp_frame(pc, point, normal)
             depth = self.rng.uniform(-eps * self.max_depth, (1 + eps) * self.max_depth)
-            pose *= Transform.t([0, 0, -depth])
+            pose *= Transform.t_[0, 0, -depth]
             grasps.append(ParallelJawGrasp(pose, self.max_width))
         return grasps
 
