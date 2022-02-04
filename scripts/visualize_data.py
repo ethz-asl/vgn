@@ -19,8 +19,7 @@ def main():
         intrinsic = CameraIntrinsic(320, 240, 207.893, 207.893, 160, 120)
         imgs, views, grasps, qualities = db.read(scene_id)
         tsdf = create_tsdf(size, resolution, imgs, intrinsic, views)
-        vis.scene_cloud(tsdf.voxel_size, tsdf.get_scene_cloud())
-        # vis.map_cloud(tsdf.voxel_size, tsdf.get_map_cloud())
+        vis.scene_cloud(tsdf.voxel_size, np.asarray(tsdf.get_scene_cloud().points))
         vis.grasps(grasps, qualities, 0.05, max_grasps=20)
         vis.show()
 

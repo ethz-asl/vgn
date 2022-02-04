@@ -10,20 +10,17 @@ def clear():
     mlab.clf()
 
 
-def scene_cloud(voxel_size, cloud):
-    points = np.asarray(cloud.points)
+def scene_cloud(voxel_size, points):
     mlab.points3d(
         points[:, 0],
         points[:, 1],
         points[:, 2],
-        scale_factor=voxel_size,
+        scale_factor=0.8 * voxel_size,
         scale_mode="none",
     )
 
 
-def map_cloud(voxel_size, cloud):
-    points = np.asarray(cloud.points)
-    distances = np.asarray(cloud.colors)[:, 0]
+def map_cloud(voxel_size, points, distances):
     mlab.points3d(
         points[:, 0],
         points[:, 1],
@@ -47,6 +44,7 @@ def quality(voxel_size, grid, vmin=0.9):
         scale_mode="none",
         vmin=vmin,
         vmax=1.0,
+        opacity=0.2,
     )
 
 
