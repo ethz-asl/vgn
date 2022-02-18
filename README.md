@@ -30,6 +30,7 @@ Clone the repository into the `src` folder of a catkin workspace.
 
 ```
 git clone https://github.com/ethz-asl/vgn
+git clone https://github.com/mbreyer/robot_helpers
 ```
 
 OpenMPI is optionally used to distribute the data generation over multiple cores/machines.
