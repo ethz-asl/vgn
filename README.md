@@ -1,5 +1,9 @@
 # Volumetric Grasping Network
 
+**Note:** This is a cleaned-up branch including major reformatting. For the original code, checkout `corl2020`. The simulation is work in progress and will not produce the same results as the original publication.
+
+---
+
 VGN is a 3D convolutional neural network for real-time 6 DOF grasp pose detection. The network accepts a Truncated Signed Distance Function (TSDF) representation of the scene and outputs a volume of the same spatial resolution, where each cell contains the predicted quality, orientation, and width of a grasp executed at the center of the voxel. The network is trained on a synthetic grasping dataset generated with physics simulation.
 
 ![overview](assets/overview.png)
@@ -9,8 +13,6 @@ This repository contains the implementation of the following publication:
 * M. Breyer, J. J. Chung, L. Ott, R. Siegwart, and J. Nieto. Volumetric Grasping Network: Real-time 6 DOF Grasp Detection in Clutter. _Conference on Robot Learning (CoRL 2020)_, 2020. [[pdf](http://arxiv.org/abs/2101.01132)][[video](https://youtu.be/FXjvFDcV6E0)]
 
 If you use this work in your research, please [cite](#citing) accordingly.
-
-**Note:** This is a cleaned-up version including major reformatting and several smaller improvements. For the original code, checkout the `corl2020` branch.
 
 The next sections provide instructions for getting started with VGN.
 
