@@ -50,11 +50,11 @@ class ClutterRemovalEnv:
         observation = (None, None) if done else self.get_observation()
         return observation, quality, done, {}
 
-    def get_observation(self):
+    def get_observation(self, view_count=6):
         tsdf = UniformTSDFVolume(self.sim.scene.size, 40)
         r = 2.0 * self.sim.scene.size
         theta = np.pi / 6.0
-        phis = np.linspace(0.0, 2.0 * np.pi, 5)
+        phis = 2.0 * np.pi * np.arange(view_count) / view_count
         views = [view_on_sphere(self.sim.scene.center, r, theta, phi) for phi in phis]
         for view in views:
             depth_img = self.sim.camera.get_image(view)[1]

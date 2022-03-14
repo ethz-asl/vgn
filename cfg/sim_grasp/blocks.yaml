@@ -1,0 +1,12 @@
+sim:
+  gui: False
+  sleep: False
+  scene: pile
+
+urdf_root: assets/urdfs/blocks
+object_count: 5
+scaling:
+  low: 0.8
+  high: 1.0
+
+metric: physics
