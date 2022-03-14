@@ -32,14 +32,14 @@ class ClutterRemovalEnv:
 
     def step(self, grasp):
         # Execute grasp
-        grasp.width = self.sim.gripper.max_width  # TODO
+        grasp.width = self.sim.robot.max_width  # TODO
         quality, info = self.quality_fn(grasp)
         self.outcomes.append(quality)
 
         # Cleanup
         if quality == 1.0:
             self.sim.scene.remove_object(info["object_uid"])
-        self.sim.gripper.reset(Transform.t_[0, 0, 10], self.sim.gripper.max_width)
+        self.sim.robot.reset(Transform.t_[0, 0, 10], self.sim.robot.max_width)
         self.sim.scene.remove_outside_objects()
 
         # Check stopping criteria

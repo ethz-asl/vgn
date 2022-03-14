@@ -14,8 +14,8 @@ class GraspSim:
         self.sleep = cfg["sleep"]
         self.lateral_friction = cfg.get("lateral_friction", 1.0)
         self.rng = rng
-        self.gripper = PandaGripper(self)
-        self.gripper.reset(Transform.t_[0, 0, 10], self.gripper.max_width)
+        self.robot = PandaGripper(self)
+        self.robot.reset(Transform.t_[0, 0, 10], self.robot.max_width)
         self.camera = BtCamera(320, 240, 1.047, 0.1, 2.0, renderer=p.ER_TINY_RENDERER)
         self.scene = get_scene(cfg["scene"], self)
 
@@ -62,11 +62,44 @@ class PandaGripper:
     def contacts(self):
         return p.getContactPoints(self.uid)
 
-    def set_desired_pose(self, target):
+    def reset(self, pose, width):
+        self._reset_ee_pose(pose)
+        self._reset_fingers(width)
+
+    def moveL(self, desired, velocity=0.1, allow_contact=False):
+        current = self.get_pose()
+        desired = desired * self.T_ee_com
+        diff = desired.translation - current.translation
+        distance = np.linalg.norm(diff)
+        direction = diff / distance
+        step_count = int(distance / velocity / self.sim.dt)
+        for _ in range(step_count):
+            current.translation += direction * self.sim.dt * velocity
+            self.set_desired_pose(current)
+            self.sim.step()
+            if not allow_contact and self.contacts:
+                return
+
+    def grasp(self, force=5):
+        self.set_desired_joint_velocity(-0.1, force)
+        self.sim.forward(1.0)
+
+    def lift(self):
+        target = Transform.t_[0.0, 0.0, 0.1] * self.get_ee_pose()
+        self.moveL(target, allow_contact=True)
+
+    def get_pose(self):
+        pos, ori = p.getBasePositionAndOrientation(self.uid)
+        return Transform(Rotation.from_quat(ori), pos)
+
+    def get_ee_pose(self):
+        return self.get_pose() * self.T_ee_com.inv()
+
+    def set_desired_pose(self, pose):
         p.changeConstraint(
             self.fixed_joint_uid,
-            jointChildPivot=target.translation,
-            jointChildFrameOrientation=target.rotation.as_quat(),
+            jointChildPivot=pose.translation,
+            jointChildFrameOrientation=pose.rotation.as_quat(),
             maxForce=50,
         )
 
@@ -79,25 +112,7 @@ class PandaGripper:
             forces=[force, force],
         )
 
-    def reset(self, pose, width):
-        self._reset_pose(pose)
-        self._reset_fingers(width)
-
-    def grasp(self, force=5):
-        self.set_desired_joint_velocity(-0.1, force)
-        self.sim.forward(1.0)
-
-    def lift(self):
-        # Lift the object by 10 cm
-        pos, ori = p.getBasePositionAndOrientation(self.uid)
-        ori = Rotation.from_quat(ori)
-        for i in range(60):
-            target = pos + np.r_[0, 0, i * 1.0 / 60.0 * 0.1]
-            self.set_desired_pose(Transform(ori, target))
-            self.sim.step()
-
     def _create_joints(self):
-        # We replace the arm with a fixed joint (faster to simulate)
         self.fixed_joint_uid = p.createConstraint(
             parentBodyUniqueId=self.uid,
             parentLinkIndex=-1,
@@ -108,7 +123,6 @@ class PandaGripper:
             parentFramePosition=[0.0, 0.0, 0.0],
             childFramePosition=[0.0, 0.0, 0.0],
         )
-        # Joint to enforce symmetric finger positions
         gear_joint_uid = p.createConstraint(
             self.uid,
             0,
@@ -121,7 +135,7 @@ class PandaGripper:
         )
         p.changeConstraint(gear_joint_uid, gearRatio=-1, erp=0.1, maxForce=50)
 
-    def _reset_pose(self, pose):
+    def _reset_ee_pose(self, pose):
         pose = pose * self.T_ee_com
         p.resetBasePositionAndOrientation(
             self.uid,
@@ -153,7 +167,7 @@ def get_quality_fn(name, sim):
 class GraspQualityMetric:
     def __init__(self, sim):
         self.sim = sim
-        self.gripper = sim.gripper
+        self.robot = sim.robot
         self.rng = sim.rng
 
 
@@ -162,13 +176,13 @@ class DynamicMetric(GraspQualityMetric):
         return self.quality(grasp)
 
     def quality(self, grasp):
-        self.gripper.reset(grasp.pose, grasp.width)
+        self.robot.reset(grasp.pose, grasp.width)
         self.sim.step()
-        if not self.gripper.contacts:
-            self.gripper.grasp()
-            self.gripper.lift()
-            contacts = self.gripper.contacts
-            if self.gripper.width > 0.1 * self.gripper.max_width and contacts:
+        if not self.robot.contacts:
+            self.robot.grasp()
+            self.robot.lift()
+            contacts = self.robot.contacts
+            if self.robot.width > 0.1 * self.robot.max_width and contacts:
                 return 1.0, {"object_uid": contacts[0][2]}
         return 0.0, {}
 

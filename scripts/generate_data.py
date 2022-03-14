@@ -26,7 +26,7 @@ def main():
     origin = Transform.t_[0.0, 0.0, 0.05]
 
     sim = GraspSim(cfg["sim"], rng)
-    grasp_sampler = UniformPointCloudSampler(sim.gripper, rng)
+    grasp_sampler = UniformPointCloudSampler(sim.robot, rng)
     quality_fn = get_quality_fn(cfg["metric"], sim, cfg.get(cfg["metric"], {}))
 
     grasp_count = args.count // worker_count
@@ -38,7 +38,7 @@ def main():
         object_count = rng.poisson(cfg["object_count_lambda"]) + 1
         urdfs = rng.choice(all_urdfs, object_count)
         scales = rng.uniform(cfg["scaling"]["low"], cfg["scaling"]["high"], len(urdfs))
-        sim.gripper.reset(Transform.t_[np.full(3, 100)], sim.gripper.max_width)
+        sim.robot.reset(Transform.t_[np.full(3, 100)], sim.robot.max_width)
         sim.scene.generate(origin, urdfs, scales)
         sim.save_state()
 

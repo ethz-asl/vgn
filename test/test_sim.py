@@ -10,7 +10,7 @@ def main():
 
     ori = Rotation.from_euler("y", np.pi)
     pos = [0.0, 0.0, 0.0]
-    sim.gripper.reset(Transform(ori, pos), 0.08)
+    sim.robot.reset(Transform(ori, pos), 0.08)
 
     [sim.step() for _ in range(120)]
 
