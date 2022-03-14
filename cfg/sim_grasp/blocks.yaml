@@ -9,4 +9,4 @@ scaling:
   low: 1.33
   high: 1.66
 
-metric: dynamic
+metric: dynamic_with_approach

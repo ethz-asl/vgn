@@ -173,12 +173,23 @@ class GraspQualityMetric:
 
 class DynamicMetric(GraspQualityMetric):
     def __call__(self, grasp):
-        return self.quality(grasp)
-
-    def quality(self, grasp):
         self.robot.reset(grasp.pose, grasp.width)
         self.sim.step()
         if not self.robot.contacts:
+            self.robot.grasp()
+            self.robot.lift()
+            contacts = self.robot.contacts
+            if self.robot.width > 0.1 * self.robot.max_width and contacts:
+                return 1.0, {"object_uid": contacts[0][2]}
+        return 0.0, {}
+
+
+class DynamicWithApproachMetric(GraspQualityMetric):
+    def __call__(self, grasp):
+        self.robot.reset(grasp.pose * Transform.t_[0.0, 0.0, -0.05], grasp.width)
+        self.sim.step()
+        if not self.robot.contacts:
+            self.robot.moveL(grasp.pose)
             self.robot.grasp()
             self.robot.lift()
             contacts = self.robot.contacts
@@ -303,7 +314,10 @@ class PileScene(Scene):
 
 
 scenes = {"packed": PackedScene, "pile": PileScene}
-quality_fns = {"dynamic": DynamicMetric}
+quality_fns = {
+    "dynamic": DynamicMetric,
+    "dynamic_with_approach": DynamicWithApproachMetric,
+}
 
 
 def apply_noise(img, k=1000, theta=0.001, sigma=0.005, l=4.0):
