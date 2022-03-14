@@ -15,6 +15,7 @@ class GraspSim:
         self.lateral_friction = cfg.get("lateral_friction", 1.0)
         self.rng = rng
         self.gripper = PandaGripper(self)
+        self.gripper.reset(Transform.t_[0, 0, 10], self.gripper.max_width)
         self.camera = BtCamera(320, 240, 1.047, 0.1, 2.0, renderer=p.ER_TINY_RENDERER)
         self.scene = get_scene(cfg["scene"], self)
 
@@ -51,8 +52,7 @@ class PandaGripper:
         self.max_depth = 0.05
         self.T_ee_com = Transform(Rotation.identity(), [0.0, 0.0, -0.026])
         self.uid = p.loadURDF("assets/urdfs/panda/hand.urdf")
-        self.create_joints()
-        self.reset(Transform.t_[np.full(3, 100)], self.max_width)
+        self._create_joints()
 
     @property
     def width(self):
@@ -62,10 +62,26 @@ class PandaGripper:
     def contacts(self):
         return p.getContactPoints(self.uid)
 
+    def set_desired_pose(self, target):
+        p.changeConstraint(
+            self.fixed_joint_uid,
+            jointChildPivot=target.translation,
+            jointChildFrameOrientation=target.rotation.as_quat(),
+            maxForce=50,
+        )
+
+    def set_desired_joint_velocity(self, velocity, force):
+        p.setJointMotorControlArray(
+            self.uid,
+            [0, 1],
+            p.VELOCITY_CONTROL,
+            targetVelocities=[velocity, velocity],
+            forces=[force, force],
+        )
+
     def reset(self, pose, width):
-        self.reset_pose(pose)
-        self.reset_fingers(width)
-        self.sim.step()
+        self._reset_pose(pose)
+        self._reset_fingers(width)
 
     def grasp(self, force=5):
         self.set_desired_joint_velocity(-0.1, force)
@@ -80,7 +96,7 @@ class PandaGripper:
             self.set_desired_pose(Transform(ori, target))
             self.sim.step()
 
-    def create_joints(self):
+    def _create_joints(self):
         # We replace the arm with a fixed joint (faster to simulate)
         self.fixed_joint_uid = p.createConstraint(
             parentBodyUniqueId=self.uid,
@@ -105,7 +121,7 @@ class PandaGripper:
         )
         p.changeConstraint(gear_joint_uid, gearRatio=-1, erp=0.1, maxForce=50)
 
-    def reset_pose(self, pose):
+    def _reset_pose(self, pose):
         pose = pose * self.T_ee_com
         p.resetBasePositionAndOrientation(
             self.uid,
@@ -114,27 +130,10 @@ class PandaGripper:
         )
         self.set_desired_pose(pose)
 
-    def set_desired_pose(self, target):
-        p.changeConstraint(
-            self.fixed_joint_uid,
-            jointChildPivot=target.translation,
-            jointChildFrameOrientation=target.rotation.as_quat(),
-            maxForce=50,
-        )
-
-    def reset_fingers(self, width):
+    def _reset_fingers(self, width):
         p.resetJointState(self.uid, 0, 0.5 * width)
         p.resetJointState(self.uid, 1, 0.5 * width)
         self.set_desired_joint_velocity(0.0, 0.0)
-
-    def set_desired_joint_velocity(self, velocity, force):
-        p.setJointMotorControlArray(
-            self.uid,
-            [0, 1],
-            p.VELOCITY_CONTROL,
-            targetVelocities=[velocity, velocity],
-            forces=[force, force],
-        )
 
 
 def get_scene(name, sim):
@@ -144,26 +143,27 @@ def get_scene(name, sim):
         raise ValueError("{} scene does not exist.".format(name))
 
 
-def get_quality_fn(name, sim, cfg=None):
+def get_quality_fn(name, sim):
     if name in quality_fns:
-        return quality_fns[name](sim, cfg)
+        return quality_fns[name](sim)
     else:
         raise ValueError("{} quality_fn does not exist.".format(name))
 
 
 class GraspQualityMetric:
-    def __init__(self, sim, cfg=None):
+    def __init__(self, sim):
         self.sim = sim
         self.gripper = sim.gripper
         self.rng = sim.rng
 
 
-class PhysicsMetric(GraspQualityMetric):
+class DynamicMetric(GraspQualityMetric):
     def __call__(self, grasp):
         return self.quality(grasp)
 
     def quality(self, grasp):
         self.gripper.reset(grasp.pose, grasp.width)
+        self.sim.step()
         if not self.gripper.contacts:
             self.gripper.grasp()
             self.gripper.lift()
@@ -289,7 +289,7 @@ class PileScene(Scene):
 
 
 scenes = {"packed": PackedScene, "pile": PileScene}
-quality_fns = {"physics": PhysicsMetric}
+quality_fns = {"dynamic": DynamicMetric}
 
 
 def apply_noise(img, k=1000, theta=0.001, sigma=0.005, l=4.0):
