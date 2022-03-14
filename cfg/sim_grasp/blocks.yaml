@@ -6,7 +6,7 @@ sim:
 urdf_root: assets/urdfs/blocks
 object_count: 5
 scaling:
-  low: 0.8
-  high: 1.0
+  low: 1.33
+  high: 1.66
 
 metric: physics

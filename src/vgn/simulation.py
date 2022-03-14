@@ -12,7 +12,7 @@ class GraspSim:
         self.configure_physics_engine(cfg["gui"])
         self.configure_visualizer()
         self.sleep = cfg["sleep"]
-        self.lateral_friction = cfg.get("lateral_friction", 0.4)
+        self.lateral_friction = cfg.get("lateral_friction", 1.0)
         self.rng = rng
         self.gripper = PandaGripper(self)
         self.camera = BtCamera(320, 240, 1.047, 0.1, 2.0, renderer=p.ER_TINY_RENDERER)
