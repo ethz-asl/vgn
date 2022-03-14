@@ -13,7 +13,7 @@ class ClutterRemovalEnv:
         self.rng = rng
         self.urdfs = find_urdfs(Path(cfg["urdf_root"]))
         self.scaling = cfg["scaling"]
-        self.target_object_count = cfg["object_count"]
+        self.init_object_count = cfg["object_count"]
         self.origin = Transform.t_[0.0, 0.0, 0.05]
         self.sim = GraspSim(cfg["sim"], self.rng)
         self.quality_fn = get_quality_fn(cfg["metric"], self.sim)
@@ -24,7 +24,7 @@ class ClutterRemovalEnv:
 
     def reset(self):
         self.sim.scene.clear()
-        urdfs = self.rng.choice(self.urdfs, self.target_object_count)
+        urdfs = self.rng.choice(self.urdfs, self.init_object_count)
         scales = self.rng.uniform(self.scaling["low"], self.scaling["high"], len(urdfs))
         self.sim.scene.generate(self.origin, urdfs, scales)
         self.outcomes = deque(maxlen=2)

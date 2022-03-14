@@ -190,8 +190,8 @@ class Scene:
     def add_support(self, pose):
         self.support_uid = load_urdf(self.support_urdf, pose, 0.3)
 
-    def add_object(self, urdf, pose, scaling):
-        uid = load_urdf(urdf, pose, scaling)
+    def add_object(self, urdf, pose, scale):
+        uid = load_urdf(urdf, pose, scale)
         self.object_uids.append(uid)
         p.changeDynamics(uid, -1, lateralFriction=self.sim.lateral_friction)
         return uid
@@ -253,20 +253,22 @@ class PackedScene(Scene):
 
 
 class PileScene(Scene):
-    def generate(self, origin, urdfs, scalings=1.0):
-        if isinstance(scalings, float):
-            scalings = [scalings] * len(urdfs)
+    def generate(self, origin, urdfs, scales=1.0):
+        if isinstance(scales, float):
+            scales = [scales] * len(urdfs)
         self.origin = origin
         self.center = origin * Transform.t_[0.5 * self.size, 0.5 * self.size, 0]
         self.add_support(self.center)
         uid = load_urdf(
-            "assets/urdfs/box/model.urdf", Transform.t_[0.02, 0.02, 0.05], 1.3
+            "assets/urdfs/box/model.urdf",
+            self.origin * Transform.t_[0.02, 0.02, 0.0],
+            1.3,
         )
-        for urdf, scaling in zip(urdfs, scalings):
+        for urdf, scale in zip(urdfs, scales):
             loc_ori = Rotation.random(random_state=self.rng)
             loc_pos = np.r_[self.rng.uniform(self.size / 3, 2 * self.size / 3, 2), 0.25]
             pose = origin * Transform(loc_ori, loc_pos)
-            self.add_object(urdf, pose, scaling)
+            self.add_object(urdf, pose, scale)
             self.wait_for_objects_to_rest()
         p.removeBody(uid)
         self.remove_outside_objects()
