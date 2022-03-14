@@ -125,6 +125,7 @@ class PandaGripper:
     def reset_fingers(self, width):
         p.resetJointState(self.uid, 0, 0.5 * width)
         p.resetJointState(self.uid, 1, 0.5 * width)
+        self.set_desired_joint_velocity(0.0, 0.0)
 
     def set_desired_joint_velocity(self, velocity, force):
         p.setJointMotorControlArray(
