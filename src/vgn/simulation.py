@@ -45,7 +45,7 @@ class PandaGripper:
         self.sim = sim
         self.max_width = 0.08
         self.max_depth = 0.05
-        self.T_ee_com = Transform(Rotation.identity(), [0.0, 0.0, -0.025])
+        self.T_ee_com = Transform(Rotation.identity(), [0.0, 0.0, -0.026])
         self.uid = p.loadURDF("assets/urdfs/panda/hand.urdf")
         self.create_joints()
         self.reset(Transform.t_[np.full(3, 100)], self.max_width)
