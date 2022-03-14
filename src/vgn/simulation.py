@@ -266,7 +266,9 @@ class PileScene(Scene):
         )
         for urdf, scale in zip(urdfs, scales):
             loc_ori = Rotation.random(random_state=self.rng)
-            loc_pos = np.r_[self.rng.uniform(self.size / 3, 2 * self.size / 3, 2), 0.25]
+            loc_pos = np.r_[
+                self.rng.uniform(1.0 / 3.0 * self.size, 2.0 / 3.0 * self.size, 2), 0.2
+            ]
             pose = origin * Transform(loc_ori, loc_pos)
             self.add_object(urdf, pose, scale)
             self.wait_for_objects_to_rest()
