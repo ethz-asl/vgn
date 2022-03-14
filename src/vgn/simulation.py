@@ -39,6 +39,10 @@ class GraspSim:
         if self.sleep:
             time.sleep(self.dt)
 
+    def forward(self, duration):
+        for _ in range(int(duration / self.dt)):
+            self.step()
+
 
 class PandaGripper:
     def __init__(self, sim):
@@ -57,6 +61,24 @@ class PandaGripper:
     @property
     def contacts(self):
         return p.getContactPoints(self.uid)
+
+    def reset(self, pose, width):
+        self.reset_pose(pose)
+        self.reset_fingers(width)
+        self.sim.step()
+
+    def grasp(self, force=5):
+        self.set_desired_joint_velocity(-0.1, force)
+        self.sim.forward(1.0)
+
+    def lift(self):
+        # Lift the object by 10 cm
+        pos, ori = p.getBasePositionAndOrientation(self.uid)
+        ori = Rotation.from_quat(ori)
+        for i in range(60):
+            target = pos + np.r_[0, 0, i * 1.0 / 60.0 * 0.1]
+            self.set_desired_pose(Transform(ori, target))
+            self.sim.step()
 
     def create_joints(self):
         # We replace the arm with a fixed joint (faster to simulate)
@@ -83,19 +105,16 @@ class PandaGripper:
         )
         p.changeConstraint(gear_joint_uid, gearRatio=-1, erp=0.1, maxForce=50)
 
-    def reset(self, pose, width):
+    def reset_pose(self, pose):
         pose = pose * self.T_ee_com
         p.resetBasePositionAndOrientation(
             self.uid,
             pose.translation,
             pose.rotation.as_quat(),
         )
-        self.update_fixed_joint(pose)
-        p.resetJointState(self.uid, 0, 0.5 * width)
-        p.resetJointState(self.uid, 1, 0.5 * width)
-        self.sim.step()
+        self.set_desired_pose(pose)
 
-    def update_fixed_joint(self, target):
+    def set_desired_pose(self, target):
         p.changeConstraint(
             self.fixed_joint_uid,
             jointChildPivot=target.translation,
@@ -103,25 +122,18 @@ class PandaGripper:
             maxForce=50,
         )
 
-    def grasp(self, force=5):
+    def reset_fingers(self, width):
+        p.resetJointState(self.uid, 0, 0.5 * width)
+        p.resetJointState(self.uid, 1, 0.5 * width)
+
+    def set_desired_joint_velocity(self, velocity, force):
         p.setJointMotorControlArray(
             self.uid,
             [0, 1],
             p.VELOCITY_CONTROL,
-            targetVelocities=[-0.1] * 2,
-            forces=[force] * 2,
+            targetVelocities=[velocity, velocity],
+            forces=[force, force],
         )
-        for _ in range(60):
-            self.sim.step()
-
-    def lift(self):
-        # Lift the object by 10 cm
-        pos, ori = p.getBasePositionAndOrientation(self.uid)
-        ori = Rotation.from_quat(ori)
-        for i in range(60):
-            target = pos + np.r_[0, 0, i * 1.0 / 60.0 * 0.1]
-            self.update_fixed_joint(Transform(ori, target))
-            self.sim.step()
 
 
 def get_scene(name, sim):
@@ -217,8 +229,7 @@ class Scene:
                 self.remove_object(uid)
 
     def wait_for_objects_to_rest(self):
-        for _ in range(60):  # TODO
-            self.sim.step()
+        self.sim.forward(1.0)  # TODO
 
 
 class PackedScene(Scene):
