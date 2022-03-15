@@ -65,12 +65,11 @@ class GraspSim:
     def wait_for_objects_to_rest(self):
         self.forward(1.0)  # TODO
 
-    def _configure_physics_engine(self, rate=60, sub_step_count=4):
-        self.rate = rate
-        self.dt = 1.0 / self.rate
+    def _configure_physics_engine(self):
+        self.dt = 1.0 / 240.0
         p.connect(p.GUI if self.cfg["gui"] else p.DIRECT)
         p.setAdditionalSearchPath(self.cfg["urdf_root"])
-        p.setPhysicsEngineParameter(fixedTimeStep=self.dt, numSubSteps=sub_step_count)
+        p.setPhysicsEngineParameter(fixedTimeStep=self.dt)
         p.setGravity(0.0, 0.0, -9.81)
 
     def _configure_visualizer(self):
