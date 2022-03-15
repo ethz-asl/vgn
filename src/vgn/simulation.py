@@ -104,7 +104,7 @@ class PandaGripper:
         self.sim = sim
         self.max_width = 0.08
         self.max_depth = 0.05
-        self.T_ee_com = Transform(Rotation.identity(), [0.0, 0.0, -0.026])
+        self.T_ee_com = Transform.t_[0.0, 0.0, -0.026]
         self.uid = p.loadURDF("assets/urdfs/panda/hand.urdf")
         self._create_joints()
 
@@ -210,9 +210,7 @@ class DynamicMetric(GraspQualityMetric):
         self.sim.step()
         if not self.robot.contacts:
             self.robot.grasp()
-            self.robot.moveL(
-                Transform.t_[0, 0, 0.1] * self.robot.pose(), allow_contact=True
-            )
+            self.robot.moveL(Transform.t_[0, 0, 0.1] * grasp.pose, allow_contact=True)
             contacts = self.robot.contacts
             if self.robot.width > 0.1 * self.robot.max_width and contacts:
                 return 1.0, {"object_uid": contacts[0][2]}
@@ -226,9 +224,7 @@ class DynamicWithApproachMetric(GraspQualityMetric):
         if not self.robot.contacts:
             self.robot.moveL(grasp.pose)
             self.robot.grasp()
-            self.robot.moveL(
-                Transform.t_[0, 0, 0.1] * self.robot.pose(), allow_contact=True
-            )
+            self.robot.moveL(Transform.t_[0, 0, 0.1] * grasp.pose, allow_contact=True)
             contacts = self.robot.contacts
             if self.robot.width > 0.1 * self.robot.max_width and contacts:
                 return 1.0, {"object_uid": contacts[0][2]}

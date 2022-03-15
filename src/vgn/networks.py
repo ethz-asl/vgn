@@ -13,12 +13,6 @@ def get_network(name):
 
 
 def load_network(path, device):
-    """Construct the neural network and load parameters from the specified file.
-
-    Args:
-        path: Path to the model parameters. The name must conform to `vgn_name_[_...]`.
-
-    """
     model_name = path.stem.split("_")[1]
     net = get_network(model_name).to(device)
     net.load_state_dict(torch.load(path, map_location=device))

@@ -31,7 +31,7 @@ class ClutterRemovalEnv:
         return {"object_count": self.sim.object_count}
 
     def step(self, grasp):
-        grasp.width = self.sim.robot.max_width  # TODO
+        grasp.width = self.sim.robot.max_width
         score, info = self.score_fn(grasp)
         self.outcomes.append(score)
         if score == 1.0:
