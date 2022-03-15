@@ -11,7 +11,7 @@ from robot_helpers.spatial import Rotation, Transform
 import vgn.database as db
 from vgn.samplers import UniformPointCloudSampler
 from vgn.perception import create_tsdf
-from vgn.simulation import GraspSim, get_quality_fn
+from vgn.simulation import GraspSim, get_metric
 from vgn.utils import find_urdfs, view_on_sphere
 
 
@@ -27,7 +27,7 @@ def main():
 
     sim = GraspSim(cfg["sim"], rng)
     grasp_sampler = UniformPointCloudSampler(sim.robot, rng)
-    quality_fn = get_quality_fn(cfg["metric"], sim, cfg.get(cfg["metric"], {}))
+    score_fn = get_metric(cfg["metric"], sim, cfg.get(cfg["metric"], {}))
 
     grasp_count = args.count // worker_count
     scene_count = grasp_count // cfg["scene_grasp_count"]
@@ -40,7 +40,7 @@ def main():
         scales = rng.uniform(cfg["scaling"]["low"], cfg["scaling"]["high"], len(urdfs))
         sim.robot.reset(Transform.t_[np.full(3, 100)], sim.robot.max_width)
         sim.scene.generate(origin, urdfs, scales)
-        sim.save_state()
+        state_id = sim.save_state()
 
         # Sample camera views
         view_count = rng.randint(cfg["max_view_count"]) + 1
@@ -59,7 +59,7 @@ def main():
         grasps = grasp_sampler(cfg["scene_grasp_count"], pc)
 
         # Evaluate grasps
-        qualities = [evaluate_grasp_point(grasp, sim, quality_fn) for grasp in grasps]
+        qualities = [evaluate_grasp_point(g, sim, state_id, score_fn) for g in grasps]
 
         # Write
         db.write(args.root, views, imgs, grasps, qualities)
@@ -103,13 +103,13 @@ def create_pc(scene, imgs, intrinsic, views):
     return pc.crop(bounding_box)
 
 
-def evaluate_grasp_point(grasp, sim, quality_fn, rot_count=6):
+def evaluate_grasp_point(grasp, sim, state_id, quality_fn, rot_count=6):
     # Changes the rotation of the grasp in place
     angles = np.linspace(0.0, np.pi, rot_count)
     R = grasp.pose.rotation
     for angle in angles:
         grasp.pose.rotation = R * Rotation.from_rotvec([0, 0, angle])
-        sim.restore_state()
+        sim.restore_state(state_id)
         quality, _ = quality_fn(grasp)
         if quality:
             return 1.0

@@ -1,9 +1,9 @@
 sim:
+  urdf_root: assets/urdfs
   gui: False
-  sleep: False
-  scene: pile
+  lateral_friction: 1.0
 
-urdf_root: assets/urdfs/blocks
+object_urdfs: assets/urdfs/blocks
 object_count: 5
 scaling:
   low: 1.33

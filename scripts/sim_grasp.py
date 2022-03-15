@@ -11,30 +11,29 @@ from vgn.envs import ClutterRemovalEnv
 def main():
     parser = create_parser()
     args = parser.parse_args()
-
     cfg = load_yaml(args.cfg)
     rng = np.random.RandomState(args.seed)
-
     env = ClutterRemovalEnv(cfg, rng)
     vgn = VGN(args.model)
 
-    object_count = 0
     grasp_count = 0
     cleared_count = 0
+    object_count = 0
 
-    def compute_best_grasp(voxel_size, tsdf_grid):
+    def compute_grasp(voxel_size, tsdf_grid):
         out = vgn.predict(tsdf_grid)
         grasps, qualities = select_local_maxima(voxel_size, out, threshold=0.9)
         return grasps[np.argmax(qualities)] if len(grasps) > 0 else None
 
     for _ in tqdm(range(args.episode_count)):
-        voxel_size, tsdf_grid = env.reset()
-        object_count += env.object_count
+        info = env.reset()
+        object_count += info["object_count"]
         done = False
         while not done:
-            grasp = compute_best_grasp(voxel_size, tsdf_grid)
+            voxel_size, tsdf_grid = env.get_observation()
+            grasp = compute_grasp(voxel_size, tsdf_grid)
             if grasp:
-                (voxel_size, tsdf_grid), success, done, _ = env.step(grasp)
+                success, done = env.step(grasp)
                 grasp_count += 1
                 cleared_count += success
             else:

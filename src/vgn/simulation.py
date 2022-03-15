@@ -7,42 +7,96 @@ from robot_helpers.bullet import BtCamera
 from robot_helpers.spatial import Rotation, Transform
 
 
+def load_urdf(urdf, pose, scale=1.0):
+    ori, pos = pose.rotation.as_quat(), pose.translation
+    return p.loadURDF(str(urdf), pos, ori, globalScaling=scale)
+
+
 class GraspSim:
     def __init__(self, cfg, rng):
-        self.configure_physics_engine(cfg["gui"])
-        self.configure_visualizer()
-        self.sleep = cfg["sleep"]
-        self.lateral_friction = cfg.get("lateral_friction", 1.0)
+        self.cfg = cfg
         self.rng = rng
+        self._configure_physics_engine()
+        self._configure_visualizer()
         self.robot = PandaGripper(self)
-        self.robot.reset(Transform.t_[0, 0, 10], self.robot.max_width)
         self.camera = BtCamera(320, 240, 1.047, 0.1, 2.0, renderer=p.ER_TINY_RENDERER)
-        self.scene = get_scene(cfg["scene"], self)
+        self.object_uids = []
+        self.support_uid = -1
+        self.robot.reset(Transform.t_[0, 0, 10], self.robot.max_width)
 
-    def configure_physics_engine(self, gui, rate=60, sub_step_count=4):
-        self.rate = rate
-        self.dt = 1.0 / self.rate
-        p.connect(p.GUI if gui else p.DIRECT)
-        p.setPhysicsEngineParameter(fixedTimeStep=self.dt, numSubSteps=sub_step_count)
-        p.setGravity(0.0, 0.0, -9.81)
+    @property
+    def object_count(self):
+        return len(self.object_uids)
 
-    def configure_visualizer(self):
-        p.resetDebugVisualizerCamera(1.2, 30, -30, [0.4, 0.0, 0.2])
+    def load_support(self, pose, scale):
+        self.support_uid = load_urdf("plane/model.urdf", pose, scale)
 
-    def save_state(self):
-        self.snapshot_id = p.saveState()
+    def load_object(self, urdf, pose, scale):
+        uid = load_urdf(urdf, pose, scale)
+        self.object_uids.append(uid)
+        p.changeDynamics(uid, -1, lateralFriction=self.cfg["lateral_friction"])
+        return uid
 
-    def restore_state(self):
-        p.restoreState(stateId=self.snapshot_id)
+    def remove_object(self, uid):
+        p.removeBody(uid)
+        self.object_uids.remove(uid)
+
+    def clear(self):
+        p.removeBody(self.support_uid)
+        self.support_uid = -1
+        for uid in list(self.object_uids):
+            self.remove_object(uid)
 
     def step(self):
         p.stepSimulation()
-        if self.sleep:
+        if self.cfg["gui"]:
             time.sleep(self.dt)
 
     def forward(self, duration):
         for _ in range(int(duration / self.dt)):
             self.step()
+
+    def save_state(self):
+        return p.saveState()
+
+    def restore_state(self, id):
+        p.restoreState(stateId=id)
+
+    def wait_for_objects_to_rest(self):
+        self.forward(1.0)  # TODO
+
+    def _configure_physics_engine(self, rate=60, sub_step_count=4):
+        self.rate = rate
+        self.dt = 1.0 / self.rate
+        p.connect(p.GUI if self.cfg["gui"] else p.DIRECT)
+        p.setAdditionalSearchPath(self.cfg["urdf_root"])
+        p.setPhysicsEngineParameter(fixedTimeStep=self.dt, numSubSteps=sub_step_count)
+        p.setGravity(0.0, 0.0, -9.81)
+
+    def _configure_visualizer(self):
+        p.resetDebugVisualizerCamera(1.2, 30, -30, [0.4, 0.0, 0.2])
+
+
+def generate_pile(sim, origin, size, urdfs, scales):
+    center = origin * Transform.t_[0.5 * size, 0.5 * size, 0]
+    sim.load_support(center, size)
+    uid = load_urdf("box/model.urdf", origin * Transform.t_[0.02, 0.02, 0], 1.3)
+    for urdf, scale in zip(urdfs, scales):
+        loc_ori = Rotation.random(random_state=sim.rng)
+        loc_pos = np.r_[sim.rng.uniform(1.0 / 3.0 * size, 2.0 / 3.0 * size, 2), 0.2]
+        sim.load_object(urdf, origin * Transform(loc_ori, loc_pos), scale)
+        sim.wait_for_objects_to_rest()
+    p.removeBody(uid)
+    sim.wait_for_objects_to_rest()
+    remove_objects_outside_roi(sim, origin, size)
+
+
+def remove_objects_outside_roi(sim, origin, size):
+    for uid in sim.object_uids:
+        xyz = np.asarray(p.getBasePositionAndOrientation(uid)[0])
+        xyz = xyz - origin.translation
+        if np.any(xyz < 0.0) or np.any(xyz > size):
+            sim.remove_object(uid)
 
 
 class PandaGripper:
@@ -63,39 +117,15 @@ class PandaGripper:
         return p.getContactPoints(self.uid)
 
     def reset(self, pose, width):
-        self._reset_ee_pose(pose)
+        self._reset_pose(pose)
         self._reset_fingers(width)
 
-    def moveL(self, desired, velocity=0.1, allow_contact=False):
-        current = self.get_pose()
-        desired = desired * self.T_ee_com
-        diff = desired.translation - current.translation
-        distance = np.linalg.norm(diff)
-        direction = diff / distance
-        step_count = int(distance / velocity / self.sim.dt)
-        for _ in range(step_count):
-            current.translation += direction * self.sim.dt * velocity
-            self.set_desired_pose(current)
-            self.sim.step()
-            if not allow_contact and self.contacts:
-                return
-
-    def grasp(self, force=5):
-        self.set_desired_joint_velocity(-0.1, force)
-        self.sim.forward(1.0)
-
-    def lift(self):
-        target = Transform.t_[0.0, 0.0, 0.1] * self.get_ee_pose()
-        self.moveL(target, allow_contact=True)
-
-    def get_pose(self):
+    def pose(self):
         pos, ori = p.getBasePositionAndOrientation(self.uid)
-        return Transform(Rotation.from_quat(ori), pos)
-
-    def get_ee_pose(self):
-        return self.get_pose() * self.T_ee_com.inv()
+        return Transform(Rotation.from_quat(ori), pos) * self.T_ee_com.inv()
 
     def set_desired_pose(self, pose):
+        pose = pose * self.T_ee_com
         p.changeConstraint(
             self.fixed_joint_uid,
             jointChildPivot=pose.translation,
@@ -112,6 +142,23 @@ class PandaGripper:
             forces=[force, force],
         )
 
+    def moveL(self, desired, velocity=0.1, allow_contact=False):
+        current = self.pose()
+        diff = desired.translation - current.translation
+        distance = np.linalg.norm(diff)
+        direction = diff / distance
+        step_count = int(distance / velocity / self.sim.dt)
+        for _ in range(step_count):
+            current.translation += direction * self.sim.dt * velocity
+            self.set_desired_pose(current)
+            self.sim.step()
+            if not allow_contact and self.contacts:
+                return
+
+    def grasp(self, force=5):
+        self.set_desired_joint_velocity(-0.1, force)
+        self.sim.forward(0.5)
+
     def _create_joints(self):
         self.fixed_joint_uid = p.createConstraint(
             parentBodyUniqueId=self.uid,
@@ -123,7 +170,7 @@ class PandaGripper:
             parentFramePosition=[0.0, 0.0, 0.0],
             childFramePosition=[0.0, 0.0, 0.0],
         )
-        gear_joint_uid = p.createConstraint(
+        mimic_joint_uid = p.createConstraint(
             self.uid,
             0,
             self.uid,
@@ -133,35 +180,21 @@ class PandaGripper:
             [0.0, 0.0, 0.0],
             [0.0, 0.0, 0.0],
         )
-        p.changeConstraint(gear_joint_uid, gearRatio=-1, erp=0.1, maxForce=50)
+        p.changeConstraint(mimic_joint_uid, gearRatio=-1, erp=0.1, maxForce=50)
 
-    def _reset_ee_pose(self, pose):
+    def _reset_pose(self, pose):
+        self.set_desired_pose(pose)
         pose = pose * self.T_ee_com
         p.resetBasePositionAndOrientation(
             self.uid,
             pose.translation,
             pose.rotation.as_quat(),
         )
-        self.set_desired_pose(pose)
 
     def _reset_fingers(self, width):
         p.resetJointState(self.uid, 0, 0.5 * width)
         p.resetJointState(self.uid, 1, 0.5 * width)
         self.set_desired_joint_velocity(0.0, 0.0)
-
-
-def get_scene(name, sim):
-    if name in scenes:
-        return scenes[name](sim)
-    else:
-        raise ValueError("{} scene does not exist.".format(name))
-
-
-def get_quality_fn(name, sim):
-    if name in quality_fns:
-        return quality_fns[name](sim)
-    else:
-        raise ValueError("{} quality_fn does not exist.".format(name))
 
 
 class GraspQualityMetric:
@@ -177,7 +210,9 @@ class DynamicMetric(GraspQualityMetric):
         self.sim.step()
         if not self.robot.contacts:
             self.robot.grasp()
-            self.robot.lift()
+            self.robot.moveL(
+                Transform.t_[0, 0, 0.1] * self.robot.pose(), allow_contact=True
+            )
             contacts = self.robot.contacts
             if self.robot.width > 0.1 * self.robot.max_width and contacts:
                 return 1.0, {"object_uid": contacts[0][2]}
@@ -191,133 +226,26 @@ class DynamicWithApproachMetric(GraspQualityMetric):
         if not self.robot.contacts:
             self.robot.moveL(grasp.pose)
             self.robot.grasp()
-            self.robot.lift()
+            self.robot.moveL(
+                Transform.t_[0, 0, 0.1] * self.robot.pose(), allow_contact=True
+            )
             contacts = self.robot.contacts
             if self.robot.width > 0.1 * self.robot.max_width and contacts:
                 return 1.0, {"object_uid": contacts[0][2]}
         return 0.0, {}
 
 
-def load_urdf(urdf, pose, scaling=1.0):
-    ori, pos = pose.rotation.as_quat(), pose.translation
-    return p.loadURDF(str(urdf), pos, ori, globalScaling=scaling)
-
-
-class Scene:
-    def __init__(self, sim):
-        self.support_urdf = "assets/urdfs/plane/model.urdf"
-        self.sim = sim
-        self.rng = sim.rng
-        self.size = 0.3
-        self.origin = None
-        self.center = None
-        self.support_uid = -1
-        self.object_uids = []
-
-    @property
-    def object_count(self):
-        return len(self.object_uids)
-
-    def clear(self):
-        self.remove_support()
-        self.remove_all_objects()
-
-    def generate(self):
-        raise NotImplementedError
-
-    def add_support(self, pose):
-        self.support_uid = load_urdf(self.support_urdf, pose, 0.3)
-
-    def add_object(self, urdf, pose, scale):
-        uid = load_urdf(urdf, pose, scale)
-        self.object_uids.append(uid)
-        p.changeDynamics(uid, -1, lateralFriction=self.sim.lateral_friction)
-        return uid
-
-    def remove_support(self):
-        p.removeBody(self.support_uid)
-
-    def remove_object(self, uid):
-        p.removeBody(uid)
-        self.object_uids.remove(uid)
-
-    def remove_all_objects(self):
-        for uid in list(self.object_uids):
-            self.remove_object(uid)
-
-    def remove_outside_objects(self):
-        # TODO does not handle rotations
-        self.wait_for_objects_to_rest()
-        for uid in self.object_uids:
-            xyz = np.asarray(p.getBasePositionAndOrientation(uid)[0])
-            xyz = xyz - self.origin.translation
-            if np.any(xyz < 0.0) or np.any(xyz > self.size):
-                self.remove_object(uid)
-
-    def wait_for_objects_to_rest(self):
-        self.sim.forward(1.0)  # TODO
-
-
-class PackedScene(Scene):
-    def generate(self, origin, urdfs, scalings=1.0, max_attempts=10):
-        if isinstance(scalings, float):
-            scalings = [scalings] * len(urdfs)
-        self.origin = origin
-        self.center = origin * Transform.t_[0.5 * self.size, 0.5 * self.size, 0]
-        self.add_support(self.center)
-        for urdf, scaling in zip(urdfs, scalings):
-            uid = self.add_object(urdf, Transform.identity(), scaling)
-            lower, upper = p.getAABB(uid)
-            z_offset = 0.5 * (upper[2] - lower[2]) + 0.002
-            state_id = p.saveState()
-            for _ in range(max_attempts):
-                local_ori = Rotation.from_rotvec([0, 0, self.rng.uniform(0, 2 * np.pi)])
-                local_pos = np.r_[self.rng.uniform(0.2, 0.8, 2) * self.size, z_offset]
-                pose = origin * Transform(local_ori, local_pos)
-                p.resetBasePositionAndOrientation(
-                    uid,
-                    pose.translation,
-                    pose.rotation.as_quat(),
-                )
-                self.sim.step()
-                if p.getContactPoints(uid):
-                    p.restoreState(stateId=state_id)
-                else:
-                    break
-            else:
-                self.remove_object(uid)
-        self.remove_outside_objects()
-
-
-class PileScene(Scene):
-    def generate(self, origin, urdfs, scales=1.0):
-        if isinstance(scales, float):
-            scales = [scales] * len(urdfs)
-        self.origin = origin
-        self.center = origin * Transform.t_[0.5 * self.size, 0.5 * self.size, 0]
-        self.add_support(self.center)
-        uid = load_urdf(
-            "assets/urdfs/box/model.urdf",
-            self.origin * Transform.t_[0.02, 0.02, 0.0],
-            1.3,
-        )
-        for urdf, scale in zip(urdfs, scales):
-            loc_ori = Rotation.random(random_state=self.rng)
-            loc_pos = np.r_[
-                self.rng.uniform(1.0 / 3.0 * self.size, 2.0 / 3.0 * self.size, 2), 0.2
-            ]
-            pose = origin * Transform(loc_ori, loc_pos)
-            self.add_object(urdf, pose, scale)
-            self.wait_for_objects_to_rest()
-        p.removeBody(uid)
-        self.remove_outside_objects()
-
-
-scenes = {"packed": PackedScene, "pile": PileScene}
-quality_fns = {
+grasp_metrics = {
     "dynamic": DynamicMetric,
     "dynamic_with_approach": DynamicWithApproachMetric,
 }
+
+
+def get_metric(name):
+    if name in grasp_metrics:
+        return grasp_metrics[name]
+    else:
+        raise ValueError("{} does not exist.".format(name))
 
 
 def apply_noise(img, k=1000, theta=0.001, sigma=0.005, l=4.0):
