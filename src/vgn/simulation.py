@@ -73,7 +73,7 @@ class GraspSim:
         p.setGravity(0.0, 0.0, -9.81)
 
     def _configure_visualizer(self):
-        p.resetDebugVisualizerCamera(1.2, 30, -30, [0.4, 0.0, 0.2])
+        p.resetDebugVisualizerCamera(0.6, 0.0, -30, [0.15, 0.0, 0.3])
 
 
 def generate_pile(sim, origin, size, urdfs, scales):
