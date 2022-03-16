@@ -3,11 +3,11 @@ sim:
   gui: False
 
 object_urdfs: assets/urdfs/blocks
-object_count_lambda: 3
+object_count_lambda: 4
 scaling:
   low: 1.33
   high: 1.66
-max_view_count: 4
+max_view_count: 6
 scene_grasp_count: 200
 
 metric: dynamic

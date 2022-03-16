@@ -8,17 +8,17 @@ from vgn.grasp import ParallelJawGrasp
 
 def write(views, imgs, grasps, scores, root):
     scene_id = uuid.uuid4().hex
-    write_scene(views, imgs, root, scene_id)
+    write_sensor_data(views, imgs, root, scene_id)
     write_grasps(grasps, scores, root / "grasps.csv", scene_id)
 
 
 def read(root, df, id):
-    imgs, views = read_scene(root, id)
+    imgs, views = read_sensor_data(root, id)
     grasps, scores = read_grasps(df, id)
     return imgs, views, grasps, scores
 
 
-def write_scene(views, images, root, id):
+def write_sensor_data(views, images, root, id):
     count, shape = len(images), images[0].shape
     views_array = np.empty((count, 7), np.float32)
     imgs_array = np.empty((count,) + shape, np.float32)
@@ -28,7 +28,7 @@ def write_scene(views, images, root, id):
     np.savez_compressed(root / (id + ".npz"), views=views_array, depth_imgs=imgs_array)
 
 
-def read_scene(root, id):
+def read_sensor_data(root, id):
     data = np.load(root / (id + ".npz"))
     imgs, views = data["depth_imgs"], data["views"]
     views = [Transform.from_list(view) for view in views]
