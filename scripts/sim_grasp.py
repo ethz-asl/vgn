@@ -6,6 +6,7 @@ from tqdm import tqdm
 from robot_helpers.io import load_yaml
 from vgn.detection import VGN, select_local_maxima
 from vgn.envs import ClutterRemovalEnv
+import vgn.visualizer as vis
 
 
 def main():
@@ -23,6 +24,7 @@ def main():
     def compute_grasp(voxel_size, tsdf_grid):
         out = vgn.predict(tsdf_grid)
         grasps, qualities = select_local_maxima(voxel_size, out, threshold=0.9)
+        # vis.grasps(grasps, qualities)
         return grasps[np.argmax(qualities)] if len(grasps) > 0 else None
 
     for _ in tqdm(range(args.episode_count)):
@@ -32,6 +34,7 @@ def main():
         while not done:
             voxel_size, tsdf_grid = env.get_observation()
             grasp = compute_grasp(voxel_size, tsdf_grid)
+            # vis.show()
             if grasp:
                 success, done = env.step(grasp)
                 grasp_count += 1

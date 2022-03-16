@@ -5,6 +5,7 @@ import numpy as np
 from vgn.perception import UniformTSDFVolume
 from vgn.simulation import GraspSim, get_scene, get_metric
 from vgn.utils import find_urdfs, view_on_sphere
+import vgn.visualizer as vis
 from robot_helpers.spatial import Transform
 
 
@@ -52,4 +53,5 @@ class ClutterRemovalEnv:
         for view in views:
             depth_img = self.sim.camera.get_image(view)[1]
             tsdf.integrate(depth_img, self.sim.camera.intrinsic, view.inv())
+        # vis.scene_cloud(tsdf.voxel_size, np.asarray(tsdf.get_scene_cloud().points))
         return tsdf.voxel_size, tsdf.get_grid()

@@ -20,7 +20,7 @@ def main():
         imgs, views, grasps, qualities = db.read(scene_id)
         tsdf = create_tsdf(size, resolution, imgs, intrinsic, views)
         vis.scene_cloud(tsdf.voxel_size, np.asarray(tsdf.get_scene_cloud().points))
-        vis.grasps(grasps, qualities, 0.05, max_grasps=20)
+        vis.grasps(grasps, qualities, max_grasps=20)
         vis.show()
 
     if args.scene_id:

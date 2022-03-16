@@ -48,8 +48,8 @@ def quality(voxel_size, grid, vmin=0.9):
     )
 
 
-def grasp(grasp, quality, depth, radius=0.002):
-    pose, w, d = grasp.pose, grasp.width, depth
+def grasp(grasp, quality, radius=0.002):
+    pose, w, d = grasp.pose, 0.08, 0.05
     color = cm(quality)
 
     points = [[0, -w / 2, d], [0, -w / 2, 0], [0, w / 2, 0], [0, w / 2, d]]
@@ -73,12 +73,12 @@ def grasp(grasp, quality, depth, radius=0.002):
     )
 
 
-def grasps(grasps, qualities, depth, max_grasps=None):
+def grasps(grasps, qualities, max_grasps=None):
     if max_grasps and max_grasps < len(grasps):
         i = np.random.randint(len(grasps), size=max_grasps)
         grasps, qualities = grasps[i], qualities[i]
     for grasp_config, quality in zip(grasps, qualities):
-        grasp(grasp_config, quality, depth)
+        grasp(grasp_config, quality)
 
 
 def show():
