@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <launch>
   <!-- Load configuration -->
-  <rosparam command="load" file="$(find vgn)/cfg/panda_grasp.yaml" subst_value="true" />
+  <rosparam command="load" file="$(find vgn)/cfg/hw/panda_grasp.yaml" subst_value="true" />
 
   <!-- Launch MoveIt -->
   <node pkg="tf2_ros" type="static_transform_publisher" name="to_panda" args="0 0 0 0 0 0  world panda_link0" />

@@ -54,8 +54,8 @@ def main():
 def create_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=Path, default="assets/models/vgn_conv.pth")
-    parser.add_argument("--cfg", type=Path, default="cfg/sim_grasp.yaml")
-    parser.add_argument("--episode-count", type=int, default=10)
+    parser.add_argument("--cfg", type=Path, default="cfg/sim/blocks.yaml")
+    parser.add_argument("--episode-count", type=int, default=100)
     parser.add_argument("--seed", type=int, default=1)
     return parser
 
