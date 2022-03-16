@@ -98,6 +98,15 @@ def remove_objects_outside_roi(sim, origin, size):
             sim.remove_object(uid)
 
 
+scene_fns = {
+    "pile": generate_pile,
+}
+
+
+def get_scene(name):
+    return scene_fns[name]
+
+
 class PandaGripper:
     def __init__(self, sim):
         self.sim = sim
@@ -237,10 +246,7 @@ grasp_metrics = {
 
 
 def get_metric(name):
-    if name in grasp_metrics:
-        return grasp_metrics[name]
-    else:
-        raise ValueError("{} does not exist.".format(name))
+    return grasp_metrics[name]
 
 
 def apply_noise(img, k=1000, theta=0.001, sigma=0.005, l=4.0):

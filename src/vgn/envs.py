@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 
 from vgn.perception import UniformTSDFVolume
-from vgn.simulation import GraspSim, get_metric, generate_pile
+from vgn.simulation import GraspSim, get_scene, get_metric
 from vgn.utils import find_urdfs, view_on_sphere
 from robot_helpers.spatial import Transform
 
@@ -14,6 +14,7 @@ class ClutterRemovalEnv:
         self.urdfs = find_urdfs(Path(cfg["object_urdfs"]))
         self.object_count = cfg["object_count"]
         self.scaling = cfg["scaling"]
+        self.generate_scene = get_scene(cfg["scene"])
 
         self.origin = Transform.t_[0.0, 0.0, 0.05]
         self.size = 0.3
@@ -26,7 +27,7 @@ class ClutterRemovalEnv:
         self.sim.clear()
         urdfs = self.rng.choice(self.urdfs, self.object_count)
         scales = self.rng.uniform(self.scaling["low"], self.scaling["high"], len(urdfs))
-        generate_pile(self.sim, self.origin, self.size, urdfs, scales)
+        self.generate_scene(self.sim, self.origin, self.size, urdfs, scales)
         self.outcomes = deque(maxlen=2)
         return {"object_count": self.sim.object_count}
 

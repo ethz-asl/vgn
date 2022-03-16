@@ -8,5 +8,6 @@ object_count: 5
 scaling:
   low: 1.33
   high: 1.66
+scene: pile
 
 metric: dynamic_with_approach
