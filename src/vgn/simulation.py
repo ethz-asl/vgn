@@ -90,6 +90,34 @@ def generate_pile(sim, origin, size, urdfs, scales):
     remove_objects_outside_roi(sim, origin, size)
 
 
+def generate_packed(sim, origin, size, urdfs, scales, max_attempts=10):
+    center = origin * Transform.t_[0.5 * size, 0.5 * size, 0]
+    sim.load_support(center, size)
+    for urdf, scale in zip(urdfs, scales):
+        uid = sim.load_object(urdf, Transform.identity(), scale)
+        lower, upper = p.getAABB(uid)
+        z_offset = 0.5 * (upper[2] - lower[2]) + 0.002
+        state_id = p.saveState()
+        for _ in range(max_attempts):
+            local_ori = Rotation.from_rotvec([0, 0, sim.rng.uniform(2 * np.pi)])
+            local_pos = np.r_[sim.rng.uniform(0.2, 0.8, 2) * size, z_offset]
+            pose = origin * Transform(local_ori, local_pos)
+            p.resetBasePositionAndOrientation(
+                uid,
+                pose.translation,
+                pose.rotation.as_quat(),
+            )
+            sim.step()
+            if p.getContactPoints(uid):
+                p.restoreState(stateId=state_id)
+            else:
+                break
+        else:
+            sim.remove_object(uid)
+    sim.wait_for_objects_to_rest()
+    remove_objects_outside_roi(sim, origin, size)
+
+
 def remove_objects_outside_roi(sim, origin, size):
     for uid in sim.object_uids:
         xyz = np.asarray(p.getBasePositionAndOrientation(uid)[0])
@@ -100,6 +128,7 @@ def remove_objects_outside_roi(sim, origin, size):
 
 scene_fns = {
     "pile": generate_pile,
+    "packed": generate_packed,
 }
 
 

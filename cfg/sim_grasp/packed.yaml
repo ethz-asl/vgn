@@ -1,0 +1,13 @@
+sim:
+  urdf_root: assets/urdfs
+  gui: False
+  lateral_friction: 1.0
+
+object_urdfs: assets/urdfs/packed/test
+object_count: 5
+scaling:
+  low: 0.7
+  high: 0.9
+scene: packed
+
+metric: dynamic_with_approach
