@@ -60,7 +60,7 @@ def main():
 def create_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, required=True)
-    parser.add_argument("--cfg", type=Path, default="cfg/dataset/blocks.yaml")
+    parser.add_argument("--cfg", type=Path, required=True)
     parser.add_argument("--count", type=int, default=1000000)
     parser.add_argument("--seed", type=int, default=1)
     return parser
