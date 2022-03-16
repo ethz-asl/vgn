@@ -1,12 +1,13 @@
 import numpy as np
 import pandas as pd
 from scipy import ndimage
-import torch.utils.data
+from torch.utils.data import Dataset
 
 from robot_helpers.spatial import Rotation, Transform
+from vgn.data import read_grid
 
 
-class Dataset(torch.utils.data.Dataset):
+class VGNDataset(Dataset):
     def __init__(self, root, augment=False):
         self.root = root
         self.augment = augment
@@ -21,7 +22,7 @@ class Dataset(torch.utils.data.Dataset):
         pos = self.df.loc[i, "i":"k"].to_numpy(np.single)
         width = self.df.loc[i, "width"].astype(np.single)
         label = self.df.loc[i, "label"].astype(np.long)
-        voxel_grid = self.read_grid(scene_id)
+        voxel_grid = read_grid(self.root, scene_id)
 
         if self.augment:
             voxel_grid, ori, pos = apply_transform(voxel_grid, ori, pos)
@@ -35,10 +36,6 @@ class Dataset(torch.utils.data.Dataset):
         x, y, index = voxel_grid, (label, rotations, width), index
 
         return x, y, index
-
-    def read_grid(self, scene_id):
-        path = self.root / (scene_id + ".npz")
-        return np.load(path)["grid"]
 
 
 def apply_transform(grid, orientation, position):
@@ -60,8 +57,3 @@ def apply_transform(grid, orientation, position):
     orientation = T.rotation * orientation
 
     return grid, orientation, position
-
-
-def write_grid(root, scene_id, grid):
-    path = root / (scene_id + ".npz")
-    np.savez_compressed(path, grid=grid)

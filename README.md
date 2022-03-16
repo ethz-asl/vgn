@@ -67,7 +67,7 @@ Finally, download the URDF models [here](https://drive.google.com/file/d/16_-IBo
 Generate a database of labeled grasp configurations.
 
 ```
-mpirun -np <num-workers> python3 scripts/generate_data.py --root=data/grasps/packed
+mpirun -np <num-workers> python3 scripts/generate_data.py --root=data/grasps/blocks
 ```
 
 Next, clean and balance the data using the `process_data.ipynb` notebook.
@@ -75,19 +75,19 @@ Next, clean and balance the data using the `process_data.ipynb` notebook.
 You can also visualize a scene and the associated grasp configurations.
 
 ```
-python3 scripts/visualize_data.py --root=data/grasps/packed
+python3 scripts/visualize_data.py --root=data/grasps/blocks
 ```
 
 Finally, generate the voxel grid / grasp target pairs to train VGN.
 
 ```
-python3 scripts/build_dataset.py data/grasps/packed data/datasets/packed
+python3 scripts/build_dataset.py data/grasps/blocks data/datasets/blocks
 ```
 
 ## Network Training
 
 ```
-python3 scripts/train_vgn.py --dataset data/datasets/packed --augment
+python3 scripts/train_vgn.py --dataset data/datasets/blocks --augment
 ```
 
 ## Simulated Grasping

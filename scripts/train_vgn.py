@@ -10,7 +10,7 @@ import torch
 from torch.utils import tensorboard
 import torch.nn.functional as F
 
-from vgn.dataset import Dataset
+from vgn.dataset import VGNDataset
 from vgn.networks import get_network
 
 
@@ -97,7 +97,7 @@ def parse_args():
 
 
 def create_train_val_loaders(root, batch_size, val_split, augment, kwargs):
-    dataset = Dataset(root, augment=augment)
+    dataset = VGNDataset(root, augment=augment)
     val_size = int(val_split * len(dataset))
     train_size = len(dataset) - val_size
     train_set, val_set = torch.utils.data.random_split(dataset, [train_size, val_size])

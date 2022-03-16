@@ -1,14 +1,13 @@
 sim:
+  lateral_friction: 0.6
   gui: False
-  sleep: False
-  scene: packed
 
-urdf_root: assets/urdfs/packed/train
-scaling:
-  low: 0.7
-  high: 0.9
+object_urdfs: assets/urdfs/blocks
 object_count_lambda: 3
+scaling:
+  low: 1.33
+  high: 1.66
 max_view_count: 4
 scene_grasp_count: 200
 
-metric: physics
+metric: dynamic
