@@ -1,7 +1,6 @@
 sim:
-  urdf_root: assets/urdfs
-  gui: False
   lateral_friction: 1.0
+  gui: False
 
 object_urdfs: assets/urdfs/blocks
 object_count: 5

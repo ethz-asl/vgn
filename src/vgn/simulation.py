@@ -68,7 +68,7 @@ class GraspSim:
     def _configure_physics_engine(self):
         self.dt = 1.0 / 240.0
         p.connect(p.GUI if self.cfg["gui"] else p.DIRECT)
-        p.setAdditionalSearchPath(self.cfg["urdf_root"])
+        p.setAdditionalSearchPath(self.cfg.get("urdf_root", "assets/urdfs"))
         p.setPhysicsEngineParameter(fixedTimeStep=self.dt)
         p.setGravity(0.0, 0.0, -9.81)
 
