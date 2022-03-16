@@ -10,7 +10,8 @@ import vgn.visualizer as vis
 
 
 def main():
-    args = parse_args()
+    parser = create_parser()
+    args = parser.parse_args()
     df = pd.read_csv(args.root / "grasps.csv")
 
     while True:
@@ -26,10 +27,10 @@ def main():
         vis.show()
 
 
-def parse_args():
+def create_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, required=True)
-    return parser.parse_args()
+    return parser
 
 
 if __name__ == "__main__":
