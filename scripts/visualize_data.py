@@ -29,7 +29,7 @@ def main():
 
 def create_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root", type=Path, required=True)
+    parser.add_argument("root", type=Path)
     return parser
 
 

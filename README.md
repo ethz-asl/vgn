@@ -75,7 +75,7 @@ Next, clean and balance the data using the `process_data.ipynb` notebook.
 You can also visualize a scene and the associated grasp configurations.
 
 ```
-python3 scripts/visualize_data.py --root=data/grasps/blocks
+python3 scripts/visualize_data.py data/grasps/blocks
 ```
 
 Finally, generate the voxel grid / grasp target pairs to train VGN.
