@@ -81,7 +81,7 @@ python3 scripts/visualize_data.py data/grasps/blocks
 Finally, generate the voxel grid / grasp target pairs to train VGN.
 
 ```
-python3 scripts/build_dataset.py data/grasps/blocks data/datasets/blocks
+python3 scripts/create_dataset.py data/grasps/blocks data/datasets/blocks
 ```
 
 ## Network Training
