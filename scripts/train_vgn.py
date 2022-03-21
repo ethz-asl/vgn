@@ -88,7 +88,7 @@ def parse_args():
     parser.add_argument("--dataset", type=Path, required=True)
     parser.add_argument("--logdir", type=Path, default="data/training")
     parser.add_argument("--net", default="conv")
-    parser.add_argument("--epochs", type=int, default=30)
+    parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--val-split", type=float, default=0.1)
