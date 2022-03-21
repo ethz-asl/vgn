@@ -98,25 +98,19 @@ python3 scripts/sim_grasp.py
 
 ## Robot Grasping
 
-This package contains an example of open-loop grasp execution with a Franka Emika Panda and a wrist-mounted Intel Realsense D435. Since the robot drivers are not officially supported on ROS Noetic yet, we used the following workaround.
+This package contains an example of open-loop grasp execution with a Franka Emika Panda and a wrist-mounted Intel Realsense D435.
 
-Start a roscore and launch the hardware drivers on the computer with `libfranka` installed.
+Start a roscore and launch the ROS nodes.
 
 ```
 roscore &
-roslaunch vgn hw.launch
-```
-
-Launch MoveIt and the VGN ROS nodes on a second computer connected to the same roscore.
-
-```
 roslaunch vgn panda_grasp.launch
 ```
 
-Run the grasping experiment.
+Run a grasping experiment.
 
 ```
-rosrun vgn panda_grasp.py
+python3 scripts/panda_grasp.py
 ```
 
 ## Citing

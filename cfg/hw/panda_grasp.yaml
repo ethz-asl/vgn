@@ -2,12 +2,12 @@ panda_grasp:
   task_frame_id: task
   base_frame_id: panda_link0
   ee_frame_id: panda_link8
-  ee_grasp_offset: [0.0, 0.0, -0.382, 0.924, 0.0, 0.0, 0.065]  # TODO check this
+  ee_grasp_offset: [0.0, 0.0, -0.382, 0.924, 0.0, 0.0, 0.066]
   scan_joints:
-    - [0.010, -1.479, 0.10027132190633238, -2.416246868493765, 0.08994288870361117, 1.4022499498261343, 0.8516519819506339]
-    - [-0.520, -0.796, 0.9121961832112832, -1.6720657872605567, 0.0914094145960278, 1.2810500415696036, 0.8710614908889162]
-    - [0.032, 0.4595, 0.0743635250858064, -0.8394780465249851, 0.01546591704007652, 0.7776030993991428, 0.8335337665490805]
-    - [0.092, -0.626, -0.5511789947129442, -1.8378490985067266, 0.1656381993108548, 1.2387742138438755, 0.9008788375077649]
+    - [0.010, -1.479, 0.100, -2.416, 0.089, 1.402, 0.851]
+    - [-0.520, -0.796, 0.912, -1.672, 0.091, 1.281, 0.871]
+    - [0.032, 0.4595, 0.074, -0.839, 0.015, 0.777, 0.833]
+    - [0.092, -0.626, -0.551, -1.837, 0.165, 1.238, 0.900]
 
 tsdf_server:
   frame_id: task
@@ -15,9 +15,9 @@ tsdf_server:
   resolution: 40
   depth_scaling: 0.001  # Set to 1.0 for Gazebo, 0.001 for a RealSense
   camera:
-    frame_id: camera_depth_optical_frame
-    info_topic: /camera/depth/camera_info
-    depth_topic: /camera/depth/image_rect_raw
+    frame_id: wrist_camera_depth_optical_frame
+    info_topic: /wrist_camera/depth/camera_info
+    depth_topic: /wrist_camera/depth/image_rect_raw
 
 vgn_server:
   frame_id: task

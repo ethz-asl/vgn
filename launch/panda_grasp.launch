@@ -1,16 +1,37 @@
 <?xml version="1.0" ?>
 <launch>
-  <!-- Load configuration -->
-  <rosparam command="load" file="$(find vgn)/cfg/hw/panda_grasp.yaml" subst_value="true" />
+  <arg name="launch_rviz" default="true" />
+
+  <!-- Launch Panda controller -->
+  <include file="$(find moma_bringup)/launch/franka_control.launch">
+    <arg name="robot_ip" value="172.16.0.2" />
+  </include>
+  <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="position_joint_trajectory_controller"/>
 
   <!-- Launch MoveIt -->
   <node pkg="tf2_ros" type="static_transform_publisher" name="to_panda" args="0 0 0 0 0 0  world panda_link0" />
-  <include file="$(find panda_moveit_config)/launch/move_group.launch" />
+  <include file="$(find panda_moveit_config)/launch/move_group.launch">
+    <arg name="load_robot_description" value="false"/>
+  </include>
+
+  <!-- Launch camera driver -->
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="enable_pointcloud" value="true" />
+    <arg name="camera" value="wrist_camera" />
+    <arg name="publish_tf" value="true" />
+  </include>
+
+  <!-- Broadcast task transform -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="task_frame_broadcaster" args="0.25 -0.15 0.0 0.0 0.0 0.0 1.0 panda_link0 task" />
+
+  <!-- Load configuration -->
+  <rosparam command="load" file="$(find vgn)/cfg/hw/panda_grasp.yaml" subst_value="true" />
 
   <!-- Launch Nodes -->
   <node pkg="vgn" type="tsdf_server.py" name="tsdf_server" />
   <node pkg="vgn" type="vgn_server.py" name="vgn_server" />
 
-  <!-- ROI -->
-  <node pkg="tf2_ros" type="static_transform_publisher" name="task_frame_broadcaster" args="0.25 -0.15 0.0 0.0 0.0 0.0 1.0 panda_link0 task" />
+  <!-- Launch rviz -->
+  <node if="$(arg launch_rviz)" pkg="rviz" type="rviz" name="rviz" args="-d $(find vgn)/cfg/hw/panda_grasp.rviz" />
+
 </launch>
