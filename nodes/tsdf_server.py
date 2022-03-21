@@ -20,7 +20,7 @@ class UniformTSDFServer:
         self.advertise_services()
         self.cv_bridge = cv_bridge.CvBridge()
         self.integrate = False
-        rospy.loginfo("TSDF node ready")
+        rospy.loginfo("TSDF server ready")
 
     def load_parameters(self):
         self.frame_id = rospy.get_param("~frame_id")
@@ -85,6 +85,6 @@ class UniformTSDFServer:
 
 
 if __name__ == "__main__":
-    rospy.init_node("tsdf_node")
+    rospy.init_node("tsdf_server")
     UniformTSDFServer()
     rospy.spin()

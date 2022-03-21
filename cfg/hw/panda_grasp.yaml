@@ -9,7 +9,7 @@ panda_grasp:
     - [0.032, 0.4595, 0.0743635250858064, -0.8394780465249851, 0.01546591704007652, 0.7776030993991428, 0.8335337665490805]
     - [0.092, -0.626, -0.5511789947129442, -1.8378490985067266, 0.1656381993108548, 1.2387742138438755, 0.9008788375077649]
 
-tsdf_node:
+tsdf_server:
   frame_id: task
   length: 0.3
   resolution: 40
@@ -19,6 +19,6 @@ tsdf_node:
     info_topic: /camera/depth/camera_info
     depth_topic: /camera/depth/image_rect_raw
 
-vgn_node:
+vgn_server:
   frame_id: task
-  model: /home/michel/Developer/catkin_ws/src/vgn/assets/models/vgn_conv.pth
+  model: $(find vgn)/assets/models/vgn_conv.pth

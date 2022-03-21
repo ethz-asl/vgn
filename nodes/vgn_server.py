@@ -15,7 +15,7 @@ class VGNServer:
         self.vgn = VGN(Path(rospy.get_param("~model")))
         rospy.Service("predict_grasps", vgn.srv.PredictGrasps, self.predict_grasps)
         self.vis = Visualizer()
-        rospy.loginfo("VGN node ready")
+        rospy.loginfo("VGN server ready")
 
     def predict_grasps(self, req):
         # Construct the input grid
@@ -37,6 +37,6 @@ class VGNServer:
 
 
 if __name__ == "__main__":
-    rospy.init_node("vgn_node")
+    rospy.init_node("vgn_server")
     VGNServer()
     rospy.spin()
