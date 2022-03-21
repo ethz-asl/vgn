@@ -40,6 +40,7 @@ class PandaGraspController(object):
     def init_robot_connection(self):
         self.gripper = PandaGripperClient()
         self.moveit = MoveItClient("panda_arm")
+        self.moveit.move_group.set_end_effector_link(self.ee_frame)
 
         # Add a box to the planning scene to avoid collisions with the table.
         msg = geometry_msgs.msg.PoseStamped()
