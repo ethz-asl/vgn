@@ -56,13 +56,11 @@ class Visualizer:
         msg = create_line_list_marker(frame, pose, scale, color, lines, ns="roi")
         self.draw([msg])
 
-    def scene_cloud(self, frame, cloud):
-        msg = to_cloud_msg(frame, np.asarray(cloud.points))
+    def scene_cloud(self, frame, points):
+        msg = to_cloud_msg(frame, points)
         self.scene_cloud_pub.publish(msg)
 
-    def map_cloud(self, frame, cloud):
-        points = np.asarray(cloud.points)
-        distances = np.expand_dims(np.asarray(cloud.colors)[:, 0], 1)
+    def map_cloud(self, frame, points, distances):
         msg = to_cloud_msg(frame, points, distances=distances)
         self.map_cloud_pub.publish(msg)
 
