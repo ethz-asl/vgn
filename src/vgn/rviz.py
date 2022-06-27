@@ -84,7 +84,7 @@ class Visualizer:
         self.marker_pub.publish(MarkerArray(markers=markers))
 
 
-def create_grasp_markers(frame, grasp, color, ns, id=0, depth=0.05, radius=0.005):
+def create_grasp_markers(frame, grasp, color, ns, id=0, depth=0.046, radius=0.005):
     # Nicer looking grasp marker drawn with 4 Marker.CYLINDER
     w, d = grasp.width, depth
     pose = grasp.pose * Transform.t_[0.0, -w / 2, d / 2]
