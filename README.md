@@ -79,7 +79,7 @@ The script will create the following file structure within `data/raw/foo`:
 * `grasps.csv` contains the configuration, label, and associated scene for each grasp,
 * `scenes/<scene_id>.npz` contains the synthetic sensor data of each scene.
 
-The `data.ipynb` notebook is useful to clean, balance and visualize the generated data.
+Clean the generated grasp configurations using the `data.ipynb` notebook.
 
 Finally, generate the voxel grids/grasp targets required to train VGN.
 
