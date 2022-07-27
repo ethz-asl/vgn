@@ -61,7 +61,7 @@ or alternatively install the project locally in "editable" mode using `pip`.
 pip install -e .
 ```
 
-Finally, download the data folder [here](https://drive.google.com/file/d/1MnWwxkYo9WnLFNseEVSWRT1q-XElYlxJ/view?usp=sharing), then unzip and place it in the repo's root.
+Finally, download the data folder [here](https://drive.google.com/file/d/1MysYHve3ooWiLq12b58Nm8FWiFBMH-bJ/view?usp=sharing), then unzip and place it in the repo's root.
 
 ## Data Generation
 
