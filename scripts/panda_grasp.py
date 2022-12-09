@@ -3,7 +3,7 @@
 import geometry_msgs.msg
 import numpy as np
 import rospy
-from std_srvs.srv import SetBool, Trigger
+from std_srvs.srv import SetBool, Empty
 
 from robot_helpers.ros.conversions import *
 from robot_helpers.ros.panda import PandaGripperClient
@@ -50,7 +50,7 @@ class PandaGraspController(object):
         self.moveit.scene.add_box("table", msg, size=(0.6, 0.6, 0.02))
 
     def init_services(self):
-        self.reset_map = rospy.ServiceProxy("reset_map", Trigger)
+        self.reset_map = rospy.ServiceProxy("reset_map", Empty)
         self.toggle_integration = rospy.ServiceProxy("toggle_integration", SetBool)
         self.get_scene_cloud = rospy.ServiceProxy("get_scene_cloud", GetSceneCloud)
         self.get_map_cloud = rospy.ServiceProxy("get_map_cloud", GetMapCloud)

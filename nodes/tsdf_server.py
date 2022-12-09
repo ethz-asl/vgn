@@ -39,14 +39,14 @@ class UniformTSDFServer:
         rospy.Subscriber(self.depth_topic, Image, self.sensor_cb)
 
     def advertise_services(self):
-        rospy.Service("reset_map", std_srvs.srv.Trigger, self.reset)
+        rospy.Service("reset_map", std_srvs.srv.Empty, self.reset)
         rospy.Service("toggle_integration", std_srvs.srv.SetBool, self.toggle)
         rospy.Service("get_scene_cloud", vgn.srv.GetSceneCloud, self.get_scene_cloud)
         rospy.Service("get_map_cloud", vgn.srv.GetMapCloud, self.get_map_cloud)
 
     def reset(self, req):
         self.tsdf = UniformTSDFVolume(self.length, self.resolution)
-        return std_srvs.srv.TriggerResponse(success=True)
+        return std_srvs.srv.EmptyResponse()
 
     def toggle(self, req):
         self.integrate = req.data
