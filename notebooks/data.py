@@ -15,7 +15,7 @@ from vgn import vis
 
 rospy.init_node("vgn_vis", anonymous=True)
 
-root = Path("data/raw/foo")
+root = Path("/home/wzx/catkin_ws/src/vgn/data/raw/foo") # modify this line
 
 df = read_df(root)
 
@@ -33,7 +33,7 @@ scene_id, grasp, label = read_grasp(df, i)
 depth_imgs, extrinsics = read_sensor_data(root, scene_id)
 
 tsdf = create_tsdf(size, 120, depth_imgs, intrinsic, extrinsics)
-tsdf_grid = tsdf.get_grid()
+# tsdf_grid = tsdf.get_grid()
 cloud = tsdf.get_cloud()
 
 vis.clear()
@@ -45,7 +45,12 @@ angles = np.empty(len(positives.index))
 for i, index in enumerate(positives.index):
     approach = Rotation.from_quat(df.loc[index, "qx":"qw"].to_numpy()).as_matrix()[:,2]
     angle = np.arccos(np.dot(approach, np.r_[0.0, 0.0, -1.0]))
-    angles[i] = np.rad2deg(angle)        
+    angles[i] = np.rad2deg(angle)      
+
+plt.hist(angles, bins=30)
+plt.xlabel("Angle [deg]")
+plt.ylabel("Count")
+plt.show()  
 
 df = read_df(root)
 df.drop(df[df["x"] < 0.02].index, inplace=True)
@@ -71,3 +76,4 @@ i = np.random.choice(negatives.index, len(negatives.index) - len(positives.index
 df = df.drop(i)
 
 write_df(df, root)
+print("cleanup completed!")
