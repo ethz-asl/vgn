@@ -60,7 +60,7 @@ catkin build vgn
 source /path/to/catkin_ws/devel/setup.zsh
 ```
 
-Finally, download the URDF models [here](https://drive.google.com/file/d/17S8Ie4hf52FuUqCdkcca8-gF-YfHNl8-/view) and place them inside of `assets`.
+Finally, download the [URDFs](https://drive.google.com/file/d/1J_ImKqDoKEXs7ng4Yjolwyu5VnGugjoZ/view) and [pretrained model](https://drive.google.com/file/d/1J3cPjyVQ59LpcLZZrA7EfeV3xTmITchr/view) and place them inside `assets`.
 
 ## Data Generation
 
