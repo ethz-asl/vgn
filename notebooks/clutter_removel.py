@@ -5,7 +5,7 @@ from pathlib import Path
 
 from vgn.experiments import clutter_removal
 
-logdir = Path("/home/wzx/catkin_ws/src/vgn/data/experiments/23-07-26-01-07-11") # modify this line
+logdir = Path("/home/wzx/catkin_ws/src/vgn/data/experiments/23-07-28-02-12-07") # modify this line
 
 data = clutter_removal.Data(logdir)
 
